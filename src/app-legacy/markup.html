@@ -335,6 +335,33 @@
       </details>
     </section>
 
+
+    <!-- ================= STRAVA ================= -->
+    <section class="view" id="view-strava">
+      <div class="view-head">
+        <div><h1>Strava</h1><div class="sub">Activités synchronisées en temps réel</div></div>
+        <div class="badges">
+          <span class="live-dot" id="stravaLive"><i></i><span id="stravaLiveLabel">Hors ligne</span></span>
+        </div>
+      </div>
+
+      <div class="panel strava-connect" id="stravaConnectPanel">
+        <div>
+          <h3 class="block-title" style="margin:0;">Connexion à Strava</h3>
+          <div class="sub" id="stravaAccount">Non connecté</div>
+        </div>
+        <div class="right">
+          <a class="btn primary" id="btnStravaConnect" href="/api/strava/authorize">Se connecter avec Strava</a>
+          <button class="btn ghost" id="btnStravaDisconnect" style="display:none;">Déconnecter</button>
+          <button class="btn" id="btnStravaRefresh">Actualiser</button>
+        </div>
+      </div>
+
+      <div class="grid cols-4" id="stravaKpis" style="margin-bottom:16px;"></div>
+
+      <div class="activity-grid" id="stravaActivities"></div>
+    </section>
+
   </main>
 </div>
 
