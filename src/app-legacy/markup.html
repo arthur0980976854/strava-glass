@@ -1,0 +1,405 @@
+<div id="shell">
+
+  <aside id="sidebar">
+    <div class="logo">
+      <div class="wordmark">Plan<span>'s</span></div>
+      <div class="tagline">Suivi &amp; planification sportive</div>
+    </div>
+    <nav id="mainNav">
+      <button data-view="dashboard" class="active"><span class="n"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg></span>Tableau de bord</button>
+      <button data-view="planification"><span class="n"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>Planification</button>
+      <button data-view="statistiques"><span class="n"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg></span>Statistiques</button>
+      <button data-view="realisees"><span class="n"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span>Séances réalisées</button>
+      <button data-view="parametres"><span class="n"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>Paramètres</button>
+    </nav>
+    <div class="sidebar-foot">Données enregistrées&nbsp;localement</div>
+  </aside>
+
+  <main id="content">
+
+    <!-- ================= TABLEAU DE BORD ================= -->
+    <section class="view active" id="view-dashboard">
+      <div class="view-head"><div><h1>Tableau de bord</h1><div class="sub" id="dashDateRange"></div></div></div>
+
+      <div class="panel goal-banner" id="goalBanner"></div>
+
+      <div class="grid cols-4" id="kpiGrid" style="margin-bottom:16px;"></div>
+
+      <div class="panel" id="weekPanelBox">
+        <div class="week-panel-head">
+          <h3 class="block-title" style="margin:0;">Semaine en cours</h3>
+          <div class="badges">
+            <span class="cycle-badge" id="currentCycleBadge">—</span>
+            <span class="cycle-badge" id="currentSubBadge" style="display:none;">—</span>
+            <select class="weektype-select" id="weekTypeSelect"></select>
+            <input type="text" class="weekobj-input" id="weekObjectiveInput" placeholder="Objectif de la semaine…">
+          </div>
+        </div>
+        <div class="cw-row" id="cycleWeeksRow"></div>
+        <div class="week-grid" id="weekGrid"></div>
+        <div class="legend-row">
+          <span><i class="legend-sw done"></i>Séance réalisée</span>
+          <span><i class="legend-sw planned"></i>Séance planifiée</span>
+          <span><i class="legend-sw cycle"></i>Barre du haut = cycle en cours ce jour-là</span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3 class="block-title">Kilométrage par sport — semaine en cours</h3>
+        <div class="stat-chips" id="sportStatChips"></div>
+        <div class="chart-box"><canvas id="chartSportKm"></canvas></div>
+      </div>
+    </section>
+
+    <!-- ================= PLANIFICATION ================= -->
+    <section class="view" id="view-planification">
+      <div class="view-head"><div><h1>Planification</h1><div class="sub">Timeline de saison &amp; calendrier</div></div></div>
+
+      <div class="panel">
+        <h3 class="block-title">Timeline de la saison</h3>
+        <div class="timeline-wrap">
+          <div class="timeline" id="timeline">
+            <div class="tl-months" id="tlMonths"></div>
+            <div class="tl-level-label">Cycles</div>
+            <div class="tl-lanes" id="tlLanesCycles"></div>
+            <div class="tl-level-label">Sous-cycles</div>
+            <div class="tl-lanes" id="tlLanesSub"></div>
+            <div class="tl-level-label">Sous-sous-cycles</div>
+            <div class="tl-lanes" id="tlLanesSubSub"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="week-panel-head">
+          <h3 class="block-title" style="margin:0;">Calendrier mensuel</h3>
+          <div class="badges">
+            <span class="cycle-badge" id="planMonthCycleBadge">—</span>
+            <div class="month-nav">
+              <button id="planMonthPrev">‹</button>
+              <span class="month-label" id="planMonthLabel"></span>
+              <button id="planMonthNext">›</button>
+            </div>
+          </div>
+        </div>
+        <div class="weekday-row"><span>Lun</span><span>Mar</span><span>Mer</span><span>Jeu</span><span>Ven</span><span>Sam</span><span>Dim</span></div>
+        <div class="month-grid" id="planMonthGrid"></div>
+        <div class="legend-row">
+          <span><i class="legend-sw done"></i>Réalisée</span>
+          <span><i class="legend-sw planned"></i>Planifiée</span>
+          <span><i class="legend-sw cycle"></i>Barre du haut = cycle du jour</span>
+        </div>
+      </div>
+
+      <div class="config-toggle-row">
+        <button class="btn primary" id="btnToggleConfig">⚙ Configurer la saison, les cycles &amp; les objectifs</button>
+      </div>
+
+      <div id="planConfigWrap" style="display:none;">
+        <div class="panel">
+          <h3 class="block-title">Saison</h3>
+          <div class="season-form">
+            <div class="field"><label>Début de saison</label><input type="date" id="seasonStart"></div>
+            <div class="field"><label>Fin de saison</label><input type="date" id="seasonEnd"></div>
+            <button class="btn primary" id="btnSaveSeason">Enregistrer la saison</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3 class="block-title">Objectifs de saison</h3>
+          <div class="form-grid c3">
+            <div class="field"><label>Nom de l'objectif</label><input type="text" id="goalName" placeholder="Ex : Marathon de Paris"></div>
+            <div class="field"><label>Date</label><input type="date" id="goalDate"></div>
+            <div class="field"><label>Temps visé (optionnel)</label><input type="text" id="goalTarget" placeholder="Ex : 3h15"></div>
+          </div>
+          <div class="form-actions"><span></span><div class="right"><button class="btn primary" id="btnAddGoal">Ajouter l'objectif</button></div></div>
+          <div class="list" id="goalsList" style="margin-top:12px;"></div>
+        </div>
+
+        <div class="panel">
+          <h3 class="block-title">Ajouter / modifier un cycle</h3>
+          <div class="edit-mode-hint" id="cycleEditHint">Modification en cours — <a href="#" id="cancelCycleEdit" style="color:#92650a;">annuler</a></div>
+          <div class="form-grid c3">
+            <div class="field"><label>Type de cycle</label>
+              <select id="cycleType">
+                <option value="base">Base</option>
+                <option value="developpement">Développement</option>
+                <option value="specifique">Spécifique</option>
+                <option value="affutage">Affûtage</option>
+                <option value="recuperation">Récupération</option>
+                <option value="libre">Libre (nom personnalisé)</option>
+              </select>
+            </div>
+            <div class="field" id="cycleLabelField" style="display:none;"><label>Nom du cycle</label><input type="text" id="cycleLabel" list="customCycleNamesList" placeholder="Ex : Stage altitude"></div>
+            <div class="field"><label>Début</label><input type="date" id="cycleStart"></div>
+            <div class="field"><label>Fin</label><input type="date" id="cycleEnd"></div>
+          </div>
+          <div class="form-actions"><span></span><div class="right"><button class="btn primary" id="btnAddCycle">Ajouter le cycle</button></div></div>
+          <div class="cycle-list" id="cycleList"></div>
+          <datalist id="customCycleNamesList"></datalist>
+        </div>
+
+        <div class="panel">
+          <h3 class="block-title">Ajouter / modifier un sous-cycle</h3>
+          <div class="edit-mode-hint" id="subEditHint">Modification en cours — <a href="#" id="cancelSubEdit" style="color:#92650a;">annuler</a></div>
+          <div class="form-grid c3">
+            <div class="field"><label>Cycle parent</label><select id="subParentCycle"></select></div>
+            <div class="field"><label>Nom du sous-cycle</label><input type="text" id="subName" placeholder="Ex : Bloc 4 semaines"></div>
+            <div class="field"><label>Durée (semaines)</label><input type="number" id="subWeeks" min="1" value="4"></div>
+            <div class="field"><label>Début</label><input type="date" id="subStart"></div>
+          </div>
+          <div class="form-actions"><span></span><div class="right"><button class="btn primary" id="btnAddSub">Ajouter le sous-cycle</button></div></div>
+          <div class="subcycle-list" id="subList"></div>
+        </div>
+
+        <div class="panel">
+          <h3 class="block-title">Diviser un sous-cycle (sous-sous-cycles)</h3>
+          <div class="edit-mode-hint" id="subsubEditHint">Modification en cours — <a href="#" id="cancelSubSubEdit" style="color:#92650a;">annuler</a></div>
+          <div class="form-grid c3">
+            <div class="field"><label>Sous-cycle parent</label><select id="subsubParentSub"></select></div>
+            <div class="field"><label>Nom</label><input type="text" id="subsubName" placeholder="Ex : Semaine de charge"></div>
+            <div class="field"><label>Durée (semaines)</label><input type="number" id="subsubWeeks" min="1" value="1"></div>
+            <div class="field"><label>Début</label><input type="date" id="subsubStart"></div>
+          </div>
+          <div class="form-actions"><span></span><div class="right"><button class="btn primary" id="btnAddSubSub">Ajouter</button></div></div>
+          <div class="subcycle-list" id="subSubList"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= STATISTIQUES ================= -->
+    <section class="view" id="view-statistiques">
+      <div class="view-head"><div><h1>Statistiques</h1><div class="sub">Graphiques &amp; analyse</div></div></div>
+
+      <div class="sport-thumbs" id="sportThumbs"></div>
+
+      <div class="panel">
+        <div class="filters">
+          <select id="statsSportFilter"><option value="all">Tous les sports</option></select>
+          <select id="statsCycleFilter"><option value="all">Tous les cycles</option></select>
+        </div>
+        <h3 class="block-title">Dénivelé &amp; km par semaine</h3>
+        <div class="chart-stats" id="statsKmDenivStats"></div>
+        <div class="chart-box"><canvas id="chartCycleKmDeniv"></canvas></div>
+      </div>
+
+      <div class="panel">
+        <div class="filters">
+          <select id="statsTimePeriod">
+            <option value="4">4 dernières semaines</option>
+            <option value="12" selected>12 dernières semaines</option>
+            <option value="52">Année</option>
+          </select>
+        </div>
+        <h3 class="block-title">Temps d'entraînement par semaine</h3>
+        <div class="chart-stats" id="statsTimeStats"></div>
+        <div class="chart-box"><canvas id="chartTime"></canvas></div>
+      </div>
+
+      <div class="grid cols-2">
+        <div class="panel"><h3 class="block-title">Répartition du volume par sport</h3><div class="chart-box"><canvas id="chartBySport"></canvas></div></div>
+        <div class="panel"><h3 class="block-title">Charge d'entraînement par semaine</h3><div class="chart-stats" id="statsLoadStats"></div><div class="chart-box"><canvas id="chartLoad"></canvas></div></div>
+        <div class="panel"><h3 class="block-title" title="Ressenti de l'effort, moyenne par semaine">RPE moyen par semaine</h3><div class="chart-stats" id="statsRpeStats"></div><div class="chart-box"><canvas id="chartRpe"></canvas></div></div>
+        <div class="panel"><h3 class="block-title">Plaisir ressenti par semaine (/10)</h3><div class="chart-stats" id="statsPlaisirStats"></div><div class="chart-box"><canvas id="chartPlaisir"></canvas></div></div>
+        <div class="panel" style="grid-column:span 2;"><h3 class="block-title" title="Minutes passées dans chaque zone de fréquence cardiaque">Répartition du temps par zone cardio</h3><div class="chart-box"><canvas id="chartZones"></canvas></div></div>
+      </div>
+
+      <div class="panel">
+        <h3 class="block-title">Comparateur libre (échelles indépendantes gauche/droite)</h3>
+        <div class="filters">
+          <select id="cmpA"></select>
+          <span style="color:var(--text-faint);font-family:var(--font-mono);font-size:11px;">vs</span>
+          <select id="cmpB"></select>
+        </div>
+        <div class="chart-box"><canvas id="chartCompare"></canvas></div>
+      </div>
+    </section>
+
+    <!-- ================= SEANCES REALISEES ================= -->
+    <section class="view" id="view-realisees">
+      <div class="view-head"><div><h1>Séances réalisées</h1><div class="sub">Journal &amp; calendrier</div></div></div>
+
+      <div class="panel">
+        <div class="week-panel-head">
+          <h3 class="block-title" style="margin:0;">Calendrier des séances</h3>
+          <div class="badges">
+            <button class="btn primary small" id="btnLogUnplanned">+ Séance non planifiée</button>
+            <div class="month-nav">
+              <button id="doneMonthPrev">‹</button>
+              <span class="month-label" id="doneMonthLabel"></span>
+              <button id="doneMonthNext">›</button>
+            </div>
+          </div>
+        </div>
+        <div class="weekday-row"><span>Lun</span><span>Mar</span><span>Mer</span><span>Jeu</span><span>Ven</span><span>Sam</span><span>Dim</span></div>
+        <div class="month-grid" id="doneMonthGrid"></div>
+        <div class="legend-row">
+          <span><i class="legend-sw done"></i>Réalisée</span>
+          <span><i class="legend-sw planned"></i>Planifiée</span>
+          <span><i class="legend-sw cycle"></i>Barre du haut = cycle du jour</span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3 class="block-title">Historique par sport</h3>
+        <div class="chip-row" id="sportChipRow"></div>
+        <div class="filters">
+          <select id="realSportFilter" style="display:none;"><option value="all">Tous les sports</option></select>
+          <select id="realPeriodFilter">
+            <option value="30">30 derniers jours</option>
+            <option value="90">90 derniers jours</option>
+            <option value="all" selected>Tout l'historique</option>
+          </select>
+        </div>
+        <div class="list" id="realiseesList"></div>
+      </div>
+    </section>
+
+    <!-- ================= PARAMETRES ================= -->
+    <section class="view" id="view-parametres">
+      <div class="view-head"><div><h1>Paramètres</h1><div class="sub">Données fixes</div></div></div>
+
+      <details class="panel" open>
+        <summary>Profil</summary>
+        <div class="details-body">
+          <div class="form-grid">
+            <div class="field"><label>Prénom</label><input type="text" id="pFirstName"></div>
+            <div class="field"><label>Nom</label><input type="text" id="pLastName"></div>
+            <div class="field"><label>Âge</label><input type="number" id="pAge" min="0"></div>
+            <div class="field"><label>Taille (cm)</label><input type="number" id="pHeight" min="0"></div>
+            <div class="field"><label>Poids (kg)</label><input type="number" id="pWeight" min="0" step="0.1"></div>
+            <div class="field"><label title="Vitesse Maximale Aérobie">VMA (km/h)</label><input type="number" id="pVma" min="0" step="0.1"></div>
+            <div class="field"><label>FC max (bpm)</label><input type="number" id="pHrMax" min="0"></div>
+            <div class="field"><label>FC repos (bpm)</label><input type="number" id="pHrRest" min="0"></div>
+            <div class="field"><label>Objectif hebdomadaire (heures)</label><input type="number" id="pWeeklyTarget" min="0" step="0.5"></div>
+          </div>
+          <div class="form-actions"><span></span><div class="right"><button class="btn primary" id="btnSaveProfile">Enregistrer</button></div></div>
+          <div class="section-sep">Repères VMA (calculés)</div>
+          <table class="zones-table"><thead><tr><th>% VMA</th><th>Vitesse</th><th>Allure</th></tr></thead><tbody id="vmaBody"></tbody></table>
+        </div>
+      </details>
+
+      <details class="panel">
+        <summary title="Zones de fréquence cardiaque utilisées pour analyser vos séances">5 zones cardio</summary>
+        <div class="details-body">
+          <table class="zones-table">
+            <thead><tr><th>Zone</th><th>Min (bpm)</th><th>Max (bpm)</th></tr></thead>
+            <tbody id="zonesBody"></tbody>
+          </table>
+          <div class="form-actions">
+            <button class="btn" id="btnRecalcZones">Recalculer depuis FC max</button>
+            <div class="right"><button class="btn primary" id="btnSaveZones">Enregistrer les zones</button></div>
+          </div>
+        </div>
+      </details>
+
+      <details class="panel">
+        <summary>Sports</summary>
+        <div class="details-body">
+          <div class="list" id="sportsList" style="margin-bottom:12px;"></div>
+          <div class="form-grid" style="grid-template-columns:1fr auto;">
+            <div class="field"><label>Nouveau sport</label><input type="text" id="newSportName"></div>
+            <div class="field"><label>&nbsp;</label><button class="btn" id="btnAddSport">Ajouter</button></div>
+          </div>
+        </div>
+      </details>
+
+      <details class="panel">
+        <summary>Types de séances</summary>
+        <div class="details-body">
+          <div class="list" id="sessionTypesList" style="margin-bottom:12px;"></div>
+          <div class="form-grid" style="grid-template-columns:1fr auto;">
+            <div class="field"><label>Nouveau type</label><input type="text" id="newSessionType"></div>
+            <div class="field"><label>&nbsp;</label><button class="btn" id="btnAddSessionType">Ajouter</button></div>
+          </div>
+        </div>
+      </details>
+
+      <details class="panel">
+        <summary>Noms de cycles personnalisés</summary>
+        <div class="details-body">
+          <div class="list" id="cycleNamesList" style="margin-bottom:12px;"></div>
+          <div class="form-grid" style="grid-template-columns:1fr auto;">
+            <div class="field"><label>Nouveau nom</label><input type="text" id="newCycleName"></div>
+            <div class="field"><label>&nbsp;</label><button class="btn" id="btnAddCycleName">Ajouter</button></div>
+          </div>
+        </div>
+      </details>
+
+      <details class="panel">
+        <summary>Bibliothèque de séances</summary>
+        <div class="details-body">
+          <div class="list" id="templatesList"></div>
+        </div>
+      </details>
+    </section>
+
+  </main>
+</div>
+
+<!-- ================= MODAL SEANCE ================= -->
+<div class="modal-overlay" id="sessModalOverlay">
+  <div class="modal">
+    <h3 id="sessModalTitle">Nouvelle séance</h3>
+    <form id="sessForm">
+      <input type="hidden" name="id">
+
+      <div class="form-grid" id="templateLoadRow">
+        <div class="field" style="grid-column:span 2;"><label>Charger depuis la bibliothèque</label><select id="templateLoadSelect"><option value="">— Choisir un modèle —</option></select></div>
+      </div>
+
+      <div class="form-grid">
+        <div class="field"><label>Date</label><input type="date" name="date" required></div>
+        <div class="field">
+          <label>Statut</label>
+          <div class="status-tabs">
+            <button type="button" class="tab-btn active" data-status="planned">Prévu</button>
+            <button type="button" class="tab-btn" data-status="done">Réalisé</button>
+          </div>
+          <select name="status" id="sessStatus" style="display:none;"><option value="planned">Planifiée</option><option value="done">Réalisée</option></select>
+        </div>
+        <div class="field"><label>Sport</label><select name="sport" id="sessSport" required></select></div>
+        <div class="field"><label>Type de séance</label><select name="sessionType" id="sessType"></select></div>
+      </div>
+
+      <div class="section-sep">Détail de la séance</div>
+      <div class="form-grid">
+        <div class="field" style="grid-column:span 2;"><label>Détail</label><textarea name="detail" placeholder="Ex : 10x400m R2', ou description si séance non planifiée"></textarea></div>
+        <div class="field" style="grid-column:span 2;"><label>Objectif</label><input type="text" name="objective" placeholder="Ex : Travail VMA courte"></div>
+      </div>
+
+      <div class="section-sep" data-group="planned">Prévision</div>
+      <div class="form-grid" data-group="planned">
+        <div class="field"><label>Durée prévue (min)</label><input type="number" name="durationPlanned" min="1"></div>
+      </div>
+
+      <div class="section-sep" data-group="done">Données réalisées</div>
+      <div class="form-grid c3" data-group="done">
+        <div class="field"><label>Durée (min)</label><input type="number" name="duration" min="0"><span class="hint" id="durationDeltaHint"></span></div>
+        <div class="field"><label title="Fréquence cardiaque moyenne pendant la séance">BPM moyen</label><input type="number" name="bpmAvg" min="0"><span class="hint" id="bpmZoneHint"></span></div>
+        <div class="field"><label title="Ressenti de l'effort, de 1 (très facile) à 10 (maximal)">RPE (1-10)</label><input type="number" name="rpe" min="1" max="10"></div>
+        <div class="field"><label>Charge d'entraînement</label><input type="number" name="charge" min="0"></div>
+        <div class="field"><label title="Plaisir ressenti pendant la séance, de 1 à 10">Plaisir (/10)</label><input type="number" name="plaisir" min="1" max="10"></div>
+      </div>
+      <div class="section-sep" data-group="done" id="sportFieldsLabel">Données spécifiques au sport</div>
+      <div class="form-grid c3" data-group="done" id="sportSpecificFields"></div>
+
+      <div class="section-sep">Bibliothèque</div>
+      <div class="form-grid">
+        <div class="field"><label>Nom du modèle (pour enregistrer)</label><input type="text" id="templateSaveName" placeholder="Ex : Fractionné 10x400"></div>
+        <div class="field"><label>&nbsp;</label><button type="button" class="btn" id="btnSaveTemplate">Enregistrer comme modèle</button></div>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn ghost" id="btnDeleteSess" style="display:none;">Supprimer</button>
+        <div class="right">
+          <button type="button" class="btn" id="sessModalCancel">Annuler</button>
+          <button type="submit" class="btn primary">Enregistrer</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="toast" id="toast">Enregistré</div>
+
