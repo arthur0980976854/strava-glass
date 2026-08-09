@@ -130,6 +130,14 @@
       return new Date(b.start_date || 0) - new Date(a.start_date || 0);
     });
     renderActivities(newIds);
+    window.STRAVA_WEEK_KM_BY_DAY = function (fromISO, toISO) {
+      return activities.reduce(function (sum, a) {
+        if (!a.start_date) return sum;
+        var day = String(a.start_date).slice(0, 10);
+        return day >= fromISO && day <= toISO ? sum + (a.distance_km || 0) : sum;
+      }, 0);
+    };
+    if (typeof window.renderKPIs === "function") window.renderKPIs();
     return newIds;
   }
 
@@ -190,6 +198,76 @@
     es.addEventListener("ping", function () { setLive(true); });
   }
 
+  function feedStatus(text) {
+    var node = el("feedStatus");
+    if (node) node.textContent = text;
+  }
+
+  async function loadFeed(sync) {
+    try {
+      var res = await fetch("/api/feed" + (sync ? "?sync=1" : ""), { credentials: "same-origin" });
+      var json = await res.json();
+      var disconnect = el("btnFeedDisconnect");
+      if (json.configured) {
+        if (el("feedUrl") && !el("feedUrl").value) el("feedUrl").value = json.url || "";
+        if (disconnect) disconnect.style.display = "";
+        feedStatus(
+          json.error
+            ? "Flux : " + json.error
+            : "Flux actif — " + (json.activities || []).length + " activité(s) · maj auto toutes les 30 s",
+        );
+      } else {
+        if (disconnect) disconnect.style.display = "none";
+        feedStatus(json.error ? "Flux : " + json.error : "Aucun flux configuré");
+      }
+      if ((json.activities || []).length) mergeActivities(json.activities, false);
+    } catch (e) {
+      feedStatus("Flux indisponible");
+    }
+  }
+
+  function initFeed() {
+    var connect = el("btnFeedConnect");
+    if (connect) {
+      connect.addEventListener("click", async function () {
+        var url = (el("feedUrl") || {}).value || "";
+        var token = (el("feedToken") || {}).value || "";
+        feedStatus("Connexion au flux…");
+        try {
+          var res = await fetch("/api/feed", {
+            method: "POST",
+            credentials: "same-origin",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ url: url, token: token }),
+          });
+          var json = await res.json();
+          if (json.error) {
+            feedStatus("Flux : " + json.error);
+            toast(json.error);
+          } else {
+            toast(json.imported + " activité(s) importée(s)");
+          }
+          if ((json.activities || []).length) mergeActivities(json.activities, true);
+          loadFeed(false);
+        } catch (e) {
+          feedStatus("Flux : échec de la connexion");
+        }
+      });
+    }
+    var sync = el("btnFeedSync");
+    if (sync) sync.addEventListener("click", function () { feedStatus("Synchronisation…"); loadFeed(true); });
+    var remove = el("btnFeedDisconnect");
+    if (remove) {
+      remove.addEventListener("click", async function () {
+        await fetch("/api/feed", { method: "DELETE", credentials: "same-origin" });
+        feedStatus("Aucun flux configuré");
+        remove.style.display = "none";
+        toast("Flux retiré");
+      });
+    }
+    loadFeed(true);
+  }
+
   function init() {
     var refresh = el("btnStravaRefresh");
     if (refresh) refresh.addEventListener("click", loadActivities);
@@ -216,6 +294,7 @@
 
     renderActivities([]);
     loadActivities();
+    initFeed();
     connectStream();
   }
 

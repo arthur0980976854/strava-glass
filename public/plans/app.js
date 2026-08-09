@@ -34,7 +34,7 @@ var MONTHS_FR = ["janv.","févr.","mars","avr.","mai","juin","juil.","août","se
 var MONTHS_FULL = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
 
 var state = {
-  profile:{firstName:"",lastName:"",age:null,height:null,weight:null,vma:null,hrMax:null,hrRest:null,zones:[],weeklyTargetHours:null},
+  profile:{firstName:"",lastName:"",age:null,height:null,weight:null,vma:null,hrMax:null,hrRest:null,zones:[],weeklyTargetHours:null,weeklyTargetKm:null},
   sports: DEFAULT_SPORTS.slice(),
   sessionTypes: DEFAULT_SESSION_TYPES.slice(),
   cycleNames: [],
@@ -171,6 +171,7 @@ document.getElementById("btnToggleConfig").addEventListener("click", function(){
 /* =========================================================================
    TABLEAU DE BORD
    ========================================================================= */
+window.renderKPIs=function(){ renderKPIs(); };
 function renderKPIs(){
   var days=weekDays(0), d0=days[0], d1=days[6];
   var weekSessions = state.sessions.filter(function(s){return inRange(s.date,d0,d1);});
@@ -178,15 +179,21 @@ function renderKPIs(){
   var volumeH = done.reduce(function(a,s){return a+((s.actual&&s.actual.duration)||0);},0)/60;
   var deniv = done.reduce(function(a,s){return a+((s.actual&&s.actual.elevation)||0);},0);
   var ratio = weekSessions.length ? Math.round(done.length/weekSessions.length*100) : 0;
-  var target = state.profile.weeklyTargetHours;
-  var objPct = target ? Math.min(100, volumeH/target*100) : 0;
+
+  /* Kilomètres de la semaine : séances saisies + activités importées (Strava / flux). */
+  var kmSessions = done.reduce(function(a,s){return a+((s.actual&&s.actual.distance)||0);},0);
+  var kmImported = (window.STRAVA_WEEK_KM_BY_DAY ? window.STRAVA_WEEK_KM_BY_DAY(isoDate(d0), isoDate(d1)) : 0);
+  var km = kmSessions + kmImported;
+  var targetKm = state.profile.weeklyTargetKm;
+  var kmPct = targetKm ? Math.min(100, km/targetKm*100) : 0;
 
   var cards=[
     {label:"Volume horaire — semaine",value:volumeH.toFixed(1),unit:"h"},
     {label:"Dénivelé — semaine",value:Math.round(deniv).toLocaleString('fr-FR'),unit:"m D+"},
-    {label:"Objectif de la semaine",value: target? (volumeH.toFixed(1)+" / "+target) : volumeH.toFixed(1),unit:"h",pct:target?objPct:undefined},
+    {label:"Kilomètres — semaine",value: targetKm ? (km.toFixed(1)+" / "+targetKm) : km.toFixed(1),unit:"km",pct:targetKm?kmPct:undefined},
     {label:"Séances réalisées",value:done.length+" / "+weekSessions.length,unit:"",pct:ratio}
   ];
+
   var grid=document.getElementById("kpiGrid"); grid.innerHTML="";
   cards.forEach(function(c){
     var el=document.createElement("div"); el.className="kpi";
@@ -1090,6 +1097,7 @@ function renderProfile(){
   document.getElementById("pHrMax").value=p.hrMax||"";
   document.getElementById("pHrRest").value=p.hrRest||"";
   document.getElementById("pWeeklyTarget").value=p.weeklyTargetHours||"";
+  document.getElementById("pWeeklyTargetKm").value=p.weeklyTargetKm||"";
   renderVmaTable();
 }
 function renderVmaTable(){
@@ -1115,6 +1123,7 @@ document.getElementById("btnSaveProfile").addEventListener("click", function(){
   state.profile.hrMax=+document.getElementById("pHrMax").value||null;
   state.profile.hrRest=+document.getElementById("pHrRest").value||null;
   state.profile.weeklyTargetHours=+document.getElementById("pWeeklyTarget").value||null;
+  state.profile.weeklyTargetKm=+document.getElementById("pWeeklyTargetKm").value||null;
   saveData(true);
   renderVmaTable();
   renderKPIs();

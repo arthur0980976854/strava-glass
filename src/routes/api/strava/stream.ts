@@ -11,16 +11,20 @@ export const Route = createFileRoute("/api/strava/stream")({
       GET: async ({ request }) => {
         const { resolveSession } = await import("@/lib/session.server");
         const { loadTokens, recentStoredActivities } = await import("@/lib/strava.server");
+        const { loadFeed, syncFeed } = await import("@/lib/feed.server");
         const { id } = resolveSession(request);
         let tokens = null;
+        let feed = null;
         try {
           tokens = await loadTokens(id);
+          feed = await loadFeed(id);
         } catch {
           /* database not configured yet */
         }
 
         const encoder = new TextEncoder();
         let cursor = Date.now();
+        let feedCursor = 0;
         let closed = false;
 
         const stream = new ReadableStream({
@@ -31,7 +35,11 @@ export const Route = createFileRoute("/api/strava/stream")({
                 encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`),
               );
             };
-            send("ready", { connected: Boolean(tokens), athlete: tokens?.athlete_name ?? null });
+            send("ready", {
+              connected: Boolean(tokens) || Boolean(feed),
+              athlete: tokens?.athlete_name ?? null,
+              feed: Boolean(feed),
+            });
 
             request.signal.addEventListener("abort", () => {
               closed = true;
@@ -56,10 +64,23 @@ export const Route = createFileRoute("/api/strava/stream")({
                     );
                   }
                 }
+                if (feed) {
+                  // Re-poll the feed source every ~30s, then push whatever is new.
+                  if (tick % 10 === 0) await syncFeed(id);
+                  const rows = await recentStoredActivities(feed.athleteKey, feedCursor);
+                  if (rows.length) {
+                    feedCursor = Math.max(...rows.map((r) => r.receivedAt));
+                    send(
+                      "activity",
+                      rows.map((r) => r.activity),
+                    );
+                  }
+                }
                 send("ping", { t: Date.now() });
               } catch {
                 /* keep the stream alive on transient errors */
               }
+
             }
             if (!closed) {
               closed = true;
