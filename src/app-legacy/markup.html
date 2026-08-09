@@ -357,6 +357,33 @@
         </div>
       </div>
 
+      <div class="panel" id="feedPanel" style="margin-bottom:16px;">
+        <h3 class="block-title" style="margin-top:0;">Importation automatique (flux · sans OAuth)</h3>
+        <div class="sub" style="margin-bottom:10px;">
+          Colle l'URL de ton flux d'activités (RSS/Atom, JSON, ou page Strava). Les données sont
+          importées puis mises à jour automatiquement toutes les 30&nbsp;secondes.
+        </div>
+        <div class="form-grid">
+          <div class="field" style="grid-column:span 2;">
+            <label>URL du flux</label>
+            <input type="url" id="feedUrl" placeholder="https://www.strava.com/athletes/…/training/log">
+          </div>
+          <div class="field" style="grid-column:span 2;">
+            <label>Jeton / cookie de session (optionnel)</label>
+            <input type="text" id="feedToken" placeholder="_strava4_session=… (si la page est privée)">
+          </div>
+        </div>
+        <div class="form-actions">
+          <span class="sub" id="feedStatus">Aucun flux configuré</span>
+          <div class="right">
+            <button class="btn ghost" id="btnFeedDisconnect" style="display:none;">Retirer</button>
+            <button class="btn" id="btnFeedSync">Synchroniser</button>
+            <button class="btn primary" id="btnFeedConnect">Connecter le flux</button>
+          </div>
+        </div>
+      </div>
+
+
       <div class="grid cols-4" id="stravaKpis" style="margin-bottom:16px;"></div>
 
       <div class="activity-grid" id="stravaActivities"></div>
