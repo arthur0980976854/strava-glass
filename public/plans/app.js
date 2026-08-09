@@ -34,7 +34,7 @@ var MONTHS_FR = ["janv.","févr.","mars","avr.","mai","juin","juil.","août","se
 var MONTHS_FULL = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
 
 var state = {
-  profile:{firstName:"",lastName:"",age:null,height:null,weight:null,vma:null,hrMax:null,hrRest:null,zones:[],weeklyTargetHours:null},
+  profile:{firstName:"",lastName:"",age:null,height:null,weight:null,vma:null,hrMax:null,hrRest:null,zones:[],weeklyTargetHours:null,weeklyTargetKm:null},
   sports: DEFAULT_SPORTS.slice(),
   sessionTypes: DEFAULT_SESSION_TYPES.slice(),
   cycleNames: [],
@@ -171,6 +171,7 @@ document.getElementById("btnToggleConfig").addEventListener("click", function(){
 /* =========================================================================
    TABLEAU DE BORD
    ========================================================================= */
+window.renderKPIs=function(){ renderKPIs(); };
 function renderKPIs(){
   var days=weekDays(0), d0=days[0], d1=days[6];
   var weekSessions = state.sessions.filter(function(s){return inRange(s.date,d0,d1);});
@@ -1096,6 +1097,7 @@ function renderProfile(){
   document.getElementById("pHrMax").value=p.hrMax||"";
   document.getElementById("pHrRest").value=p.hrRest||"";
   document.getElementById("pWeeklyTarget").value=p.weeklyTargetHours||"";
+  document.getElementById("pWeeklyTargetKm").value=p.weeklyTargetKm||"";
   renderVmaTable();
 }
 function renderVmaTable(){
@@ -1121,6 +1123,7 @@ document.getElementById("btnSaveProfile").addEventListener("click", function(){
   state.profile.hrMax=+document.getElementById("pHrMax").value||null;
   state.profile.hrRest=+document.getElementById("pHrRest").value||null;
   state.profile.weeklyTargetHours=+document.getElementById("pWeeklyTarget").value||null;
+  state.profile.weeklyTargetKm=+document.getElementById("pWeeklyTargetKm").value||null;
   saveData(true);
   renderVmaTable();
   renderKPIs();
