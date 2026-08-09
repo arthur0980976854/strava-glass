@@ -178,15 +178,21 @@ function renderKPIs(){
   var volumeH = done.reduce(function(a,s){return a+((s.actual&&s.actual.duration)||0);},0)/60;
   var deniv = done.reduce(function(a,s){return a+((s.actual&&s.actual.elevation)||0);},0);
   var ratio = weekSessions.length ? Math.round(done.length/weekSessions.length*100) : 0;
-  var target = state.profile.weeklyTargetHours;
-  var objPct = target ? Math.min(100, volumeH/target*100) : 0;
+
+  /* Kilomètres de la semaine : séances saisies + activités importées (Strava / flux). */
+  var kmSessions = done.reduce(function(a,s){return a+((s.actual&&s.actual.distance)||0);},0);
+  var kmImported = (window.STRAVA_WEEK_KM_BY_DAY ? window.STRAVA_WEEK_KM_BY_DAY(isoDate(d0), isoDate(d1)) : 0);
+  var km = kmSessions + kmImported;
+  var targetKm = state.profile.weeklyTargetKm;
+  var kmPct = targetKm ? Math.min(100, km/targetKm*100) : 0;
 
   var cards=[
     {label:"Volume horaire — semaine",value:volumeH.toFixed(1),unit:"h"},
     {label:"Dénivelé — semaine",value:Math.round(deniv).toLocaleString('fr-FR'),unit:"m D+"},
-    {label:"Objectif de la semaine",value: target? (volumeH.toFixed(1)+" / "+target) : volumeH.toFixed(1),unit:"h",pct:target?objPct:undefined},
+    {label:"Kilomètres — semaine",value: targetKm ? (km.toFixed(1)+" / "+targetKm) : km.toFixed(1),unit:"km",pct:targetKm?kmPct:undefined},
     {label:"Séances réalisées",value:done.length+" / "+weekSessions.length,unit:"",pct:ratio}
   ];
+
   var grid=document.getElementById("kpiGrid"); grid.innerHTML="";
   cards.forEach(function(c){
     var el=document.createElement("div"); el.className="kpi";
