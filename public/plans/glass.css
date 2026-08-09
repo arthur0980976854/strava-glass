@@ -1,0 +1,498 @@
+/* ============================================================
+   Apple Liquid Glass — visionOS / macOS inspired design layer
+   Loaded after base.css: re-tints every surface as polished glass.
+   ============================================================ */
+
+:root {
+  /* Palette */
+  --glass-tint: rgba(255, 255, 255, 0.5);
+  --glass-tint-strong: rgba(255, 255, 255, 0.62);
+  --glass-tint-soft: rgba(255, 255, 255, 0.34);
+  --glass-stroke: rgba(255, 255, 255, 0.55);
+  --glass-stroke-soft: rgba(255, 255, 255, 0.32);
+  --glass-blur: blur(20px) saturate(180%);
+  --glass-blur-strong: blur(34px) saturate(190%);
+  --glass-shadow: 0 8px 32px 0 rgba(15, 23, 42, 0.15);
+  --glass-shadow-lg: 0 20px 60px -20px rgba(15, 23, 42, 0.35);
+  --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+
+  /* Base tokens remapped onto the glass system */
+  --bg: transparent;
+  --bg-soft: rgba(255, 255, 255, 0.34);
+  --sidebar: rgba(255, 255, 255, 0.42);
+  --panel: rgba(255, 255, 255, 0.5);
+  --panel-2: rgba(255, 255, 255, 0.38);
+  --border: rgba(255, 255, 255, 0.5);
+  --border-soft: rgba(255, 255, 255, 0.34);
+  --text: #10131a;
+  --text-muted: #4a5568;
+  --text-faint: #6b7280;
+  --accent: #0a84ff;
+  --accent-ink: #ffffff;
+  --planned: #ff9f0a;
+  --danger: #ff453a;
+  --radius: 22px;
+  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
+  --font-body: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", "IBM Plex Mono", monospace;
+  --shadow: var(--glass-shadow);
+}
+
+/* ---------- Fluid animated background ---------- */
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  background:
+    radial-gradient(ellipse at 20% -10%, #e8f1ff 0%, transparent 55%),
+    radial-gradient(ellipse at 100% 0%, #ffe9f4 0%, transparent 50%),
+    linear-gradient(160deg, #eef3fb 0%, #f6f8fd 45%, #eef6f4 100%);
+  background-attachment: fixed;
+  color: var(--text);
+  font-family: var(--font-body);
+  letter-spacing: -0.01em;
+}
+
+body::before,
+body::after {
+  content: "";
+  position: fixed;
+  z-index: -2;
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+body::before {
+  width: 46vw;
+  height: 46vw;
+  top: -12vw;
+  left: -8vw;
+  background: radial-gradient(circle at 30% 30%, #7cc4ff, #4f6bff 60%, transparent 72%);
+  animation: floatBlobA 26s ease-in-out infinite alternate;
+}
+
+body::after {
+  width: 40vw;
+  height: 40vw;
+  bottom: -14vw;
+  right: -6vw;
+  background: radial-gradient(circle at 60% 40%, #ffb4d8, #ff7a59 55%, transparent 72%);
+  animation: floatBlobB 32s ease-in-out infinite alternate;
+}
+
+#shell::before {
+  content: "";
+  position: fixed;
+  z-index: -2;
+  width: 34vw;
+  height: 34vw;
+  top: 38%;
+  left: 42%;
+  border-radius: 50%;
+  filter: blur(100px);
+  opacity: 0.4;
+  background: radial-gradient(circle at 50% 50%, #8affd8, #2ad1a3 55%, transparent 72%);
+  animation: floatBlobC 38s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+
+@keyframes floatBlobA {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to { transform: translate3d(8vw, 6vh, 0) scale(1.15); }
+}
+@keyframes floatBlobB {
+  from { transform: translate3d(0, 0, 0) scale(1.05); }
+  to { transform: translate3d(-7vw, -8vh, 0) scale(0.92); }
+}
+@keyframes floatBlobC {
+  from { transform: translate3d(-4vw, 0, 0) scale(0.95); }
+  to { transform: translate3d(6vw, -10vh, 0) scale(1.2); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body::before,
+  body::after,
+  #shell::before {
+    animation: none;
+  }
+}
+
+/* ---------- Shared glass surface ---------- */
+aside#sidebar,
+.panel,
+.kpi,
+.glass-card,
+.sport-thumb,
+.modal-card,
+.day-cell,
+.row-item,
+.cycle-row,
+.stat-chip {
+  background: var(--glass-tint);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-stroke);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+}
+
+aside#sidebar {
+  border-right: 1px solid var(--glass-stroke);
+  background: var(--glass-tint-soft);
+  backdrop-filter: var(--glass-blur-strong);
+  padding: 26px 16px;
+}
+
+.panel,
+.kpi,
+.sport-thumb,
+.glass-card {
+  border-radius: 24px;
+  padding: 22px;
+  transition: all 0.3s ease-in-out;
+}
+
+.panel:hover,
+.kpi:hover,
+.sport-thumb:hover,
+.glass-card:hover {
+  transform: translateY(-2px);
+  background: var(--glass-tint-strong);
+  box-shadow: var(--glass-shadow-lg), var(--glass-highlight);
+}
+
+/* ---------- Typography ---------- */
+.logo .wordmark,
+.view-head h1,
+.block-title,
+.st-name {
+  font-family: var(--font-display);
+}
+.view-head h1 {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+.block-title {
+  color: var(--text-muted);
+  letter-spacing: 0.08em;
+}
+.logo {
+  border-bottom: 1px solid var(--glass-stroke-soft);
+}
+.logo .wordmark span {
+  color: var(--accent);
+}
+
+/* ---------- Navigation ---------- */
+nav#mainNav button {
+  border-radius: 14px;
+  padding: 11px 13px;
+  transition: all 0.25s ease-in-out;
+}
+nav#mainNav button:hover {
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(10px);
+  color: var(--text);
+}
+nav#mainNav button.active {
+  background: linear-gradient(135deg, rgba(10, 132, 255, 0.95), rgba(94, 92, 230, 0.9));
+  color: #fff;
+  box-shadow: 0 8px 24px -8px rgba(10, 132, 255, 0.8), var(--glass-highlight);
+}
+
+/* ---------- Controls ---------- */
+.btn,
+.month-nav button,
+.weektype-select,
+.weekobj-input,
+.field input,
+.field select,
+.field textarea {
+  background: rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(14px) saturate(160%);
+  border: 1px solid var(--glass-stroke);
+  border-radius: 14px;
+  transition: all 0.3s ease-in-out;
+}
+
+.btn {
+  padding: 10px 18px;
+  box-shadow: 0 4px 16px -8px rgba(15, 23, 42, 0.4), var(--glass-highlight);
+}
+.btn:hover {
+  background: rgba(255, 255, 255, 0.72);
+  transform: translateY(-1px);
+  border-color: rgba(255, 255, 255, 0.8);
+  color: var(--accent);
+}
+.btn.primary {
+  background: linear-gradient(135deg, rgba(10, 132, 255, 0.96), rgba(94, 92, 230, 0.94));
+  border-color: rgba(255, 255, 255, 0.4);
+  color: #fff;
+  box-shadow: 0 10px 26px -12px rgba(10, 132, 255, 0.9), var(--glass-highlight);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+.btn.primary:hover {
+  color: #fff;
+  filter: brightness(1.06);
+}
+.btn.ghost {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  border-color: rgba(10, 132, 255, 0.7);
+  box-shadow: 0 0 0 4px rgba(10, 132, 255, 0.15);
+}
+
+/* ---------- Calendar & lists ---------- */
+.day-cell {
+  border-radius: 18px;
+  border-top-width: 3px;
+  min-height: 118px;
+  transition: all 0.3s ease-in-out;
+}
+.day-cell:hover {
+  transform: translateY(-2px);
+  background: var(--glass-tint-strong);
+}
+.day-cell.today {
+  box-shadow: inset 0 0 0 1.5px rgba(10, 132, 255, 0.8), var(--glass-shadow);
+}
+.sess-pill {
+  border-radius: 9px;
+  padding: 4px 7px;
+  backdrop-filter: blur(6px);
+}
+.sess-pill.planned {
+  background: rgba(255, 255, 255, 0.65);
+}
+.row-item,
+.cycle-row,
+.stat-chip {
+  border-radius: 16px;
+}
+.tl-block {
+  border-radius: 10px;
+  box-shadow: var(--glass-highlight);
+}
+.empty-state {
+  border: 1px dashed var(--glass-stroke);
+  border-radius: 20px;
+}
+.chart-box {
+  border-radius: 18px;
+}
+
+/* ---------- Modals / toast ---------- */
+.modal-backdrop,
+.modal {
+  backdrop-filter: blur(18px) saturate(140%);
+  background: rgba(15, 23, 42, 0.28);
+}
+.modal-card {
+  border-radius: 28px;
+  backdrop-filter: var(--glass-blur-strong);
+  background: rgba(255, 255, 255, 0.7);
+  box-shadow: var(--glass-shadow-lg), var(--glass-highlight);
+}
+.toast {
+  border-radius: 18px;
+  background: rgba(20, 22, 28, 0.72);
+  backdrop-filter: blur(18px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #fff;
+  box-shadow: var(--glass-shadow-lg);
+}
+
+/* ============================================================
+   Strava view
+   ============================================================ */
+.strava-connect {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.strava-connect .right {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.strava-connect .sub {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+
+.live-dot {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  padding: 7px 13px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(14px) saturate(160%);
+  border: 1px solid var(--glass-stroke);
+}
+.live-dot i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #cbd5e1;
+}
+.live-dot.on i {
+  background: #30d158;
+  box-shadow: 0 0 0 0 rgba(48, 209, 88, 0.6);
+  animation: livePulse 2s ease-out infinite;
+}
+@keyframes livePulse {
+  70% { box-shadow: 0 0 0 9px rgba(48, 209, 88, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(48, 209, 88, 0); }
+}
+
+.activity-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+.activity-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.activity-card header {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.activity-card h4 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 15.5px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+.act-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  font-size: 19px;
+  background: linear-gradient(135deg, rgba(252, 76, 2, 0.9), rgba(255, 159, 10, 0.85));
+  box-shadow: 0 8px 20px -10px rgba(252, 76, 2, 0.9), var(--glass-highlight);
+}
+.act-meta {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  margin-top: 4px;
+}
+.activity-card .trace {
+  width: 100%;
+  height: 84px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.35);
+  border: 1px solid var(--glass-stroke-soft);
+}
+.activity-card .trace path {
+  fill: none;
+  stroke: rgba(252, 76, 2, 0.9);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.activity-card .metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.metric {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 9px 10px;
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.4);
+  border: 1px solid var(--glass-stroke-soft);
+}
+.metric .k {
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+  font-weight: 600;
+}
+.metric .v {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+.metric .v i {
+  font-style: normal;
+  font-size: 10px;
+  color: var(--text-muted);
+}
+.act-link {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  text-decoration: none;
+  margin-top: auto;
+}
+.act-link:hover {
+  text-decoration: underline;
+}
+.activity-card.is-new {
+  animation: cardIn 0.6s ease-out;
+  box-shadow: 0 0 0 1.5px rgba(48, 209, 88, 0.6), var(--glass-shadow-lg);
+}
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(14px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+
+.kpi-label {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-faint);
+  font-weight: 600;
+}
+.kpi-value {
+  font-family: var(--font-mono);
+  font-size: 25px;
+  font-weight: 600;
+  margin-top: 8px;
+}
+.kpi-unit {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+@media (max-width: 720px) {
+  #shell { flex-direction: column; }
+  aside#sidebar { width: 100%; height: auto; position: relative; }
+  main#content { padding: 18px; }
+}
