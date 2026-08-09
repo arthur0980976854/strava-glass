@@ -53,7 +53,7 @@ var editCycleId=null, editSubId=null, editSubSubId=null;
 
 async function loadData(){
   try{
-    var res = await window.storage.get(STORAGE_KEY, false);
+    var res = await (await fetch('/api/state', {credentials:'same-origin'})).json();
     if(res && res.value){
       var p = JSON.parse(res.value);
       state.profile = Object.assign(state.profile, p.profile||{});
@@ -75,7 +75,7 @@ async function loadData(){
 }
 async function saveData(showToast){
   try{
-    await window.storage.set(STORAGE_KEY, JSON.stringify(state), false);
+    await fetch('/api/state', {method:'PUT', credentials:'same-origin', headers:{'content-type':'application/json'}, body: JSON.stringify({value: JSON.stringify(state)})});
     if(showToast) toast("Enregistré");
   }catch(e){ console.error("Erreur de sauvegarde", e); }
 }
