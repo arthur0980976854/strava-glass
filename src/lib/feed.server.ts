@@ -240,7 +240,11 @@ function buildHeaders(url: string, token: string | null): HeadersInit {
   };
   if (token) {
     if (/strava\.com/i.test(url)) {
-      headers["cookie"] = token.includes("=") ? token : `_strava4_session=${token}`;
+      const trimmed = token.trim();
+      const isNamedSessionCookie = /^_strava4_session\s*=/i.test(trimmed);
+      const isFullCookieHeader = trimmed.includes(";") && /^[A-Za-z0-9_-]+\s*=/.test(trimmed);
+      headers["cookie"] =
+        isNamedSessionCookie || isFullCookieHeader ? trimmed : `_strava4_session=${trimmed}`;
     } else {
       headers["authorization"] = `Bearer ${token}`;
     }
