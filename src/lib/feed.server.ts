@@ -232,6 +232,32 @@ function parseStravaHtml(html: string): Raw[] {
   return [];
 }
 
+/**
+ * Builds the Cookie header for Strava requests.
+ *
+ * The "Jeton" field accepts either:
+ *  - a raw `_strava4_session` cookie VALUE (e.g. copied from devtools ->
+ *    Application -> Cookies -> Value column). These values are frequently
+ *    base64-ish and very often contain "=" padding characters.
+ *  - a full cookie already in "name=value" form (optionally with several
+ *    cookies separated by ";"), e.g. pasted from the raw "Cookie" request
+ *    header.
+ *
+ * Bug fixed here: the previous check used `token.includes("=")` to decide
+ * whether the token was already a full "name=value" cookie. Because real
+ * `_strava4_session` values routinely contain "=" (base64 padding), a raw
+ * value was wrongly treated as already-complete and sent as-is, WITHOUT the
+ * `_strava4_session=` name in front of it. Strava then received a Cookie
+ * header it couldn't recognize and served the login page, even though the
+ * value and URL were correct.
+ *
+ * Fix: only treat the token as a ready-to-send cookie header when it
+ * actually looks like one — i.e. it starts with `_strava4_session=`
+ * (case-insensitive), or it contains multiple "name=value" pairs separated
+ * by ";" (a full Cookie header). Anything else is treated as a raw value and
+ * gets the `_strava4_session=` prefix, regardless of "=" characters inside
+ * it.
+ */
 function buildHeaders(url: string, token: string | null): HeadersInit {
   const headers: Record<string, string> = {
     "user-agent":
