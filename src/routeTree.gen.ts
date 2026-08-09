@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiFeedRouteImport } from './routes/api/feed'
 import { Route as ApiStateRouteImport } from './routes/api/state'
 import { Route as ApiStravaActivitiesRouteImport } from './routes/api/strava/activities'
 import { Route as ApiStravaAuthorizeRouteImport } from './routes/api/strava/authorize'
@@ -20,6 +21,11 @@ import { Route as ApiPublicStravaWebhookRouteImport } from './routes/api/public/
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiFeedRoute = ApiFeedRouteImport.update({
+  id: '/api/feed',
+  path: '/api/feed',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiStateRoute = ApiStateRouteImport.update({
@@ -55,6 +61,7 @@ const ApiPublicStravaWebhookRoute = ApiPublicStravaWebhookRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/api/feed': typeof ApiFeedRoute
   '/api/state': typeof ApiStateRoute
   '/api/strava/activities': typeof ApiStravaActivitiesRoute
   '/api/strava/authorize': typeof ApiStravaAuthorizeRoute
@@ -64,6 +71,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/api/feed': typeof ApiFeedRoute
   '/api/state': typeof ApiStateRoute
   '/api/strava/activities': typeof ApiStravaActivitiesRoute
   '/api/strava/authorize': typeof ApiStravaAuthorizeRoute
@@ -74,6 +82,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/api/feed': typeof ApiFeedRoute
   '/api/state': typeof ApiStateRoute
   '/api/strava/activities': typeof ApiStravaActivitiesRoute
   '/api/strava/authorize': typeof ApiStravaAuthorizeRoute
@@ -85,6 +94,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/api/feed'
     | '/api/state'
     | '/api/strava/activities'
     | '/api/strava/authorize'
@@ -94,6 +104,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/api/feed'
     | '/api/state'
     | '/api/strava/activities'
     | '/api/strava/authorize'
@@ -103,6 +114,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/api/feed'
     | '/api/state'
     | '/api/strava/activities'
     | '/api/strava/authorize'
@@ -113,6 +125,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ApiFeedRoute: typeof ApiFeedRoute
   ApiStateRoute: typeof ApiStateRoute
   ApiStravaActivitiesRoute: typeof ApiStravaActivitiesRoute
   ApiStravaAuthorizeRoute: typeof ApiStravaAuthorizeRoute
@@ -128,6 +141,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/feed': {
+      id: '/api/feed'
+      path: '/api/feed'
+      fullPath: '/api/feed'
+      preLoaderRoute: typeof ApiFeedRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/state': {
@@ -177,6 +197,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ApiFeedRoute: ApiFeedRoute,
   ApiStateRoute: ApiStateRoute,
   ApiStravaActivitiesRoute: ApiStravaActivitiesRoute,
   ApiStravaAuthorizeRoute: ApiStravaAuthorizeRoute,
@@ -187,13 +208,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
