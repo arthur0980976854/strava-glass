@@ -23,7 +23,15 @@ export function intervalsConfig() {
   const clientId = process.env["INTERVALS_CLIENT_ID"];
   const apiKey = process.env["INTERVALS_API_KEY"];
   if (!clientId || !apiKey) throw new Error("intervals.icu credentials are not configured");
-  return { clientId, apiKey };
+  // intervals.icu OAuth requires a numeric client_id (integer).
+  // Users sometimes set it as "i670840" (athlete-id format) — strip the leading "i".
+  const numericClientId = clientId.replace(/^i/i, "");
+  return { clientId: numericClientId, apiKey };
+}
+
+/** Strip leading "i" prefix so athlete IDs work in API paths as integers. */
+function normalizeAthleteId(id: string): string {
+  return id.replace(/^i/i, "");
 }
 
 export function authorizeUrl(redirectUri: string, state: string) {
@@ -161,7 +169,8 @@ function isoDaysAgo(days: number) {
 }
 
 export async function fetchActivities(tokens: IntervalsTokens, days = 120) {
-  const url = `${API}/athlete/${encodeURIComponent(tokens.athlete_id)}/activities?oldest=${isoDaysAgo(days)}&newest=${new Date().toISOString().slice(0, 10)}`;
+  const aid = normalizeAthleteId(tokens.athlete_id);
+  const url = `${API}/athlete/${encodeURIComponent(aid)}/activities?oldest=${isoDaysAgo(days)}&newest=${new Date().toISOString().slice(0, 10)}`;
   const res = await fetch(url, {
     headers: { Authorization: `Bearer ${tokens.access_token}` },
   });
@@ -171,7 +180,8 @@ export async function fetchActivities(tokens: IntervalsTokens, days = 120) {
 }
 
 export async function fetchAthlete(accessToken: string, athleteId: string) {
-  const res = await fetch(`${API}/athlete/${encodeURIComponent(athleteId)}`, {
+  const aid = normalizeAthleteId(athleteId);
+  const res = await fetch(`${API}/athlete/${encodeURIComponent(aid)}`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   if (!res.ok) return null;
@@ -180,13 +190,14 @@ export async function fetchAthlete(accessToken: string, athleteId: string) {
 
 export async function storeActivity(athleteId: string, activity: RawActivity) {
   await ensureSchema();
+  const aid = normalizeAthleteId(athleteId);
   await getDb().execute({
     sql: `INSERT INTO intervals_activities (id, athlete_id, payload, start_date, received_at)
           VALUES (?, ?, ?, ?, ?)
           ON CONFLICT(id) DO UPDATE SET payload=excluded.payload, received_at=excluded.received_at`,
     args: [
       String(activity["id"]),
-      athleteId,
+      aid,
       JSON.stringify(activity),
       (activity["start_date_local"] as string) ?? null,
       Date.now(),
@@ -196,11 +207,12 @@ export async function storeActivity(athleteId: string, activity: RawActivity) {
 
 export async function recentStoredActivities(athleteId: string, since = 0) {
   await ensureSchema();
+  const aid = normalizeAthleteId(athleteId);
   const rs = await getDb().execute({
     sql: `SELECT payload, received_at FROM intervals_activities
           WHERE athlete_id = ? AND received_at > ?
           ORDER BY received_at DESC LIMIT 50`,
-    args: [athleteId, since],
+    args: [aid, since],
   });
   return rs.rows.map((r) => ({
     receivedAt: Number(r["received_at"]),
