@@ -36,6 +36,7 @@ var MONTHS_FULL = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","A
 var state = {
   profile:{firstName:"",lastName:"",age:null,height:null,weight:null,vma:null,hrMax:null,hrRest:null,zones:[],weeklyTargetHours:null,weeklyTargetKm:null},
   sports: DEFAULT_SPORTS.slice(),
+  sportGroups: [],
   sessionTypes: DEFAULT_SESSION_TYPES.slice(),
   cycleNames: [],
   season:{start:null,end:null},
@@ -58,6 +59,7 @@ async function loadData(){
       var p = JSON.parse(res.value);
       state.profile = Object.assign(state.profile, p.profile||{});
       if(p.sports && p.sports.length) state.sports = p.sports;
+      state.sportGroups = p.sportGroups || defaultSportGroups();
       if(p.sessionTypes && p.sessionTypes.length) state.sessionTypes = p.sessionTypes;
       state.cycleNames = p.cycleNames || [];
       state.season = p.season || state.season;
