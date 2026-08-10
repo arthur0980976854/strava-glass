@@ -26,7 +26,10 @@ export const Route = createFileRoute("/api/intervals/callback")({
           const { exchangeCode, saveTokens, fetchAthlete, fetchActivities, storeActivity } =
             await import("@/lib/intervals.server");
           const token = await exchangeCode(code, `${url.origin}/api/intervals/callback`);
-          const athleteId = String(token.athlete_id ?? token.athlete?.id ?? "");
+          // Strip leading "i" — intervals.icu returns athlete IDs as integers but
+          // some tokens prefix them with "i". The API paths require plain integers.
+          const rawAthleteId = String(token.athlete_id ?? token.athlete?.id ?? "");
+          const athleteId = rawAthleteId.replace(/^i/i, "");
           if (!athleteId) throw new Error("intervals.icu n'a pas renvoyé d'athlète");
           const profile = await fetchAthlete(token.access_token, athleteId);
           const tokens = {
