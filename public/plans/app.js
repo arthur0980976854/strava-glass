@@ -202,7 +202,143 @@ function renderKPIs(){
     grid.appendChild(el);
   });
   document.getElementById("dashDateRange").textContent = fmtShort(isoDate(d0)).toUpperCase()+" — "+fmtShort(isoDate(d1)).toUpperCase();
+  renderSportKpis();
 }
+
+/* ---------- KM & D+ par sport (avec regroupements personnalisables) ---------- */
+var IMPORT_TYPE_TO_SPORT = {
+  Run:"Course à pied", TrailRun:"Trail", Ride:"Vélo", VirtualRide:"Vélo", GravelRide:"Vélo",
+  MountainBikeRide:"Vélo", Swim:"Natation", WeightTraining:"Musculation", Workout:"Autre",
+  Hike:"Autre", Walk:"Autre", Rowing:"Autre", NordicSki:"Autre"
+};
+function defaultSportGroups(){
+  return [{id:uid(), name:"Course à pied & Trail", sports:["Course à pied","Trail"]}];
+}
+function groupForSport(name){
+  return (state.sportGroups||[]).find(function(g){ return (g.sports||[]).indexOf(name)!==-1; }) || null;
+}
+function weekSportTotals(){
+  var days=weekDays(0), d0=days[0], d1=days[6];
+  var totals={};
+  function add(sport,km,deniv){
+    if(!sport) sport="Autre";
+    if(!totals[sport]) totals[sport]={km:0,deniv:0};
+    totals[sport].km += km||0;
+    totals[sport].deniv += deniv||0;
+  }
+  state.sessions.filter(function(s){return s.status==="done" && inRange(s.date,d0,d1);}).forEach(function(s){
+    add(s.sport, (s.actual&&s.actual.distance)||0, (s.actual&&s.actual.elevation)||0);
+  });
+  if(typeof window.IMPORTED_WEEK_BY_SPORT === "function"){
+    var imported = window.IMPORTED_WEEK_BY_SPORT(isoDate(d0), isoDate(d1)) || {};
+    Object.keys(imported).forEach(function(type){
+      add(IMPORT_TYPE_TO_SPORT[type] || type, imported[type].km, imported[type].deniv);
+    });
+  }
+  return totals;
+}
+function renderSportKpis(){
+  var grid=document.getElementById("sportKpiGrid");
+  if(!grid) return;
+  var totals=weekSportTotals();
+  var buckets=[], byKey={};
+  Object.keys(totals).forEach(function(sport){
+    var t=totals[sport];
+    if(t.km<=0 && t.deniv<=0) return;
+    var g=groupForSport(sport);
+    var key = g ? "g:"+g.id : "s:"+sport;
+    if(!byKey[key]){
+      byKey[key]={label: g? g.name : sport, color: g? sportColor((g.sports||[])[0]) : sportColor(sport), km:0, deniv:0};
+      buckets.push(byKey[key]);
+    }
+    byKey[key].km += t.km;
+    byKey[key].deniv += t.deniv;
+  });
+  buckets.sort(function(a,b){return b.km-a.km;});
+  if(!buckets.length){
+    grid.innerHTML='<div class="kpi" style="grid-column:1/-1;"><div class="label">Aucun sport pratiqué cette semaine</div><div class="value">—</div></div>';
+    return;
+  }
+  grid.innerHTML="";
+  buckets.forEach(function(b){
+    var el=document.createElement("div"); el.className="kpi";
+    el.style.borderLeft="3px solid "+b.color;
+    el.innerHTML='<div class="label">'+escapeHtml(b.label)+'</div>'+
+      '<div class="value">'+b.km.toFixed(1)+' <span class="unit">km</span></div>'+
+      '<div class="label" style="margin-top:6px;">'+Math.round(b.deniv).toLocaleString('fr-FR')+' m D+</div>';
+    grid.appendChild(el);
+  });
+}
+
+/* ---------- Modale de regroupement ---------- */
+var sportGroupDraft=[];
+function renderSportGroupEditor(){
+  var wrap=document.getElementById("sportGroupList"); if(!wrap) return;
+  wrap.innerHTML="";
+  if(!sportGroupDraft.length){
+    wrap.innerHTML='<div style="font-size:12.5px;color:var(--text-faint);">Aucun groupe. Chaque sport est compté séparément.</div>';
+  }
+  sportGroupDraft.forEach(function(g,idx){
+    var box=document.createElement("div");
+    box.className="panel";
+    box.style.cssText="padding:12px;margin-bottom:10px;";
+    var chips=state.sports.map(function(sp){
+      var on=(g.sports||[]).indexOf(sp.name)!==-1;
+      return '<button type="button" class="btn small sport-pick" data-idx="'+idx+'" data-sport="'+escapeHtml(sp.name)+'" style="margin:0 6px 6px 0;'+
+        (on?'border-color:'+sp.color+';color:'+sp.color+';':'')+'">'+(on?'✓ ':'')+escapeHtml(sp.name)+'</button>';
+    }).join("");
+    box.innerHTML='<div class="form-grid" style="margin-bottom:8px;"><div class="field" style="grid-column:span 2;">'+
+      '<label>Nom du groupe</label><input type="text" class="group-name" data-idx="'+idx+'" value="'+escapeHtml(g.name||"")+'"></div></div>'+
+      '<div>'+chips+'</div>'+
+      '<div style="text-align:right;"><button type="button" class="btn ghost group-del" data-idx="'+idx+'">Supprimer le groupe</button></div>';
+    wrap.appendChild(box);
+  });
+}
+function openSportGroups(){
+  sportGroupDraft = JSON.parse(JSON.stringify(state.sportGroups||[]));
+  renderSportGroupEditor();
+  document.getElementById("sportGroupOverlay").classList.add("open");
+}
+(function initSportGroups(){
+  var overlay=document.getElementById("sportGroupOverlay");
+  var btn=document.getElementById("btnSportGroups");
+  if(!overlay||!btn) return;
+  btn.addEventListener("click", openSportGroups);
+  overlay.addEventListener("click", function(e){ if(e.target===overlay) overlay.classList.remove("open"); });
+  document.getElementById("btnSportGroupClose").addEventListener("click", function(){ overlay.classList.remove("open"); });
+  document.getElementById("btnAddSportGroup").addEventListener("click", function(){
+    sportGroupDraft.push({id:uid(), name:"Nouveau groupe", sports:[]});
+    renderSportGroupEditor();
+  });
+  document.getElementById("sportGroupList").addEventListener("click", function(e){
+    var pick=e.target.closest(".sport-pick");
+    if(pick){
+      var g=sportGroupDraft[+pick.dataset.idx];
+      g.sports=g.sports||[];
+      var i=g.sports.indexOf(pick.dataset.sport);
+      if(i===-1) g.sports.push(pick.dataset.sport); else g.sports.splice(i,1);
+      renderSportGroupEditor();
+      return;
+    }
+    var del=e.target.closest(".group-del");
+    if(del){ sportGroupDraft.splice(+del.dataset.idx,1); renderSportGroupEditor(); }
+  });
+  document.getElementById("sportGroupList").addEventListener("input", function(e){
+    if(e.target.classList.contains("group-name")) sportGroupDraft[+e.target.dataset.idx].name=e.target.value;
+  });
+  document.getElementById("btnSportGroupSave").addEventListener("click", function(){
+    var seen={};
+    state.sportGroups = sportGroupDraft.filter(function(g){ return (g.sports||[]).length>1; }).map(function(g){
+      g.sports=(g.sports||[]).filter(function(s){ if(seen[s]) return false; seen[s]=1; return true; });
+      g.name=(g.name||"").trim()||g.sports.join(" & ");
+      return g;
+    }).filter(function(g){ return g.sports.length>1; });
+    saveData(true);
+    renderSportKpis();
+    overlay.classList.remove("open");
+  });
+})();
+
 
 function renderGoalBanner(){
   var upcoming = state.seasonGoals.filter(function(g){return g.date>=todayISO();}).sort(sortAscBy('date'))[0];
