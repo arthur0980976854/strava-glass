@@ -180,33 +180,46 @@ function renderKPIs(){
   var weekSessions = state.sessions.filter(function(s){return inRange(s.date,d0,d1);});
   var done = weekSessions.filter(function(s){return s.status==="done";});
   var volumeH = done.reduce(function(a,s){return a+((s.actual&&s.actual.duration)||0);},0)/60;
-  var deniv = done.reduce(function(a,s){return a+((s.actual&&s.actual.elevation)||0);},0);
   var ratio = weekSessions.length ? Math.round(done.length/weekSessions.length*100) : 0;
 
-  /* Kilomètres de la semaine : séances saisies + activités importées (Strava / flux). */
-  var kmSessions = done.reduce(function(a,s){return a+((s.actual&&s.actual.distance)||0);},0);
-  var kmImported = (window.STRAVA_WEEK_KM_BY_DAY ? window.STRAVA_WEEK_KM_BY_DAY(isoDate(d0), isoDate(d1)) : 0);
-  var km = kmSessions + kmImported;
-  var targetKm = state.profile.weeklyTargetKm;
+  /* Km & D+ : uniquement les sports comptés (par défaut course à pied + trail),
+     séances saisies + activités importées. */
+  var totals = weekSportTotals();
+  var km = 0, deniv = 0;
+  (state.dashSports||[]).forEach(function(sp){
+    if(totals[sp]){ km += totals[sp].km; deniv += totals[sp].deniv; }
+  });
+  var targetKm = weekTargetKm(isoDate(d0));
   var kmPct = targetKm ? Math.min(100, km/targetKm*100) : 0;
+  var countedLabel = (state.dashSports||[]).length ? (state.dashSports||[]).join(" + ") : "aucun sport";
 
   var cards=[
     {label:"Volume horaire — semaine",value:volumeH.toFixed(1),unit:"h"},
-    {label:"Dénivelé — semaine",value:Math.round(deniv).toLocaleString('fr-FR'),unit:"m D+"},
-    {label:"Kilomètres — semaine",value: targetKm ? (km.toFixed(1)+" / "+targetKm) : km.toFixed(1),unit:"km",pct:targetKm?kmPct:undefined},
+    {label:"Dénivelé — "+countedLabel,value:Math.round(deniv).toLocaleString('fr-FR'),unit:"m D+"},
+    {label:"Kilomètres — "+countedLabel,value: targetKm ? (km.toFixed(1)+" / "+targetKm) : km.toFixed(1),unit:"km",pct:targetKm?kmPct:undefined},
     {label:"Séances réalisées",value:done.length+" / "+weekSessions.length,unit:"",pct:ratio}
   ];
 
   var grid=document.getElementById("kpiGrid"); grid.innerHTML="";
   cards.forEach(function(c){
     var el=document.createElement("div"); el.className="kpi";
-    el.innerHTML='<div class="label">'+c.label+'</div><div class="value">'+c.value+(c.unit?' <span class="unit">'+c.unit+'</span>':'')+'</div>'+
+    el.innerHTML='<div class="label">'+escapeHtml(c.label)+'</div><div class="value">'+c.value+(c.unit?' <span class="unit">'+c.unit+'</span>':'')+'</div>'+
       (c.pct!==undefined?'<div class="bar"><i style="width:'+Math.max(0,Math.min(100,c.pct))+'%"></i></div>':'');
     grid.appendChild(el);
   });
   document.getElementById("dashDateRange").textContent = fmtShort(isoDate(d0)).toUpperCase()+" — "+fmtShort(isoDate(d1)).toUpperCase();
+  var wl=document.getElementById("dashWeekLabel");
+  if(wl) wl.textContent = dashWeekOffset===0 ? "Semaine en cours" : (dashWeekOffset>0 ? "Dans "+dashWeekOffset+" sem." : "Il y a "+Math.abs(dashWeekOffset)+" sem.");
   renderSportKpis();
 }
+
+/* Objectif km de la semaine : celui du sous-sous-cycle couvrant la semaine, sinon le profil. */
+function weekTargetKm(mondayISO){
+  var ss=state.subsubcycles.find(function(x){return mondayISO>=x.start && mondayISO<=x.end;});
+  if(ss && ss.targetKm) return ss.targetKm;
+  return state.profile.weeklyTargetKm;
+}
+
 
 /* ---------- KM & D+ par sport (avec regroupements personnalisables) ---------- */
 var IMPORT_TYPE_TO_SPORT = {
