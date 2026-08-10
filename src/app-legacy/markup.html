@@ -218,6 +218,24 @@
     <section class="view" id="view-statistiques">
       <div class="view-head"><div><h1>Statistiques</h1><div class="sub">Graphiques &amp; analyse</div></div></div>
 
+      <div class="panel">
+        <div class="week-panel-head">
+          <h3 class="block-title" style="margin:0;">Suivi par sport</h3>
+          <div class="custom-select-wrap">
+            <select id="statsPeriodFilter" class="custom-select">
+              <option value="week">Semaine en cours</option>
+              <option value="month">Mois en cours</option>
+              <option value="cycle">Cycle en cours</option>
+              <option value="year" selected>Année en cours</option>
+            </select>
+            <span class="custom-select-arrow"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" width="10" height="10"><polyline points="2 4 6 8 10 4"/></svg></span>
+          </div>
+        </div>
+        <div class="sub" id="statsPeriodRange" style="margin-bottom:10px;"></div>
+        <div class="grid cols-4" id="sportTrackKpis" style="margin-bottom:14px;"></div>
+        <div class="grid cols-2" id="sportTrackCharts"></div>
+      </div>
+
       <div class="sport-thumbs" id="sportThumbs"></div>
 
       <div class="panel">
