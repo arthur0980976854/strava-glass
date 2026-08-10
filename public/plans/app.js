@@ -277,74 +277,55 @@ function renderSportKpis(){
 }
 
 
-/* ---------- Modale de regroupement ---------- */
-var sportGroupDraft=[];
-function renderSportGroupEditor(){
+/* ---------- Modale : choix des sports comptés dans les KPI ---------- */
+var sportPickDraft=[];
+function renderSportPicker(){
   var wrap=document.getElementById("sportGroupList"); if(!wrap) return;
-  wrap.innerHTML="";
-  if(!sportGroupDraft.length){
-    wrap.innerHTML='<div style="font-size:12.5px;color:var(--text-faint);">Aucun groupe. Chaque sport est compté séparément.</div>';
-  }
-  sportGroupDraft.forEach(function(g,idx){
-    var box=document.createElement("div");
-    box.className="panel";
-    box.style.cssText="padding:12px;margin-bottom:10px;";
-    var chips=state.sports.map(function(sp){
-      var on=(g.sports||[]).indexOf(sp.name)!==-1;
-      return '<button type="button" class="btn small sport-pick" data-idx="'+idx+'" data-sport="'+escapeHtml(sp.name)+'" style="margin:0 6px 6px 0;'+
-        (on?'border-color:'+sp.color+';color:'+sp.color+';':'')+'">'+(on?'✓ ':'')+escapeHtml(sp.name)+'</button>';
-    }).join("");
-    box.innerHTML='<div class="form-grid" style="margin-bottom:8px;"><div class="field" style="grid-column:span 2;">'+
-      '<label>Nom du groupe</label><input type="text" class="group-name" data-idx="'+idx+'" value="'+escapeHtml(g.name||"")+'"></div></div>'+
-      '<div>'+chips+'</div>'+
-      '<div style="text-align:right;"><button type="button" class="btn ghost group-del" data-idx="'+idx+'">Supprimer le groupe</button></div>';
-    wrap.appendChild(box);
-  });
+  wrap.innerHTML = state.sports.map(function(sp){
+    var on=sportPickDraft.indexOf(sp.name)!==-1;
+    return '<button type="button" class="btn small sport-pick" data-sport="'+escapeHtml(sp.name)+'" style="margin:0 8px 8px 0;'+
+      (on?'border-color:'+sp.color+';color:'+sp.color+';':'')+'">'+(on?'✓ ':'')+escapeHtml(sp.name)+'</button>';
+  }).join("");
 }
-function openSportGroups(){
-  sportGroupDraft = JSON.parse(JSON.stringify(state.sportGroups||[]));
-  renderSportGroupEditor();
-  document.getElementById("sportGroupOverlay").classList.add("open");
-}
-(function initSportGroups(){
+(function initSportPicker(){
   var overlay=document.getElementById("sportGroupOverlay");
   var btn=document.getElementById("btnSportGroups");
   if(!overlay||!btn) return;
-  btn.addEventListener("click", openSportGroups);
+  btn.addEventListener("click", function(){
+    sportPickDraft=(state.dashSports||[]).slice();
+    renderSportPicker();
+    overlay.classList.add("open");
+  });
   overlay.addEventListener("click", function(e){ if(e.target===overlay) overlay.classList.remove("open"); });
   document.getElementById("btnSportGroupClose").addEventListener("click", function(){ overlay.classList.remove("open"); });
-  document.getElementById("btnAddSportGroup").addEventListener("click", function(){
-    sportGroupDraft.push({id:uid(), name:"Nouveau groupe", sports:[]});
-    renderSportGroupEditor();
-  });
   document.getElementById("sportGroupList").addEventListener("click", function(e){
-    var pick=e.target.closest(".sport-pick");
-    if(pick){
-      var g=sportGroupDraft[+pick.dataset.idx];
-      g.sports=g.sports||[];
-      var i=g.sports.indexOf(pick.dataset.sport);
-      if(i===-1) g.sports.push(pick.dataset.sport); else g.sports.splice(i,1);
-      renderSportGroupEditor();
-      return;
-    }
-    var del=e.target.closest(".group-del");
-    if(del){ sportGroupDraft.splice(+del.dataset.idx,1); renderSportGroupEditor(); }
-  });
-  document.getElementById("sportGroupList").addEventListener("input", function(e){
-    if(e.target.classList.contains("group-name")) sportGroupDraft[+e.target.dataset.idx].name=e.target.value;
+    var pick=e.target.closest(".sport-pick"); if(!pick) return;
+    var i=sportPickDraft.indexOf(pick.dataset.sport);
+    if(i===-1) sportPickDraft.push(pick.dataset.sport); else sportPickDraft.splice(i,1);
+    renderSportPicker();
   });
   document.getElementById("btnSportGroupSave").addEventListener("click", function(){
-    var seen={};
-    state.sportGroups = sportGroupDraft.filter(function(g){ return (g.sports||[]).length>1; }).map(function(g){
-      g.sports=(g.sports||[]).filter(function(s){ if(seen[s]) return false; seen[s]=1; return true; });
-      g.name=(g.name||"").trim()||g.sports.join(" & ");
-      return g;
-    }).filter(function(g){ return g.sports.length>1; });
+    state.dashSports = sportPickDraft.slice();
     saveData(true);
-    renderSportKpis();
+    renderKPIs();
     overlay.classList.remove("open");
   });
 })();
+
+/* ---------- Navigation de semaine du tableau de bord ---------- */
+(function initDashWeekNav(){
+  function go(delta){ dashWeekOffset += delta; refreshDashboard(); }
+  var prev=document.getElementById("dashWeekPrev"), next=document.getElementById("dashWeekNext"), today=document.getElementById("dashWeekToday");
+  if(prev) prev.addEventListener("click", function(){ go(-1); });
+  if(next) next.addEventListener("click", function(){ go(1); });
+  if(today) today.addEventListener("click", function(){ dashWeekOffset=0; refreshDashboard(); });
+})();
+function refreshDashboard(){
+  renderKPIs();
+  if(typeof renderWeekPanel==="function") renderWeekPanel();
+  if(typeof renderSportKmChart==="function") renderSportKmChart();
+}
+
 
 
 function renderGoalBanner(){
