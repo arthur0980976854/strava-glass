@@ -253,18 +253,12 @@ function renderSportKpis(){
   var grid=document.getElementById("sportKpiGrid");
   if(!grid) return;
   var totals=weekSportTotals();
-  var buckets=[], byKey={};
-  Object.keys(totals).forEach(function(sport){
-    var t=totals[sport];
-    if(t.km<=0 && t.deniv<=0) return;
-    var g=groupForSport(sport);
-    var key = g ? "g:"+g.id : "s:"+sport;
-    if(!byKey[key]){
-      byKey[key]={label: g? g.name : sport, color: g? sportColor((g.sports||[])[0]) : sportColor(sport), km:0, deniv:0};
-      buckets.push(byKey[key]);
-    }
-    byKey[key].km += t.km;
-    byKey[key].deniv += t.deniv;
+  var counted=countedSports();
+  var buckets=Object.keys(totals).filter(function(sport){
+    var t=totals[sport]; return t.km>0 || t.deniv>0;
+  }).map(function(sport){
+    return {label:sport, color:sportColor(sport), km:totals[sport].km, deniv:totals[sport].deniv,
+            counted: counted.indexOf(sport)!==-1};
   });
   buckets.sort(function(a,b){return b.km-a.km;});
   if(!buckets.length){
@@ -275,12 +269,13 @@ function renderSportKpis(){
   buckets.forEach(function(b){
     var el=document.createElement("div"); el.className="kpi";
     el.style.borderLeft="3px solid "+b.color;
-    el.innerHTML='<div class="label">'+escapeHtml(b.label)+'</div>'+
+    el.innerHTML='<div class="label">'+escapeHtml(b.label)+(b.counted?' · <span style="color:'+b.color+'">compté</span>':'')+'</div>'+
       '<div class="value">'+b.km.toFixed(1)+' <span class="unit">km</span></div>'+
       '<div class="label" style="margin-top:6px;">'+Math.round(b.deniv).toLocaleString('fr-FR')+' m D+</div>';
     grid.appendChild(el);
   });
 }
+
 
 /* ---------- Modale de regroupement ---------- */
 var sportGroupDraft=[];
