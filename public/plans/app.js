@@ -36,7 +36,7 @@ var MONTHS_FULL = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","A
 var state = {
   profile:{firstName:"",lastName:"",age:null,height:null,weight:null,vma:null,hrMax:null,hrRest:null,zones:[],weeklyTargetHours:null,weeklyTargetKm:null},
   sports: DEFAULT_SPORTS.slice(),
-  sportGroups: defaultSportGroups(),
+  dashSports: ["Course à pied","Trail"],
   sessionTypes: DEFAULT_SESSION_TYPES.slice(),
   cycleNames: [],
   season:{start:null,end:null},
@@ -51,6 +51,7 @@ var charts = {};
 var planMonthCursor = new Date(); planMonthCursor.setDate(1);
 var doneMonthCursor = new Date(); doneMonthCursor.setDate(1);
 var editCycleId=null, editSubId=null, editSubSubId=null;
+var dashWeekOffset=0;
 
 async function loadData(){
   try{
@@ -59,7 +60,7 @@ async function loadData(){
       var p = JSON.parse(res.value);
       state.profile = Object.assign(state.profile, p.profile||{});
       if(p.sports && p.sports.length) state.sports = p.sports;
-      state.sportGroups = p.sportGroups || defaultSportGroups();
+      state.dashSports = (p.dashSports && p.dashSports.length) ? p.dashSports : ["Course à pied","Trail"];
       if(p.sessionTypes && p.sessionTypes.length) state.sessionTypes = p.sessionTypes;
       state.cycleNames = p.cycleNames || [];
       state.season = p.season || state.season;
@@ -89,7 +90,7 @@ function toast(msg){
 }
 
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
-function isoDate(d){ return d.toISOString().slice(0,10); }
+function isoDate(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
 function parseISO(s){ var p=s.split("-"); return new Date(+p[0],+p[1]-1,+p[2]); }
 function todayISO(){ return isoDate(new Date()); }
 function fmtShort(s){ var d=parseISO(s); return d.getDate()+" "+MONTHS_FR[d.getMonth()]; }
@@ -175,37 +176,50 @@ document.getElementById("btnToggleConfig").addEventListener("click", function(){
    ========================================================================= */
 window.renderKPIs=function(){ renderKPIs(); };
 function renderKPIs(){
-  var days=weekDays(0), d0=days[0], d1=days[6];
+  var days=weekDays(dashWeekOffset), d0=days[0], d1=days[6];
   var weekSessions = state.sessions.filter(function(s){return inRange(s.date,d0,d1);});
   var done = weekSessions.filter(function(s){return s.status==="done";});
   var volumeH = done.reduce(function(a,s){return a+((s.actual&&s.actual.duration)||0);},0)/60;
-  var deniv = done.reduce(function(a,s){return a+((s.actual&&s.actual.elevation)||0);},0);
   var ratio = weekSessions.length ? Math.round(done.length/weekSessions.length*100) : 0;
 
-  /* Kilomètres de la semaine : séances saisies + activités importées (Strava / flux). */
-  var kmSessions = done.reduce(function(a,s){return a+((s.actual&&s.actual.distance)||0);},0);
-  var kmImported = (window.STRAVA_WEEK_KM_BY_DAY ? window.STRAVA_WEEK_KM_BY_DAY(isoDate(d0), isoDate(d1)) : 0);
-  var km = kmSessions + kmImported;
-  var targetKm = state.profile.weeklyTargetKm;
+  /* Km & D+ : uniquement les sports comptés (par défaut course à pied + trail),
+     séances saisies + activités importées. */
+  var totals = weekSportTotals();
+  var km = 0, deniv = 0;
+  (state.dashSports||[]).forEach(function(sp){
+    if(totals[sp]){ km += totals[sp].km; deniv += totals[sp].deniv; }
+  });
+  var targetKm = weekTargetKm(isoDate(d0));
   var kmPct = targetKm ? Math.min(100, km/targetKm*100) : 0;
+  var countedLabel = (state.dashSports||[]).length ? (state.dashSports||[]).join(" + ") : "aucun sport";
 
   var cards=[
     {label:"Volume horaire — semaine",value:volumeH.toFixed(1),unit:"h"},
-    {label:"Dénivelé — semaine",value:Math.round(deniv).toLocaleString('fr-FR'),unit:"m D+"},
-    {label:"Kilomètres — semaine",value: targetKm ? (km.toFixed(1)+" / "+targetKm) : km.toFixed(1),unit:"km",pct:targetKm?kmPct:undefined},
+    {label:"Dénivelé — "+countedLabel,value:Math.round(deniv).toLocaleString('fr-FR'),unit:"m D+"},
+    {label:"Kilomètres — "+countedLabel,value: targetKm ? (km.toFixed(1)+" / "+targetKm) : km.toFixed(1),unit:"km",pct:targetKm?kmPct:undefined},
     {label:"Séances réalisées",value:done.length+" / "+weekSessions.length,unit:"",pct:ratio}
   ];
 
   var grid=document.getElementById("kpiGrid"); grid.innerHTML="";
   cards.forEach(function(c){
     var el=document.createElement("div"); el.className="kpi";
-    el.innerHTML='<div class="label">'+c.label+'</div><div class="value">'+c.value+(c.unit?' <span class="unit">'+c.unit+'</span>':'')+'</div>'+
+    el.innerHTML='<div class="label">'+escapeHtml(c.label)+'</div><div class="value">'+c.value+(c.unit?' <span class="unit">'+c.unit+'</span>':'')+'</div>'+
       (c.pct!==undefined?'<div class="bar"><i style="width:'+Math.max(0,Math.min(100,c.pct))+'%"></i></div>':'');
     grid.appendChild(el);
   });
   document.getElementById("dashDateRange").textContent = fmtShort(isoDate(d0)).toUpperCase()+" — "+fmtShort(isoDate(d1)).toUpperCase();
+  var wl=document.getElementById("dashWeekLabel");
+  if(wl) wl.textContent = dashWeekOffset===0 ? "Semaine en cours" : (dashWeekOffset>0 ? "Dans "+dashWeekOffset+" sem." : "Il y a "+Math.abs(dashWeekOffset)+" sem.");
   renderSportKpis();
 }
+
+/* Objectif km de la semaine : celui du sous-sous-cycle couvrant la semaine, sinon le profil. */
+function weekTargetKm(mondayISO){
+  var ss=state.subsubcycles.find(function(x){return mondayISO>=x.start && mondayISO<=x.end;});
+  if(ss && ss.targetKm) return ss.targetKm;
+  return state.profile.weeklyTargetKm;
+}
+
 
 /* ---------- KM & D+ par sport (avec regroupements personnalisables) ---------- */
 var IMPORT_TYPE_TO_SPORT = {
@@ -213,14 +227,10 @@ var IMPORT_TYPE_TO_SPORT = {
   MountainBikeRide:"Vélo", Swim:"Natation", WeightTraining:"Musculation", Workout:"Autre",
   Hike:"Autre", Walk:"Autre", Rowing:"Autre", NordicSki:"Autre"
 };
-function defaultSportGroups(){
-  return [{id:uid(), name:"Course à pied & Trail", sports:["Course à pied","Trail"]}];
-}
-function groupForSport(name){
-  return (state.sportGroups||[]).find(function(g){ return (g.sports||[]).indexOf(name)!==-1; }) || null;
-}
+function countedSports(){ return (state.dashSports||[]).slice(); }
+
 function weekSportTotals(){
-  var days=weekDays(0), d0=days[0], d1=days[6];
+  var days=weekDays(dashWeekOffset), d0=days[0], d1=days[6];
   var totals={};
   function add(sport,km,deniv){
     if(!sport) sport="Autre";
@@ -243,18 +253,12 @@ function renderSportKpis(){
   var grid=document.getElementById("sportKpiGrid");
   if(!grid) return;
   var totals=weekSportTotals();
-  var buckets=[], byKey={};
-  Object.keys(totals).forEach(function(sport){
-    var t=totals[sport];
-    if(t.km<=0 && t.deniv<=0) return;
-    var g=groupForSport(sport);
-    var key = g ? "g:"+g.id : "s:"+sport;
-    if(!byKey[key]){
-      byKey[key]={label: g? g.name : sport, color: g? sportColor((g.sports||[])[0]) : sportColor(sport), km:0, deniv:0};
-      buckets.push(byKey[key]);
-    }
-    byKey[key].km += t.km;
-    byKey[key].deniv += t.deniv;
+  var counted=countedSports();
+  var buckets=Object.keys(totals).filter(function(sport){
+    var t=totals[sport]; return t.km>0 || t.deniv>0;
+  }).map(function(sport){
+    return {label:sport, color:sportColor(sport), km:totals[sport].km, deniv:totals[sport].deniv,
+            counted: counted.indexOf(sport)!==-1};
   });
   buckets.sort(function(a,b){return b.km-a.km;});
   if(!buckets.length){
@@ -265,81 +269,63 @@ function renderSportKpis(){
   buckets.forEach(function(b){
     var el=document.createElement("div"); el.className="kpi";
     el.style.borderLeft="3px solid "+b.color;
-    el.innerHTML='<div class="label">'+escapeHtml(b.label)+'</div>'+
+    el.innerHTML='<div class="label">'+escapeHtml(b.label)+(b.counted?' · <span style="color:'+b.color+'">compté</span>':'')+'</div>'+
       '<div class="value">'+b.km.toFixed(1)+' <span class="unit">km</span></div>'+
       '<div class="label" style="margin-top:6px;">'+Math.round(b.deniv).toLocaleString('fr-FR')+' m D+</div>';
     grid.appendChild(el);
   });
 }
 
-/* ---------- Modale de regroupement ---------- */
-var sportGroupDraft=[];
-function renderSportGroupEditor(){
+
+/* ---------- Modale : choix des sports comptés dans les KPI ---------- */
+var sportPickDraft=[];
+function renderSportPicker(){
   var wrap=document.getElementById("sportGroupList"); if(!wrap) return;
-  wrap.innerHTML="";
-  if(!sportGroupDraft.length){
-    wrap.innerHTML='<div style="font-size:12.5px;color:var(--text-faint);">Aucun groupe. Chaque sport est compté séparément.</div>';
-  }
-  sportGroupDraft.forEach(function(g,idx){
-    var box=document.createElement("div");
-    box.className="panel";
-    box.style.cssText="padding:12px;margin-bottom:10px;";
-    var chips=state.sports.map(function(sp){
-      var on=(g.sports||[]).indexOf(sp.name)!==-1;
-      return '<button type="button" class="btn small sport-pick" data-idx="'+idx+'" data-sport="'+escapeHtml(sp.name)+'" style="margin:0 6px 6px 0;'+
-        (on?'border-color:'+sp.color+';color:'+sp.color+';':'')+'">'+(on?'✓ ':'')+escapeHtml(sp.name)+'</button>';
-    }).join("");
-    box.innerHTML='<div class="form-grid" style="margin-bottom:8px;"><div class="field" style="grid-column:span 2;">'+
-      '<label>Nom du groupe</label><input type="text" class="group-name" data-idx="'+idx+'" value="'+escapeHtml(g.name||"")+'"></div></div>'+
-      '<div>'+chips+'</div>'+
-      '<div style="text-align:right;"><button type="button" class="btn ghost group-del" data-idx="'+idx+'">Supprimer le groupe</button></div>';
-    wrap.appendChild(box);
-  });
+  wrap.innerHTML = state.sports.map(function(sp){
+    var on=sportPickDraft.indexOf(sp.name)!==-1;
+    return '<button type="button" class="btn small sport-pick" data-sport="'+escapeHtml(sp.name)+'" style="margin:0 8px 8px 0;'+
+      (on?'border-color:'+sp.color+';color:'+sp.color+';':'')+'">'+(on?'✓ ':'')+escapeHtml(sp.name)+'</button>';
+  }).join("");
 }
-function openSportGroups(){
-  sportGroupDraft = JSON.parse(JSON.stringify(state.sportGroups||[]));
-  renderSportGroupEditor();
-  document.getElementById("sportGroupOverlay").classList.add("open");
-}
-(function initSportGroups(){
+(function initSportPicker(){
   var overlay=document.getElementById("sportGroupOverlay");
   var btn=document.getElementById("btnSportGroups");
   if(!overlay||!btn) return;
-  btn.addEventListener("click", openSportGroups);
+  btn.addEventListener("click", function(){
+    sportPickDraft=(state.dashSports||[]).slice();
+    renderSportPicker();
+    overlay.classList.add("open");
+  });
   overlay.addEventListener("click", function(e){ if(e.target===overlay) overlay.classList.remove("open"); });
   document.getElementById("btnSportGroupClose").addEventListener("click", function(){ overlay.classList.remove("open"); });
-  document.getElementById("btnAddSportGroup").addEventListener("click", function(){
-    sportGroupDraft.push({id:uid(), name:"Nouveau groupe", sports:[]});
-    renderSportGroupEditor();
-  });
   document.getElementById("sportGroupList").addEventListener("click", function(e){
-    var pick=e.target.closest(".sport-pick");
-    if(pick){
-      var g=sportGroupDraft[+pick.dataset.idx];
-      g.sports=g.sports||[];
-      var i=g.sports.indexOf(pick.dataset.sport);
-      if(i===-1) g.sports.push(pick.dataset.sport); else g.sports.splice(i,1);
-      renderSportGroupEditor();
-      return;
-    }
-    var del=e.target.closest(".group-del");
-    if(del){ sportGroupDraft.splice(+del.dataset.idx,1); renderSportGroupEditor(); }
-  });
-  document.getElementById("sportGroupList").addEventListener("input", function(e){
-    if(e.target.classList.contains("group-name")) sportGroupDraft[+e.target.dataset.idx].name=e.target.value;
+    var pick=e.target.closest(".sport-pick"); if(!pick) return;
+    var i=sportPickDraft.indexOf(pick.dataset.sport);
+    if(i===-1) sportPickDraft.push(pick.dataset.sport); else sportPickDraft.splice(i,1);
+    renderSportPicker();
   });
   document.getElementById("btnSportGroupSave").addEventListener("click", function(){
-    var seen={};
-    state.sportGroups = sportGroupDraft.filter(function(g){ return (g.sports||[]).length>1; }).map(function(g){
-      g.sports=(g.sports||[]).filter(function(s){ if(seen[s]) return false; seen[s]=1; return true; });
-      g.name=(g.name||"").trim()||g.sports.join(" & ");
-      return g;
-    }).filter(function(g){ return g.sports.length>1; });
+    state.dashSports = sportPickDraft.slice();
     saveData(true);
-    renderSportKpis();
+    renderKPIs();
     overlay.classList.remove("open");
   });
 })();
+
+/* ---------- Navigation de semaine du tableau de bord ---------- */
+(function initDashWeekNav(){
+  function go(delta){ dashWeekOffset += delta; refreshDashboard(); }
+  var prev=document.getElementById("dashWeekPrev"), next=document.getElementById("dashWeekNext"), today=document.getElementById("dashWeekToday");
+  if(prev) prev.addEventListener("click", function(){ go(-1); });
+  if(next) next.addEventListener("click", function(){ go(1); });
+  if(today) today.addEventListener("click", function(){ dashWeekOffset=0; refreshDashboard(); });
+})();
+function refreshDashboard(){
+  renderKPIs();
+  if(typeof renderWeekPanel==="function") renderWeekPanel();
+  if(typeof renderSportKmChart==="function") renderSportKmChart();
+}
+
 
 
 function renderGoalBanner(){
@@ -369,7 +355,7 @@ function renderCycleWeeksProgress(cyc){
 }
 
 function renderWeekPanel(){
-  var days=weekDays(0), monday=isoDate(days[0]), today=todayISO();
+  var days=weekDays(dashWeekOffset), monday=isoDate(days[0]), today=todayISO();
   var cyc = activeCycleForDate(today);
   var badge = document.getElementById("currentCycleBadge");
   var box = document.getElementById("weekPanelBox");
@@ -438,7 +424,7 @@ function makePill(s){
 }
 
 function renderSportKmChart(){
-  var days=weekDays(0), d0=days[0], d1=days[6];
+  var days=weekDays(dashWeekOffset), d0=days[0], d1=days[6];
   var done = state.sessions.filter(function(s){return s.status==="done" && inRange(s.date,d0,d1);});
   var bySport = {};
   done.forEach(function(s){
@@ -727,6 +713,7 @@ function resetSubSubForm(){
   editSubSubId=null;
   document.getElementById("subsubName").value="";
   document.getElementById("subsubWeeks").value="1";
+  document.getElementById("subsubTargetKm").value="";
   document.getElementById("btnAddSubSub").textContent="Ajouter";
   document.getElementById("subsubEditHint").style.display="none";
   autofillSubSubStart();
@@ -747,15 +734,16 @@ document.getElementById("btnAddSubSub").addEventListener("click", function(){
   var name=document.getElementById("subsubName").value.trim();
   var weeks=+document.getElementById("subsubWeeks").value;
   var start=document.getElementById("subsubStart").value;
+  var targetKm=parseFloat(document.getElementById("subsubTargetKm").value)||0;
   if(!parent){ toast("Ajoutez d'abord un sous-cycle"); return; }
   if(!name||!weeks||!start){ toast("Champs incomplets"); return; }
   var sd=parseISO(start); var ed=new Date(sd); ed.setDate(ed.getDate()+weeks*7-1);
   if(editSubSubId){
     var ss=state.subsubcycles.find(function(x){return x.id===editSubSubId;});
-    Object.assign(ss,{subId:parent,name:name,start:start,end:isoDate(ed)});
+    Object.assign(ss,{subId:parent,name:name,start:start,end:isoDate(ed),targetKm:targetKm});
     resetSubSubForm();
   } else {
-    state.subsubcycles.push({id:uid(),subId:parent,name:name,start:start,end:isoDate(ed)});
+    state.subsubcycles.push({id:uid(),subId:parent,name:name,start:start,end:isoDate(ed),targetKm:targetKm});
     document.getElementById("subsubName").value="";
     autofillSubSubStart();
   }
@@ -796,7 +784,49 @@ function laneAssign(items){
   });
   return {items:sorted, laneCount:lanes.length};
 }
-function renderTimelineLevel(containerId, items, colorFn, labelFn){
+/* ---------- Infos d'un cycle au clic sur la timeline ---------- */
+function cycleInfoHTML(kind, c){
+  var rows=[];
+  var d0=parseISO(c.start), d1=parseISO(c.end);
+  var weeks=Math.round((d1-d0)/(7*864e5))+1;
+  rows.push(["Type", kind]);
+  if(kind==="Cycle" && c.type && CYCLE_TYPES[c.type]) rows.push(["Nature", CYCLE_TYPES[c.type].label||c.type]);
+  rows.push(["Début", fmtShort(c.start)]);
+  rows.push(["Fin", fmtShort(c.end)]);
+  rows.push(["Durée", weeks+" semaine"+(weeks>1?"s":"")]);
+  if(c.targetKm) rows.push(["Objectif hebdo", c.targetKm+" km"]);
+  if(kind!=="Cycle"){
+    var parentSub = kind==="Division" ? state.subcycles.find(function(x){return x.id===c.subId;}) : null;
+    var parentCycle = kind==="Sous-cycle"
+      ? state.cycles.find(function(x){return x.id===c.cycleId;})
+      : (parentSub ? state.cycles.find(function(x){return x.id===parentSub.cycleId;}) : null);
+    if(parentSub) rows.push(["Sous-cycle parent", parentSub.name]);
+    if(parentCycle) rows.push(["Cycle parent", cycleLabel(parentCycle)]);
+  }
+  var sess=state.sessions.filter(function(s){return inRange(s.date,d0,d1);});
+  var done=sess.filter(function(s){return s.status==="done";});
+  var km=done.reduce(function(a,s){return a+((s.actual&&s.actual.distance)||0);},0);
+  var dplus=done.reduce(function(a,s){return a+((s.actual&&s.actual.elevation)||0);},0);
+  var hrs=done.reduce(function(a,s){return a+((s.actual&&s.actual.duration)||0);},0)/60;
+  rows.push(["Séances", done.length+" réalisées / "+sess.length+" planifiées"]);
+  rows.push(["Volume", hrs.toFixed(1)+" h · "+km.toFixed(1)+" km · "+Math.round(dplus)+" m D+"]);
+  return '<div class="info-rows">'+rows.map(function(r){
+    return '<div class="info-row"><span>'+escapeHtml(r[0])+'</span><b>'+escapeHtml(String(r[1]))+'</b></div>';
+  }).join("")+'</div>';
+}
+function openCycleInfo(kind, c){
+  var ov=document.getElementById("cycleInfoOverlay"); if(!ov) return;
+  document.getElementById("cycleInfoTitle").textContent = (kind==="Cycle"? cycleLabel(c) : c.name);
+  document.getElementById("cycleInfoBody").innerHTML = cycleInfoHTML(kind, c);
+  ov.classList.add("open");
+}
+(function initCycleInfo(){
+  var ov=document.getElementById("cycleInfoOverlay"); if(!ov) return;
+  ov.addEventListener("click", function(e){ if(e.target===ov) ov.classList.remove("open"); });
+  document.getElementById("btnCycleInfoClose").addEventListener("click", function(){ ov.classList.remove("open"); });
+})();
+
+function renderTimelineLevel(containerId, items, colorFn, labelFn, kind){
   var wrap=document.getElementById(containerId);
   wrap.innerHTML="";
   if(!state.season.start||!state.season.end) return;
@@ -814,6 +844,8 @@ function renderTimelineLevel(containerId, items, colorFn, labelFn){
     block.style.background=colorFn(c);
     block.textContent=labelFn(c);
     block.title=labelFn(c)+" · "+fmtShort(c.start)+" → "+fmtShort(c.end);
+    block.style.cursor="pointer";
+    block.addEventListener("click", function(){ openCycleInfo(kind||"Cycle", c); });
     wrap.appendChild(block);
   });
 }
@@ -835,18 +867,18 @@ function renderTimeline(){
     tlMonths.appendChild(tick);
     cur.setMonth(cur.getMonth()+1);
   }
-  renderTimelineLevel("tlLanesCycles", state.cycles, function(c){return CYCLE_TYPES[c.type].color;}, cycleLabel);
+  renderTimelineLevel("tlLanesCycles", state.cycles, function(c){return CYCLE_TYPES[c.type].color;}, cycleLabel, "Cycle");
   renderTimelineLevel("tlLanesSub", state.subcycles, function(c){
     var parent=state.cycles.find(function(x){return x.id===c.cycleId;});
     var hex= parent? CYCLE_TYPES[parent.type].color : CYCLE_TYPES.libre.color;
     return "color-mix(in srgb, "+hex+" 55%, white)";
-  }, function(c){return c.name;});
+  }, function(c){return c.name;}, "Sous-cycle");
   renderTimelineLevel("tlLanesSubSub", state.subsubcycles, function(c){
     var parentSub=state.subcycles.find(function(x){return x.id===c.subId;});
     var parent= parentSub? state.cycles.find(function(x){return x.id===parentSub.cycleId;}) : null;
     var hex= parent? CYCLE_TYPES[parent.type].color : CYCLE_TYPES.libre.color;
     return "color-mix(in srgb, "+hex+" 30%, white)";
-  }, function(c){return c.name;});
+  }, function(c){return c.name;}, "Division");
 
   var today=new Date(); today.setHours(0,0,0,0);
   if(today>=s0 && today<=s1){
@@ -950,6 +982,7 @@ function renderSubSubList(){
       document.getElementById("subsubName").value=ss.name;
       var weeks=Math.round((parseISO(ss.end)-parseISO(ss.start))/(7*864e5))+1;
       document.getElementById("subsubWeeks").value=weeks;
+      document.getElementById("subsubTargetKm").value=ss.targetKm||"";
       document.getElementById("subsubStart").value=ss.start;
       document.getElementById("btnAddSubSub").textContent="Enregistrer les modifications";
       document.getElementById("subsubEditHint").style.display="block";
@@ -1125,6 +1158,7 @@ function renderSportThumbs(){
 }
 
 function renderStats(){
+  if(typeof renderSportTracking==="function") renderSportTracking();
   renderSportThumbs();
   var doneSessions=state.sessions.filter(function(s){return s.status==="done";});
 
@@ -1365,4 +1399,95 @@ function renderAll(){
 }
 
 loadData();
+})();
+
+/* =========================================================================
+   STATISTIQUES — suivi par sport avec filtre de période
+   ========================================================================= */
+var SPORT_METRICS = {
+  "Trail":        {km:true, deniv:true, hours:true},
+  "Course à pied":{km:true, deniv:true, hours:true},
+  "Vélo":         {km:true, deniv:true, hours:true},
+  "Natation":     {meters:true, hours:true},
+  "Musculation":  {sessions:true, hours:true}
+};
+function statsPeriodRange(mode){
+  var now=new Date(); now.setHours(0,0,0,0);
+  if(mode==="week"){ var d=weekDays(0); return {start:d[0], end:d[6], label:"Semaine du "+fmtShort(isoDate(d[0]))}; }
+  if(mode==="month"){
+    var s=new Date(now.getFullYear(), now.getMonth(), 1), e=new Date(now.getFullYear(), now.getMonth()+1, 0);
+    return {start:s, end:e, label:MONTHS_FR[now.getMonth()]+" "+now.getFullYear()};
+  }
+  if(mode==="cycle"){
+    var c=state.cycles.find(function(x){ var t=todayISO(); return t>=x.start && t<=x.end; });
+    if(c) return {start:parseISO(c.start), end:parseISO(c.end), label:cycleLabel(c)};
+    return {start:new Date(now.getFullYear(),0,1), end:new Date(now.getFullYear(),11,31), label:"Aucun cycle en cours — année "+now.getFullYear()};
+  }
+  return {start:new Date(now.getFullYear(),0,1), end:new Date(now.getFullYear(),11,31), label:"Année "+now.getFullYear()};
+}
+function sportTrackTotals(range){
+  var totals={};
+  state.sessions.filter(function(s){return s.status==="done" && inRange(s.date,range.start,range.end);}).forEach(function(s){
+    var sp=s.sport||"Autre";
+    if(!SPORT_METRICS[sp]) return;
+    if(!totals[sp]) totals[sp]={km:0,deniv:0,hours:0,sessions:0};
+    var a=s.actual||{};
+    totals[sp].km += a.distance||0;
+    totals[sp].deniv += a.elevation||0;
+    totals[sp].hours += (a.duration||0)/60;
+    totals[sp].sessions += 1;
+  });
+  return totals;
+}
+function renderSportTracking(){
+  var kpis=document.getElementById("sportTrackKpis"); if(!kpis) return;
+  var sel=document.getElementById("statsPeriodFilter");
+  var range=statsPeriodRange(sel? sel.value : "year");
+  var rangeEl=document.getElementById("statsPeriodRange");
+  if(rangeEl) rangeEl.textContent = range.label+" · "+fmtShort(isoDate(range.start))+" → "+fmtShort(isoDate(range.end));
+  var totals=sportTrackTotals(range);
+  var sports=Object.keys(totals);
+  if(!sports.length){
+    kpis.innerHTML='<div class="kpi" style="grid-column:1/-1;"><div class="label">Aucune activité sur la période</div><div class="value">—</div></div>';
+    document.getElementById("sportTrackCharts").innerHTML="";
+    return;
+  }
+  kpis.innerHTML="";
+  sports.forEach(function(sp){
+    var m=SPORT_METRICS[sp], t=totals[sp], lines=[];
+    if(m.km) lines.push(t.km.toFixed(1)+" km");
+    if(m.deniv) lines.push(Math.round(t.deniv).toLocaleString('fr-FR')+" m D+");
+    if(m.meters) lines.push(Math.round(t.km*1000).toLocaleString('fr-FR')+" m");
+    if(m.sessions) lines.push(t.sessions+" séance"+(t.sessions>1?"s":""));
+    var el=document.createElement("div"); el.className="kpi";
+    el.style.borderLeft="3px solid "+sportColor(sp);
+    el.innerHTML='<div class="label">'+escapeHtml(sp)+'</div>'+
+      '<div class="value">'+t.hours.toFixed(1)+' <span class="unit">h</span></div>'+
+      '<div class="label" style="margin-top:6px;">'+lines.join(" · ")+'</div>';
+    kpis.appendChild(el);
+  });
+  /* Barres comparatives : une par métrique pertinente, axes cohérents. */
+  var charts=document.getElementById("sportTrackCharts"); charts.innerHTML="";
+  function bars(title, unit, valueFn, fmt){
+    var rows=sports.filter(function(sp){ return valueFn(sp)!==null; });
+    if(!rows.length) return;
+    var max=Math.max.apply(null, rows.map(valueFn))||1;
+    var html='<div class="panel"><h3 class="block-title">'+title+' <span class="unit">('+unit+')</span></h3>';
+    rows.sort(function(a,b){return valueFn(b)-valueFn(a);}).forEach(function(sp){
+      var v=valueFn(sp);
+      html+='<div class="track-row"><span class="track-label">'+escapeHtml(sp)+'</span>'+
+        '<span class="track-bar"><i style="width:'+(v/max*100)+'%;background:'+sportColor(sp)+'"></i></span>'+
+        '<span class="track-val">'+fmt(v)+'</span></div>';
+    });
+    charts.insertAdjacentHTML("beforeend", html+'</div>');
+  }
+  bars("Temps par sport","h",function(sp){return totals[sp].hours;},function(v){return v.toFixed(1)+" h";});
+  bars("Distance","km",function(sp){return SPORT_METRICS[sp].km? totals[sp].km : null;},function(v){return v.toFixed(1)+" km";});
+  bars("Dénivelé","m D+",function(sp){return SPORT_METRICS[sp].deniv? totals[sp].deniv : null;},function(v){return Math.round(v)+" m";});
+  bars("Natation","m",function(sp){return SPORT_METRICS[sp].meters? totals[sp].km*1000 : null;},function(v){return Math.round(v)+" m";});
+  bars("Séances de musculation","séances",function(sp){return SPORT_METRICS[sp].sessions? totals[sp].sessions : null;},function(v){return v+"";});
+}
+(function initSportTracking(){
+  var sel=document.getElementById("statsPeriodFilter");
+  if(sel) sel.addEventListener("change", renderSportTracking);
 })();

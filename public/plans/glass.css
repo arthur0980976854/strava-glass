@@ -849,3 +849,17 @@ h1, h2, h3, h4 { letter-spacing: -0.02em; }
 .filters .custom-select {
   min-width: 160px;
 }
+
+/* Infos cycle + suivi par sport */
+.info-rows{display:flex;flex-direction:column;gap:2px;}
+.info-row{display:flex;justify-content:space-between;gap:16px;padding:9px 12px;border-radius:12px;font-size:13px;}
+.info-row:nth-child(odd){background:rgba(255,255,255,.5);}
+.info-row span{color:var(--text-muted);}
+.info-row b{font-family:var(--font-mono,inherit);}
+.track-row{display:grid;grid-template-columns:130px 1fr 90px;align-items:center;gap:10px;margin-top:9px;font-size:12.5px;}
+.track-label{color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.track-bar{height:9px;border-radius:99px;background:rgba(0,0,0,.06);overflow:hidden;}
+.track-bar i{display:block;height:100%;border-radius:99px;}
+.track-val{text-align:right;font-family:var(--font-mono,inherit);}
+.tl-block{transition:transform .15s ease,filter .15s ease;}
+.tl-block:hover{transform:translateY(-1px);filter:brightness(1.06);}

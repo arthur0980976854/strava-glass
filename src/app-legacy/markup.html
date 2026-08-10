@@ -29,7 +29,17 @@
 
     <!-- ================= TABLEAU DE BORD ================= -->
     <section class="view active" id="view-dashboard">
-      <div class="view-head"><div><h1>Tableau de bord</h1><div class="sub" id="dashDateRange"></div></div></div>
+      <div class="view-head">
+        <div><h1>Tableau de bord</h1><div class="sub" id="dashDateRange"></div></div>
+        <div class="badges">
+          <div class="month-nav">
+            <button id="dashWeekPrev" title="Semaine précédente">‹</button>
+            <span class="month-label" id="dashWeekLabel">Semaine en cours</span>
+            <button id="dashWeekNext" title="Semaine suivante">›</button>
+          </div>
+          <button class="btn small" id="dashWeekToday">Aujourd'hui</button>
+        </div>
+      </div>
 
       <div class="panel goal-banner" id="goalBanner"></div>
 
@@ -38,7 +48,8 @@
       <div class="panel" id="sportKpiPanel" style="margin-bottom:16px;">
         <div class="week-panel-head">
           <h3 class="block-title" style="margin:0;">Kilomètres &amp; D+ par sport — semaine</h3>
-          <button class="btn small" id="btnSportGroups">⚙ Regrouper des sports</button>
+
+          <button class="btn small" id="btnSportGroups">⚙ Sports comptés</button>
         </div>
         <div class="grid cols-4" id="sportKpiGrid" style="margin-top:12px;"></div>
       </div>
@@ -195,6 +206,7 @@
             <div class="field"><label>Nom</label><input type="text" id="subsubName" placeholder="Ex : Semaine de charge"></div>
             <div class="field"><label>Durée (semaines)</label><input type="number" id="subsubWeeks" min="1" value="1"></div>
             <div class="field"><label>Début</label><input type="date" id="subsubStart"></div>
+            <div class="field"><label>Objectif hebdo (km)</label><input type="number" min="0" step="1" id="subsubTargetKm" placeholder="Ex : 60"></div>
           </div>
           <div class="form-actions"><span></span><div class="right"><button class="btn primary" id="btnAddSubSub">Ajouter</button></div></div>
           <div class="subcycle-list" id="subSubList"></div>
@@ -205,6 +217,24 @@
     <!-- ================= STATISTIQUES ================= -->
     <section class="view" id="view-statistiques">
       <div class="view-head"><div><h1>Statistiques</h1><div class="sub">Graphiques &amp; analyse</div></div></div>
+
+      <div class="panel">
+        <div class="week-panel-head">
+          <h3 class="block-title" style="margin:0;">Suivi par sport</h3>
+          <div class="custom-select-wrap">
+            <select id="statsPeriodFilter" class="custom-select">
+              <option value="week">Semaine en cours</option>
+              <option value="month">Mois en cours</option>
+              <option value="cycle">Cycle en cours</option>
+              <option value="year" selected>Année en cours</option>
+            </select>
+            <span class="custom-select-arrow"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" width="10" height="10"><polyline points="2 4 6 8 10 4"/></svg></span>
+          </div>
+        </div>
+        <div class="sub" id="statsPeriodRange" style="margin-bottom:10px;"></div>
+        <div class="grid cols-4" id="sportTrackKpis" style="margin-bottom:14px;"></div>
+        <div class="grid cols-2" id="sportTrackCharts"></div>
+      </div>
 
       <div class="sport-thumbs" id="sportThumbs"></div>
 
@@ -509,20 +539,33 @@
 
 <div class="toast" id="toast">Enregistré</div>
 
-<!-- ================= MODAL GROUPES DE SPORTS ================= -->
+<!-- ================= MODAL SPORTS COMPTES ================= -->
 <div class="modal-overlay" id="sportGroupOverlay">
   <div class="modal">
-    <h3>Regrouper des sports</h3>
+    <h3>Sports comptés dans les KPI</h3>
     <p style="font-size:12.5px;color:var(--text-muted);margin:0 0 14px;">
-      Les sports d'un même groupe voient leurs kilomètres et leur dénivelé cumulés dans une seule carte du tableau de bord.
+      Les kilomètres et le dénivelé du tableau de bord additionnent uniquement les sports sélectionnés
+      (par défaut la course à pied et le trail). Sélectionnes-en autant que tu veux.
     </p>
     <div id="sportGroupList"></div>
     <div class="form-actions" style="margin-top:14px;">
-      <button class="btn small" id="btnAddSportGroup" type="button">+ Nouveau groupe</button>
+      <span></span>
       <div class="right">
         <button class="btn" id="btnSportGroupClose" type="button">Fermer</button>
         <button class="btn primary" id="btnSportGroupSave" type="button">Enregistrer</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= MODAL INFOS CYCLE ================= -->
+<div class="modal-overlay" id="cycleInfoOverlay">
+  <div class="modal">
+    <h3 id="cycleInfoTitle">Cycle</h3>
+    <div id="cycleInfoBody"></div>
+    <div class="form-actions" style="margin-top:14px;">
+      <span></span>
+      <div class="right"><button class="btn" id="btnCycleInfoClose" type="button">Fermer</button></div>
     </div>
   </div>
 </div>
