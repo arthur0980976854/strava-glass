@@ -101,6 +101,21 @@
         return day >= fromISO && day <= toISO ? sum + (a.distance_km || 0) : sum;
       }, 0);
     };
+    /* Totaux km / D+ par type d'activité sur une plage de dates. */
+    window.IMPORTED_WEEK_BY_SPORT = function (fromISO, toISO) {
+      var out = {};
+      activities.forEach(function (a) {
+        if (!a.start_date) return;
+        var day = String(a.start_date).slice(0, 10);
+        if (day < fromISO || day > toISO) return;
+        var type = a.type || "Workout";
+        if (!out[type]) out[type] = { km: 0, deniv: 0 };
+        out[type].km += a.distance_km || 0;
+        out[type].deniv += a.elevation_m || 0;
+      });
+      return out;
+    };
+
     if (typeof window.renderKPIs === "function") window.renderKPIs();
     return newIds;
   }
