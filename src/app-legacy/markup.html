@@ -29,31 +29,11 @@
 
     <!-- ================= TABLEAU DE BORD ================= -->
     <section class="view active" id="view-dashboard">
-      <div class="view-head">
-        <div><h1>Tableau de bord</h1><div class="sub" id="dashDateRange"></div></div>
-        <div class="badges">
-          <div class="month-nav">
-            <button id="dashWeekPrev" title="Semaine précédente">‹</button>
-            <span class="month-label" id="dashWeekLabel">Semaine en cours</span>
-            <button id="dashWeekNext" title="Semaine suivante">›</button>
-          </div>
-          <button class="btn small" id="dashWeekToday">Aujourd'hui</button>
-        </div>
-      </div>
+      <div class="view-head"><div><h1>Tableau de bord</h1><div class="sub" id="dashDateRange"></div></div></div>
 
       <div class="panel goal-banner" id="goalBanner"></div>
 
       <div class="grid cols-4" id="kpiGrid" style="margin-bottom:16px;"></div>
-
-      <div class="panel" id="sportKpiPanel" style="margin-bottom:16px;">
-        <div class="week-panel-head">
-          <h3 class="block-title" style="margin:0;">Kilomètres &amp; D+ par sport — semaine</h3>
-
-          <button class="btn small" id="btnSportGroups">⚙ Sports comptés</button>
-        </div>
-        <div class="grid cols-4" id="sportKpiGrid" style="margin-top:12px;"></div>
-      </div>
-
 
       <div class="panel" id="weekPanelBox">
         <div class="week-panel-head">
@@ -206,7 +186,6 @@
             <div class="field"><label>Nom</label><input type="text" id="subsubName" placeholder="Ex : Semaine de charge"></div>
             <div class="field"><label>Durée (semaines)</label><input type="number" id="subsubWeeks" min="1" value="1"></div>
             <div class="field"><label>Début</label><input type="date" id="subsubStart"></div>
-            <div class="field"><label>Objectif hebdo (km)</label><input type="number" min="0" step="1" id="subsubTargetKm" placeholder="Ex : 60"></div>
           </div>
           <div class="form-actions"><span></span><div class="right"><button class="btn primary" id="btnAddSubSub">Ajouter</button></div></div>
           <div class="subcycle-list" id="subSubList"></div>
@@ -217,24 +196,6 @@
     <!-- ================= STATISTIQUES ================= -->
     <section class="view" id="view-statistiques">
       <div class="view-head"><div><h1>Statistiques</h1><div class="sub">Graphiques &amp; analyse</div></div></div>
-
-      <div class="panel">
-        <div class="week-panel-head">
-          <h3 class="block-title" style="margin:0;">Suivi par sport</h3>
-          <div class="custom-select-wrap">
-            <select id="statsPeriodFilter" class="custom-select">
-              <option value="week">Semaine en cours</option>
-              <option value="month">Mois en cours</option>
-              <option value="cycle">Cycle en cours</option>
-              <option value="year" selected>Année en cours</option>
-            </select>
-            <span class="custom-select-arrow"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" width="10" height="10"><polyline points="2 4 6 8 10 4"/></svg></span>
-          </div>
-        </div>
-        <div class="sub" id="statsPeriodRange" style="margin-bottom:10px;"></div>
-        <div class="grid cols-4" id="sportTrackKpis" style="margin-bottom:14px;"></div>
-        <div class="grid cols-2" id="sportTrackCharts"></div>
-      </div>
 
       <div class="sport-thumbs" id="sportThumbs"></div>
 
@@ -458,114 +419,199 @@
   </main>
 </div>
 
-<!-- ================= MODAL SEANCE ================= -->
-<div class="modal-overlay" id="sessModalOverlay">
-  <div class="modal">
-    <h3 id="sessModalTitle">Nouvelle séance</h3>
-    <form id="sessForm">
+<!-- ================= MODAL SEANCE (redesigned) ================= -->
+<div class="modal-overlay sess-modal-overlay" id="sessModalOverlay">
+  <div class="sess-modal">
+
+    <!-- Header sticky -->
+    <div class="sess-modal-head">
+      <div class="sess-modal-head-left">
+        <div class="sess-modal-icon" id="sessModalIcon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><polyline points="13 2 6 14 10 14 11 22 18 10 14 10 13 2"/></svg>
+        </div>
+        <div>
+          <div class="sess-modal-title" id="sessModalTitle">Nouvelle séance</div>
+          <div class="sess-modal-sub" id="sessModalSub">intervals.icu · Synchronisation activée</div>
+        </div>
+      </div>
+      <button class="sess-modal-close" id="sessModalCancel" type="button" aria-label="Fermer">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <form id="sessForm" autocomplete="off">
       <input type="hidden" name="id">
 
-      <div class="form-grid" id="templateLoadRow">
-        <div class="field" style="grid-column:span 2;"><label>Charger depuis la bibliothèque</label>
-          <div class="custom-select-wrap">
-            <select id="templateLoadSelect" class="custom-select"><option value="">— Choisir un modèle —</option></select>
+      <div class="sess-modal-body">
+
+        <!-- Status tabs -->
+        <div class="sess-status-tabs">
+          <button type="button" class="sess-tab active" data-status="planned">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            Planifiée
+          </button>
+          <button type="button" class="sess-tab" data-status="done">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            Réalisée
+          </button>
+        </div>
+        <select name="status" id="sessStatus" style="display:none;"><option value="planned">Planifiée</option><option value="done">Réalisée</option></select>
+
+        <!-- Bibliothèque -->
+        <div class="sess-lib-row" id="templateLoadRow">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="flex-shrink:0;color:var(--text-muted,#94a3b8)"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+          <div class="custom-select-wrap" style="flex:1">
+            <select id="templateLoadSelect" class="custom-select"><option value="">Charger un modèle de bibliothèque…</option></select>
             <span class="custom-select-arrow"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" width="10" height="10"><polyline points="2 4 6 8 10 4"/></svg></span>
           </div>
         </div>
-      </div>
 
-      <div class="form-grid">
-        <div class="field"><label>Date</label><input type="date" name="date" required></div>
-        <div class="field">
-          <label>Statut</label>
-          <div class="status-tabs">
-            <button type="button" class="tab-btn active" data-status="planned">Prévu</button>
-            <button type="button" class="tab-btn" data-status="done">Réalisé</button>
+        <!-- Section : Infos de base -->
+        <div class="sess-sep"><span>Informations</span></div>
+        <div class="form-grid">
+          <div class="field">
+            <label>Date</label>
+            <input type="date" name="date" required>
           </div>
-          <select name="status" id="sessStatus" style="display:none;"><option value="planned">Planifiée</option><option value="done">Réalisée</option></select>
-        </div>
-        <div class="field"><label>Sport</label>
-          <div class="custom-select-wrap">
-            <select name="sport" id="sessSport" class="custom-select" required></select>
-            <span class="custom-select-arrow"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" width="10" height="10"><polyline points="2 4 6 8 10 4"/></svg></span>
+          <div class="field">
+            <label>Nom de la séance</label>
+            <input type="text" name="sessName" placeholder="Ex : Fractionné 10×400m" id="sessName">
+          </div>
+          <div class="field">
+            <label>Sport</label>
+            <div class="custom-select-wrap">
+              <select name="sport" id="sessSport" class="custom-select" required></select>
+              <span class="custom-select-arrow"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" width="10" height="10"><polyline points="2 4 6 8 10 4"/></svg></span>
+            </div>
+          </div>
+          <div class="field">
+            <label>Type de séance</label>
+            <div class="custom-select-wrap">
+              <select name="sessionType" id="sessType" class="custom-select"></select>
+              <span class="custom-select-arrow"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" width="10" height="10"><polyline points="2 4 6 8 10 4"/></svg></span>
+            </div>
+          </div>
+          <div class="field" style="grid-column:span 2;">
+            <label>Objectif</label>
+            <input type="text" name="objective" placeholder="Ex : Travail VMA, endurance fondamentale…">
+          </div>
+          <div class="field" style="grid-column:span 2;">
+            <label>Description / détail</label>
+            <textarea name="detail" placeholder="Ex : 10×400m R2', 3 séries de 10 squats, sortie Z2 60min…" style="min-height:72px;"></textarea>
           </div>
         </div>
-        <div class="field"><label>Type de séance</label>
-          <div class="custom-select-wrap">
-            <select name="sessionType" id="sessType" class="custom-select"></select>
-            <span class="custom-select-arrow"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" width="10" height="10"><polyline points="2 4 6 8 10 4"/></svg></span>
+
+        <!-- Section : Prévision (planned) -->
+        <div class="sess-sep" data-group="planned"><span>Prévision</span></div>
+        <div class="form-grid" data-group="planned">
+          <div class="field">
+            <label>Durée prévue (min)</label>
+            <div class="sess-spinner-wrap">
+              <button type="button" class="sess-spin-btn" data-target="durationPlanned" data-delta="-5">−</button>
+              <input type="number" name="durationPlanned" class="sess-spin-input" min="5" max="600" step="5" placeholder="60">
+              <span class="sess-spin-unit">min</span>
+              <button type="button" class="sess-spin-btn" data-target="durationPlanned" data-delta="5">+</button>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div class="section-sep">Détail de la séance</div>
-      <div class="form-grid">
-        <div class="field" style="grid-column:span 2;"><label>Détail</label><textarea name="detail" placeholder="Ex : 10x400m R2', ou description si séance non planifiée"></textarea></div>
-        <div class="field" style="grid-column:span 2;"><label>Objectif</label><input type="text" name="objective" placeholder="Ex : Travail VMA courte"></div>
-      </div>
+        <!-- Section : Données réalisées (done) -->
+        <div class="sess-sep" data-group="done"><span>Données réelles</span></div>
+        <div class="form-grid c3" data-group="done">
+          <div class="field">
+            <label>Durée (min)</label>
+            <div class="sess-spinner-wrap">
+              <button type="button" class="sess-spin-btn" data-target="duration" data-delta="-5">−</button>
+              <input type="number" name="duration" class="sess-spin-input" min="0" max="600" step="5">
+              <span class="sess-spin-unit">min</span>
+              <button type="button" class="sess-spin-btn" data-target="duration" data-delta="5">+</button>
+            </div>
+            <span class="hint" id="durationDeltaHint"></span>
+          </div>
+          <div class="field">
+            <label>FC moyenne (bpm)</label>
+            <div class="sess-spinner-wrap">
+              <button type="button" class="sess-spin-btn" data-target="bpmAvg" data-delta="-1">−</button>
+              <input type="number" name="bpmAvg" class="sess-spin-input" min="60" max="220">
+              <span class="sess-spin-unit">bpm</span>
+              <button type="button" class="sess-spin-btn" data-target="bpmAvg" data-delta="1">+</button>
+            </div>
+            <span class="hint" id="bpmZoneHint"></span>
+          </div>
+          <div class="field">
+            <label>Charge (TSS)</label>
+            <div class="sess-spinner-wrap">
+              <button type="button" class="sess-spin-btn" data-target="charge" data-delta="-5">−</button>
+              <input type="number" name="charge" class="sess-spin-input" min="0" max="500" step="5">
+              <span class="sess-spin-unit">tss</span>
+              <button type="button" class="sess-spin-btn" data-target="charge" data-delta="5">+</button>
+            </div>
+          </div>
+        </div>
 
-      <div class="section-sep" data-group="planned">Prévision</div>
-      <div class="form-grid" data-group="planned">
-        <div class="field"><label>Durée prévue (min)</label><input type="number" name="durationPlanned" min="1"></div>
-      </div>
+        <!-- RPE + Plaisir — sliders -->
+        <div class="form-grid" data-group="done">
+          <div class="field">
+            <label>RPE — effort ressenti <span class="sess-slider-val" id="rpeVal">–</span></label>
+            <div class="sess-slider-wrap">
+              <span class="sess-slider-edge">Facile</span>
+              <input type="range" name="rpe" min="1" max="10" step="1" value="5" class="sess-slider" id="rpeSlider" oninput="document.getElementById('rpeVal').textContent=this.value">
+              <span class="sess-slider-edge">Max</span>
+            </div>
+            <div class="sess-slider-scale"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span></div>
+          </div>
+          <div class="field">
+            <label>Plaisir ressenti <span class="sess-slider-val" id="plaisirVal">–</span></label>
+            <div class="sess-slider-wrap">
+              <span class="sess-slider-edge">😐</span>
+              <input type="range" name="plaisir" min="1" max="10" step="1" value="7" class="sess-slider" id="plaisirSlider" oninput="document.getElementById('plaisirVal').textContent=this.value">
+              <span class="sess-slider-edge">😁</span>
+            </div>
+            <div class="sess-slider-scale"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span></div>
+          </div>
+        </div>
 
-      <div class="section-sep" data-group="done">Données réalisées</div>
-      <div class="form-grid c3" data-group="done">
-        <div class="field"><label>Durée (min)</label><input type="number" name="duration" min="0"><span class="hint" id="durationDeltaHint"></span></div>
-        <div class="field"><label title="Fréquence cardiaque moyenne pendant la séance">BPM moyen</label><input type="number" name="bpmAvg" min="0"><span class="hint" id="bpmZoneHint"></span></div>
-        <div class="field"><label title="Ressenti de l'effort, de 1 (très facile) à 10 (maximal)">RPE (1-10)</label><input type="number" name="rpe" min="1" max="10"></div>
-        <div class="field"><label>Charge d'entraînement</label><input type="number" name="charge" min="0"></div>
-        <div class="field"><label title="Plaisir ressenti pendant la séance, de 1 à 10">Plaisir (/10)</label><input type="number" name="plaisir" min="1" max="10"></div>
-      </div>
-      <div class="section-sep" data-group="done" id="sportFieldsLabel">Données spécifiques au sport</div>
-      <div class="form-grid c3" data-group="done" id="sportSpecificFields"></div>
+        <!-- Sport-specific fields -->
+        <div class="sess-sep" data-group="done" id="sportFieldsLabel" style="display:none;"><span>Données sport</span></div>
+        <div class="form-grid c3" data-group="done" id="sportSpecificFields"></div>
 
-      <div class="section-sep">Bibliothèque</div>
-      <div class="form-grid">
-        <div class="field"><label>Nom du modèle (pour enregistrer)</label><input type="text" id="templateSaveName" placeholder="Ex : Fractionné 10x400"></div>
-        <div class="field"><label>&nbsp;</label><button type="button" class="btn" id="btnSaveTemplate">Enregistrer comme modèle</button></div>
-      </div>
+        <!-- Bibliothèque save -->
+        <div class="sess-sep"><span>Bibliothèque</span></div>
+        <div class="form-grid">
+          <div class="field" style="grid-column:span 2; flex-direction:row; align-items:flex-end; gap:10px;">
+            <div style="flex:1; display:flex; flex-direction:column; gap:5px;">
+              <label>Enregistrer comme modèle</label>
+              <input type="text" id="templateSaveName" placeholder="Ex : Fractionné 10×400">
+            </div>
+            <button type="button" class="btn" id="btnSaveTemplate" style="white-space:nowrap;flex-shrink:0;">Sauvegarder</button>
+          </div>
+        </div>
 
-      <div class="form-actions">
-        <button type="button" class="btn ghost" id="btnDeleteSess" style="display:none;">Supprimer</button>
-        <div class="right">
-          <button type="button" class="btn" id="sessModalCancel">Annuler</button>
-          <button type="submit" class="btn primary">Enregistrer</button>
+        <!-- intervals.icu sync status -->
+        <div class="sess-sync-banner" id="sessSyncBanner">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><polyline points="13 2 6 14 10 14 11 22 18 10 14 10 13 2"/></svg>
+          <span id="sessSyncMsg">La séance sera synchronisée sur intervals.icu</span>
+        </div>
+
+      </div><!-- /sess-modal-body -->
+
+      <!-- Footer sticky -->
+      <div class="sess-modal-foot">
+        <button type="button" class="sess-btn-del" id="btnDeleteSess" style="display:none;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M9 6V4h6v2"/></svg>
+          Supprimer
+        </button>
+        <div class="sess-foot-right">
+          <button type="button" class="sess-btn-cancel" id="sessModalCancelBtn">Annuler</button>
+          <button type="submit" class="sess-btn-save" id="sessBtnSave">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            <span id="sessBtnSaveTxt">Enregistrer</span>
+          </button>
         </div>
       </div>
+
     </form>
   </div>
 </div>
 
 <div class="toast" id="toast">Enregistré</div>
-
-<!-- ================= MODAL SPORTS COMPTES ================= -->
-<div class="modal-overlay" id="sportGroupOverlay">
-  <div class="modal">
-    <h3>Sports comptés dans les KPI</h3>
-    <p style="font-size:12.5px;color:var(--text-muted);margin:0 0 14px;">
-      Les kilomètres et le dénivelé du tableau de bord additionnent uniquement les sports sélectionnés
-      (par défaut la course à pied et le trail). Sélectionnes-en autant que tu veux.
-    </p>
-    <div id="sportGroupList"></div>
-    <div class="form-actions" style="margin-top:14px;">
-      <span></span>
-      <div class="right">
-        <button class="btn" id="btnSportGroupClose" type="button">Fermer</button>
-        <button class="btn primary" id="btnSportGroupSave" type="button">Enregistrer</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- ================= MODAL INFOS CYCLE ================= -->
-<div class="modal-overlay" id="cycleInfoOverlay">
-  <div class="modal">
-    <h3 id="cycleInfoTitle">Cycle</h3>
-    <div id="cycleInfoBody"></div>
-    <div class="form-actions" style="margin-top:14px;">
-      <span></span>
-      <div class="right"><button class="btn" id="btnCycleInfoClose" type="button">Fermer</button></div>
-    </div>
-  </div>
-</div>
