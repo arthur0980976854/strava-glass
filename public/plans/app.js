@@ -36,7 +36,7 @@ var MONTHS_FULL = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","A
 var state = {
   profile:{firstName:"",lastName:"",age:null,height:null,weight:null,vma:null,hrMax:null,hrRest:null,zones:[],weeklyTargetHours:null,weeklyTargetKm:null},
   sports: DEFAULT_SPORTS.slice(),
-  sportGroups: [],
+  sportGroups: defaultSportGroups(),
   sessionTypes: DEFAULT_SESSION_TYPES.slice(),
   cycleNames: [],
   season:{start:null,end:null},
