@@ -32,9 +32,10 @@
   --planned: #ff9f0a;
   --danger: #ff453a;
   --radius: 22px;
-  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
-  --font-body: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
-  --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", "IBM Plex Mono", monospace;
+  --font-display: "Outfit", -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+  --font-body: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", monospace;
+
   --shadow: var(--glass-shadow);
 }
 
