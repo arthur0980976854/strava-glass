@@ -154,7 +154,7 @@ export function toCard(a: RawActivity): ActivityCard {
   }
 
   const watts = a["icu_average_watts"] ?? a["average_watts"];
-  const rawPolyline = (a["map"] as Record<string, unknown> | undefined)?.summary_polyline ?? a["polyline"];
+  const rawPolyline = (a["map"] as Record<string, unknown> | undefined)?.["summary_polyline"] ?? a["polyline"];
 
   return {
     id: cleanId(a["id"]),
