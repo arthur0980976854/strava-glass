@@ -740,7 +740,7 @@ document.getElementById("btnAddSubSub").addEventListener("click", function(){
   var sd=parseISO(start); var ed=new Date(sd); ed.setDate(ed.getDate()+weeks*7-1);
   if(editSubSubId){
     var ss=state.subsubcycles.find(function(x){return x.id===editSubSubId;});
-    Object.assign(ss,{subId:parent,name:name,start:start,end:isoDate(ed)});
+    Object.assign(ss,{subId:parent,name:name,start:start,end:isoDate(ed),targetKm:targetKm});
     resetSubSubForm();
   } else {
     state.subsubcycles.push({id:uid(),subId:parent,name:name,start:start,end:isoDate(ed),targetKm:targetKm});
