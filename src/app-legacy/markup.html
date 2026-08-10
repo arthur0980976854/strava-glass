@@ -206,6 +206,7 @@
             <div class="field"><label>Nom</label><input type="text" id="subsubName" placeholder="Ex : Semaine de charge"></div>
             <div class="field"><label>Durée (semaines)</label><input type="number" id="subsubWeeks" min="1" value="1"></div>
             <div class="field"><label>Début</label><input type="date" id="subsubStart"></div>
+            <div class="field" style="grid-column:span 2;"><label>Objectif de la semaine</label><input type="text" id="subsubObjective" placeholder="Ex : 60 km avec 1500 m D+"></div>
           </div>
           <div class="form-actions"><span></span><div class="right"><button class="btn primary" id="btnAddSubSub">Ajouter</button></div></div>
           <div class="subcycle-list" id="subSubList"></div>
@@ -520,20 +521,33 @@
 
 <div class="toast" id="toast">Enregistré</div>
 
-<!-- ================= MODAL GROUPES DE SPORTS ================= -->
+<!-- ================= MODAL SPORTS COMPTES ================= -->
 <div class="modal-overlay" id="sportGroupOverlay">
   <div class="modal">
-    <h3>Regrouper des sports</h3>
+    <h3>Sports comptés dans les KPI</h3>
     <p style="font-size:12.5px;color:var(--text-muted);margin:0 0 14px;">
-      Les sports d'un même groupe voient leurs kilomètres et leur dénivelé cumulés dans une seule carte du tableau de bord.
+      Les kilomètres et le dénivelé du tableau de bord additionnent uniquement les sports sélectionnés
+      (par défaut la course à pied et le trail). Sélectionnes-en autant que tu veux.
     </p>
     <div id="sportGroupList"></div>
     <div class="form-actions" style="margin-top:14px;">
-      <button class="btn small" id="btnAddSportGroup" type="button">+ Nouveau groupe</button>
+      <span></span>
       <div class="right">
         <button class="btn" id="btnSportGroupClose" type="button">Fermer</button>
         <button class="btn primary" id="btnSportGroupSave" type="button">Enregistrer</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= MODAL INFOS CYCLE ================= -->
+<div class="modal-overlay" id="cycleInfoOverlay">
+  <div class="modal">
+    <h3 id="cycleInfoTitle">Cycle</h3>
+    <div id="cycleInfoBody"></div>
+    <div class="form-actions" style="margin-top:14px;">
+      <span></span>
+      <div class="right"><button class="btn" id="btnCycleInfoClose" type="button">Fermer</button></div>
     </div>
   </div>
 </div>
