@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as ApiStateRouteImport } from './routes/api/state'
 import { Route as ApiIntervalsActivitiesRouteImport } from './routes/api/intervals/activities'
 import { Route as ApiIntervalsAuthorizeRouteImport } from './routes/api/intervals/authorize'
@@ -19,6 +20,11 @@ import { Route as ApiIntervalsStreamRouteImport } from './routes/api/intervals/s
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiStateRoute = ApiStateRouteImport.update({
@@ -49,6 +55,7 @@ const ApiIntervalsStreamRoute = ApiIntervalsStreamRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
   '/api/state': typeof ApiStateRoute
   '/api/intervals/activities': typeof ApiIntervalsActivitiesRoute
   '/api/intervals/authorize': typeof ApiIntervalsAuthorizeRoute
@@ -57,6 +64,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
   '/api/state': typeof ApiStateRoute
   '/api/intervals/activities': typeof ApiIntervalsActivitiesRoute
   '/api/intervals/authorize': typeof ApiIntervalsAuthorizeRoute
@@ -66,6 +74,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
   '/api/state': typeof ApiStateRoute
   '/api/intervals/activities': typeof ApiIntervalsActivitiesRoute
   '/api/intervals/authorize': typeof ApiIntervalsAuthorizeRoute
@@ -76,6 +85,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/login'
     | '/api/state'
     | '/api/intervals/activities'
     | '/api/intervals/authorize'
@@ -84,6 +94,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/login'
     | '/api/state'
     | '/api/intervals/activities'
     | '/api/intervals/authorize'
@@ -92,6 +103,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/login'
     | '/api/state'
     | '/api/intervals/activities'
     | '/api/intervals/authorize'
@@ -101,6 +113,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  LoginRoute: typeof LoginRoute
   ApiStateRoute: typeof ApiStateRoute
   ApiIntervalsActivitiesRoute: typeof ApiIntervalsActivitiesRoute
   ApiIntervalsAuthorizeRoute: typeof ApiIntervalsAuthorizeRoute
@@ -115,6 +128,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/state': {
@@ -157,6 +177,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  LoginRoute: LoginRoute,
   ApiStateRoute: ApiStateRoute,
   ApiIntervalsActivitiesRoute: ApiIntervalsActivitiesRoute,
   ApiIntervalsAuthorizeRoute: ApiIntervalsAuthorizeRoute,

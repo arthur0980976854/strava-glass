@@ -35,6 +35,15 @@
 
       <div class="grid cols-4" id="kpiGrid" style="margin-bottom:16px;"></div>
 
+      <div class="panel" id="sportKpiPanel" style="margin-bottom:16px;">
+        <div class="week-panel-head">
+          <h3 class="block-title" style="margin:0;">Kilomètres &amp; D+ par sport — semaine</h3>
+          <button class="btn small" id="btnSportGroups">⚙ Regrouper des sports</button>
+        </div>
+        <div class="grid cols-4" id="sportKpiGrid" style="margin-top:12px;"></div>
+      </div>
+
+
       <div class="panel" id="weekPanelBox">
         <div class="week-panel-head">
           <h3 class="block-title" style="margin:0;">Semaine en cours</h3>
@@ -499,3 +508,21 @@
 </div>
 
 <div class="toast" id="toast">Enregistré</div>
+
+<!-- ================= MODAL GROUPES DE SPORTS ================= -->
+<div class="modal-overlay" id="sportGroupOverlay">
+  <div class="modal">
+    <h3>Regrouper des sports</h3>
+    <p style="font-size:12.5px;color:var(--text-muted);margin:0 0 14px;">
+      Les sports d'un même groupe voient leurs kilomètres et leur dénivelé cumulés dans une seule carte du tableau de bord.
+    </p>
+    <div id="sportGroupList"></div>
+    <div class="form-actions" style="margin-top:14px;">
+      <button class="btn small" id="btnAddSportGroup" type="button">+ Nouveau groupe</button>
+      <div class="right">
+        <button class="btn" id="btnSportGroupClose" type="button">Fermer</button>
+        <button class="btn primary" id="btnSportGroupSave" type="button">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+</div>
