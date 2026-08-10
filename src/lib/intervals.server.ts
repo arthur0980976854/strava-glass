@@ -19,6 +19,15 @@ export type IntervalsTokens = {
 
 export const INTERVALS_SCOPES = "ACTIVITY:READ,SETTINGS:READ";
 
+/**
+ * Nettoie les identifiants pour retirer le préfixe "i" (ex: "i670840" -> "670840")
+ * qui fait crasher le contrôleur Java d'Intervals.icu.
+ */
+function cleanId(id: unknown): string {
+  if (!id) return "";
+  return String(id).replace(/^i/i, "");
+}
+
 export function intervalsConfig() {
   const clientId = process.env["INTERVALS_CLIENT_ID"];
   const apiKey = process.env["INTERVALS_API_KEY"];
@@ -63,6 +72,8 @@ export async function exchangeCode(code: string, redirectUri: string) {
 
 export async function saveTokens(t: IntervalsTokens) {
   await ensureSchema();
+  const safeAthleteId = cleanId(t.athlete_id);
+
   await getDb().execute({
     sql: `INSERT INTO intervals_tokens (session_id, athlete_id, athlete_name, access_token, refresh_token, expires_at)
           VALUES (?, ?, ?, ?, ?, ?)
@@ -70,7 +81,7 @@ export async function saveTokens(t: IntervalsTokens) {
             athlete_id=excluded.athlete_id, athlete_name=excluded.athlete_name,
             access_token=excluded.access_token, refresh_token=excluded.refresh_token,
             expires_at=excluded.expires_at`,
-    args: [t.session_id, t.athlete_id, t.athlete_name, t.access_token, t.refresh_token, t.expires_at],
+    args: [t.session_id, safeAthleteId, t.athlete_name, t.access_token, t.refresh_token, t.expires_at],
   });
 }
 
@@ -84,7 +95,7 @@ export async function loadTokens(sessionId: string): Promise<IntervalsTokens | n
   if (!row) return null;
   return {
     session_id: sessionId,
-    athlete_id: String(row["athlete_id"]),
+    athlete_id: cleanId(row["athlete_id"]),
     athlete_name: (row["athlete_name"] as string) ?? null,
     access_token: row["access_token"] as string,
     refresh_token: (row["refresh_token"] as string) ?? null,
@@ -130,15 +141,23 @@ export function toCard(a: RawActivity): ActivityCard {
   const elapsed = num(a["elapsed_time"]);
   const speed = num(a["average_speed"]) * 3.6;
   let pace: string | null = null;
+
   if (distance > 0 && moving > 0) {
     const secPerKm = moving / (distance / 1000);
-    const m = Math.floor(secPerKm / 60);
-    const s = Math.round(secPerKm % 60);
+    let m = Math.floor(secPerKm / 60);
+    let s = Math.round(secPerKm % 60);
+    if (s >= 60) {
+      m += 1;
+      s = 0;
+    }
     pace = `${m}:${String(s).padStart(2, "0")}`;
   }
+
   const watts = a["icu_average_watts"] ?? a["average_watts"];
+  const rawPolyline = (a["map"] as Record<string, unknown> | undefined)?.summary_polyline ?? a["polyline"];
+
   return {
-    id: String(a["id"]),
+    id: cleanId(a["id"]),
     name: (a["name"] as string) ?? "Activité",
     type: (a["type"] as string) || "Workout",
     start_date: (a["start_date_local"] as string) ?? (a["start_date"] as string) ?? null,
@@ -152,7 +171,7 @@ export function toCard(a: RawActivity): ActivityCard {
     heartrate_bpm: a["average_heartrate"] ? Math.round(num(a["average_heartrate"])) : null,
     max_heartrate_bpm: a["max_heartrate"] ? Math.round(num(a["max_heartrate"])) : null,
     calories: a["calories"] ? Math.round(num(a["calories"])) : null,
-    polyline: null,
+    polyline: typeof rawPolyline === "string" ? rawPolyline : null,
   };
 }
 
@@ -161,7 +180,9 @@ function isoDaysAgo(days: number) {
 }
 
 export async function fetchActivities(tokens: IntervalsTokens, days = 120) {
-  const url = `${API}/athlete/${encodeURIComponent(tokens.athlete_id)}/activities?oldest=${isoDaysAgo(days)}&newest=${new Date().toISOString().slice(0, 10)}`;
+  const safeAthleteId = cleanId(tokens.athlete_id);
+  const url = `${API}/athlete/${encodeURIComponent(safeAthleteId)}/activities?oldest=${isoDaysAgo(days)}&newest=${new Date().toISOString().slice(0, 10)}`;
+  
   const res = await fetch(url, {
     headers: { Authorization: `Bearer ${tokens.access_token}` },
   });
@@ -171,7 +192,8 @@ export async function fetchActivities(tokens: IntervalsTokens, days = 120) {
 }
 
 export async function fetchAthlete(accessToken: string, athleteId: string) {
-  const res = await fetch(`${API}/athlete/${encodeURIComponent(athleteId)}`, {
+  const safeAthleteId = cleanId(athleteId);
+  const res = await fetch(`${API}/athlete/${encodeURIComponent(safeAthleteId)}`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   if (!res.ok) return null;
@@ -180,13 +202,16 @@ export async function fetchAthlete(accessToken: string, athleteId: string) {
 
 export async function storeActivity(athleteId: string, activity: RawActivity) {
   await ensureSchema();
+  const safeAthleteId = cleanId(athleteId);
+  const safeActivityId = cleanId(activity["id"]);
+
   await getDb().execute({
     sql: `INSERT INTO intervals_activities (id, athlete_id, payload, start_date, received_at)
           VALUES (?, ?, ?, ?, ?)
           ON CONFLICT(id) DO UPDATE SET payload=excluded.payload, received_at=excluded.received_at`,
     args: [
-      String(activity["id"]),
-      athleteId,
+      safeActivityId,
+      safeAthleteId,
       JSON.stringify(activity),
       (activity["start_date_local"] as string) ?? null,
       Date.now(),
@@ -196,11 +221,13 @@ export async function storeActivity(athleteId: string, activity: RawActivity) {
 
 export async function recentStoredActivities(athleteId: string, since = 0) {
   await ensureSchema();
+  const safeAthleteId = cleanId(athleteId);
+
   const rs = await getDb().execute({
     sql: `SELECT payload, received_at FROM intervals_activities
           WHERE athlete_id = ? AND received_at > ?
           ORDER BY received_at DESC LIMIT 50`,
-    args: [athleteId, since],
+    args: [safeAthleteId, since],
   });
   return rs.rows.map((r) => ({
     receivedAt: Number(r["received_at"]),
