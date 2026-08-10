@@ -227,12 +227,8 @@ var IMPORT_TYPE_TO_SPORT = {
   MountainBikeRide:"Vélo", Swim:"Natation", WeightTraining:"Musculation", Workout:"Autre",
   Hike:"Autre", Walk:"Autre", Rowing:"Autre", NordicSki:"Autre"
 };
-function defaultSportGroups(){
-  return [{id:uid(), name:"Course à pied & Trail", sports:["Course à pied","Trail"]}];
-}
-function groupForSport(name){
-  return (state.sportGroups||[]).find(function(g){ return (g.sports||[]).indexOf(name)!==-1; }) || null;
-}
+function countedSports(){ return (state.dashSports||[]).slice(); }
+
 function weekSportTotals(){
   var days=weekDays(dashWeekOffset), d0=days[0], d1=days[6];
   var totals={};
