@@ -713,6 +713,7 @@ function resetSubSubForm(){
   editSubSubId=null;
   document.getElementById("subsubName").value="";
   document.getElementById("subsubWeeks").value="1";
+  document.getElementById("subsubTargetKm").value="";
   document.getElementById("btnAddSubSub").textContent="Ajouter";
   document.getElementById("subsubEditHint").style.display="none";
   autofillSubSubStart();
@@ -733,6 +734,7 @@ document.getElementById("btnAddSubSub").addEventListener("click", function(){
   var name=document.getElementById("subsubName").value.trim();
   var weeks=+document.getElementById("subsubWeeks").value;
   var start=document.getElementById("subsubStart").value;
+  var targetKm=parseFloat(document.getElementById("subsubTargetKm").value)||0;
   if(!parent){ toast("Ajoutez d'abord un sous-cycle"); return; }
   if(!name||!weeks||!start){ toast("Champs incomplets"); return; }
   var sd=parseISO(start); var ed=new Date(sd); ed.setDate(ed.getDate()+weeks*7-1);
@@ -741,7 +743,7 @@ document.getElementById("btnAddSubSub").addEventListener("click", function(){
     Object.assign(ss,{subId:parent,name:name,start:start,end:isoDate(ed)});
     resetSubSubForm();
   } else {
-    state.subsubcycles.push({id:uid(),subId:parent,name:name,start:start,end:isoDate(ed)});
+    state.subsubcycles.push({id:uid(),subId:parent,name:name,start:start,end:isoDate(ed),targetKm:targetKm});
     document.getElementById("subsubName").value="";
     autofillSubSubStart();
   }
@@ -936,6 +938,7 @@ function renderSubSubList(){
       document.getElementById("subsubName").value=ss.name;
       var weeks=Math.round((parseISO(ss.end)-parseISO(ss.start))/(7*864e5))+1;
       document.getElementById("subsubWeeks").value=weeks;
+      document.getElementById("subsubTargetKm").value=ss.targetKm||"";
       document.getElementById("subsubStart").value=ss.start;
       document.getElementById("btnAddSubSub").textContent="Enregistrer les modifications";
       document.getElementById("subsubEditHint").style.display="block";
