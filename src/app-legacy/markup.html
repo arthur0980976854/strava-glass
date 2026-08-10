@@ -508,3 +508,21 @@
 </div>
 
 <div class="toast" id="toast">Enregistré</div>
+
+<!-- ================= MODAL GROUPES DE SPORTS ================= -->
+<div class="modal-overlay" id="sportGroupOverlay">
+  <div class="modal">
+    <h3>Regrouper des sports</h3>
+    <p style="font-size:12.5px;color:var(--text-muted);margin:0 0 14px;">
+      Les sports d'un même groupe voient leurs kilomètres et leur dénivelé cumulés dans une seule carte du tableau de bord.
+    </p>
+    <div id="sportGroupList"></div>
+    <div class="form-actions" style="margin-top:14px;">
+      <button class="btn small" id="btnAddSportGroup" type="button">+ Nouveau groupe</button>
+      <div class="right">
+        <button class="btn" id="btnSportGroupClose" type="button">Fermer</button>
+        <button class="btn primary" id="btnSportGroupSave" type="button">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+</div>
