@@ -1,4 +1,4 @@
-/* Strava live dashboard — SSE + DOM updates. */
+/* intervals.icu live dashboard — SSE + DOM updates. */
 (function () {
   "use strict";
 
@@ -25,42 +25,6 @@
       " · " + d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
   }
 
-  /* Google encoded polyline -> SVG path, for the GPS trace preview. */
-  function decodePolyline(str) {
-    var index = 0, lat = 0, lng = 0, coords = [];
-    while (index < str.length) {
-      var b, shift = 0, result = 0;
-      do { b = str.charCodeAt(index++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
-      lat += (result & 1) ? ~(result >> 1) : (result >> 1);
-      shift = 0; result = 0;
-      do { b = str.charCodeAt(index++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
-      lng += (result & 1) ? ~(result >> 1) : (result >> 1);
-      coords.push([lat / 1e5, lng / 1e5]);
-    }
-    return coords;
-  }
-  function polylineSvg(encoded) {
-    if (!encoded) return "";
-    var pts;
-    try { pts = decodePolyline(encoded); } catch (e) { return ""; }
-    if (pts.length < 2) return "";
-    var lats = pts.map(function (p) { return p[0]; }), lngs = pts.map(function (p) { return p[1]; });
-    var minLat = Math.min.apply(null, lats), maxLat = Math.max.apply(null, lats);
-    var minLng = Math.min.apply(null, lngs), maxLng = Math.max.apply(null, lngs);
-    var w = 260, h = 84, pad = 6;
-    var spanLat = maxLat - minLat || 1e-6, spanLng = maxLng - minLng || 1e-6;
-    var scale = Math.min((w - pad * 2) / spanLng, (h - pad * 2) / spanLat);
-    var ox = (w - spanLng * scale) / 2, oy = (h - spanLat * scale) / 2;
-    var step = Math.max(1, Math.floor(pts.length / 220));
-    var d = "";
-    for (var i = 0; i < pts.length; i += step) {
-      var x = ox + (pts[i][1] - minLng) * scale;
-      var y = h - (oy + (pts[i][0] - minLat) * scale);
-      d += (i === 0 ? "M" : "L") + x.toFixed(1) + " " + y.toFixed(1);
-    }
-    return '<svg class="trace" viewBox="0 0 ' + w + " " + h + '" preserveAspectRatio="xMidYMid meet"><path d="' + d + '"/></svg>';
-  }
-
   function metric(label, value) {
     return '<div class="metric"><span class="k">' + esc(label) + '</span><span class="v">' + value + "</span></div>";
   }
@@ -77,13 +41,13 @@
     if (a.max_heartrate_bpm) metrics += metric("FC max", esc(a.max_heartrate_bpm) + ' <i>bpm</i>');
     if (a.calories) metrics += metric("Calories", esc(a.calories) + ' <i>kcal</i>');
 
-    return '<article class="glass-card activity-card' + (isNew ? " is-new" : "") + '" data-id="' + a.id + '">' +
+    return '<article class="glass-card activity-card' + (isNew ? " is-new" : "") + '" data-id="' + esc(a.id) + '">' +
       '<header><span class="act-icon">' + (TYPE_ICONS[a.type] || "🏅") + "</span>" +
       '<div><h4>' + esc(a.name) + "</h4>" +
       '<div class="act-meta">' + esc(a.type) + " · " + esc(fmtDate(a.start_date)) + "</div></div></header>" +
-      polylineSvg(a.polyline) +
       '<div class="metrics">' + metrics + "</div>" +
-      '<a class="act-link" href="https://www.strava.com/activities/' + a.id + '" target="_blank" rel="noopener">Voir sur Strava →</a>' +
+      '<a class="act-link" href="https://intervals.icu/activities/' + encodeURIComponent(a.id) +
+      '" target="_blank" rel="noopener">Voir sur intervals.icu →</a>' +
       "</article>";
   }
 
@@ -111,7 +75,7 @@
     var box = el("stravaActivities");
     if (!box) return;
     if (!activities.length) {
-      box.innerHTML = '<div class="glass-card empty-state"><b>Aucune activité</b>Connecte ton compte Strava pour voir tes sorties apparaître ici, en direct.</div>';
+      box.innerHTML = '<div class="glass-card empty-state"><b>Aucune activité</b>Connecte ton compte intervals.icu pour voir tes sorties Strava apparaître ici, en direct.</div>';
       return;
     }
     box.innerHTML = activities.map(function (a) {
@@ -169,20 +133,20 @@
 
   async function loadActivities() {
     try {
-      var res = await fetch("/api/strava/activities", { credentials: "same-origin" });
+      var res = await fetch("/api/intervals/activities", { credentials: "same-origin" });
       var json = await res.json();
       setConnected(json.connected, json.athlete);
       byId = {};
       mergeActivities(json.activities || [], false);
-      if (json.error) toast("Strava : " + json.error);
+      if (json.error) toast("intervals.icu : " + json.error);
     } catch (e) {
-      toast("Impossible de charger les activités Strava");
+      toast("Impossible de charger les activités intervals.icu");
     }
   }
 
   function connectStream() {
     if (!window.EventSource) return;
-    var es = new EventSource("/api/strava/stream", { withCredentials: true });
+    var es = new EventSource("/api/intervals/stream", { withCredentials: true });
     es.addEventListener("ready", function (ev) {
       var data = JSON.parse(ev.data);
       setLive(true, data.connected ? "En direct" : "En attente de connexion");
@@ -190,82 +154,10 @@
     es.addEventListener("activity", function (ev) {
       var list = JSON.parse(ev.data);
       var newIds = mergeActivities(list, true);
-      if (newIds.length) toast(newIds.length + " nouvelle(s) activité(s) Strava");
+      if (newIds.length) toast(newIds.length + " nouvelle(s) activité(s)");
     });
-    es.onerror = function () {
-      setLive(false, "Reconnexion…");
-    };
+    es.onerror = function () { setLive(false, "Reconnexion…"); };
     es.addEventListener("ping", function () { setLive(true); });
-  }
-
-  function feedStatus(text) {
-    var node = el("feedStatus");
-    if (node) node.textContent = text;
-  }
-
-  async function loadFeed(sync) {
-    try {
-      var res = await fetch("/api/feed" + (sync ? "?sync=1" : ""), { credentials: "same-origin" });
-      var json = await res.json();
-      var disconnect = el("btnFeedDisconnect");
-      if (json.configured) {
-        if (el("feedUrl") && !el("feedUrl").value) el("feedUrl").value = json.url || "";
-        if (disconnect) disconnect.style.display = "";
-        feedStatus(
-          json.error
-            ? "Flux : " + json.error
-            : "Flux actif — " + (json.activities || []).length + " activité(s) · maj auto toutes les 30 s",
-        );
-      } else {
-        if (disconnect) disconnect.style.display = "none";
-        feedStatus(json.error ? "Flux : " + json.error : "Aucun flux configuré");
-      }
-      if ((json.activities || []).length) mergeActivities(json.activities, false);
-    } catch (e) {
-      feedStatus("Flux indisponible");
-    }
-  }
-
-  function initFeed() {
-    var connect = el("btnFeedConnect");
-    if (connect) {
-      connect.addEventListener("click", async function () {
-        var url = (el("feedUrl") || {}).value || "";
-        var token = (el("feedToken") || {}).value || "";
-        feedStatus("Connexion au flux…");
-        try {
-          var res = await fetch("/api/feed", {
-            method: "POST",
-            credentials: "same-origin",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify({ url: url, token: token }),
-          });
-          var json = await res.json();
-          if (json.error) {
-            feedStatus("Flux : " + json.error);
-            toast(json.error);
-          } else {
-            toast(json.imported + " activité(s) importée(s)");
-          }
-          if ((json.activities || []).length) mergeActivities(json.activities, true);
-          loadFeed(false);
-        } catch (e) {
-          feedStatus("Flux : échec de la connexion");
-        }
-      });
-    }
-    var sync = el("btnFeedSync");
-    if (sync) sync.addEventListener("click", function () { feedStatus("Synchronisation…"); loadFeed(true); });
-    var remove = el("btnFeedDisconnect");
-    if (remove) {
-      remove.addEventListener("click", async function () {
-        await fetch("/api/feed", { method: "DELETE", credentials: "same-origin" });
-        feedStatus("Aucun flux configuré");
-        remove.style.display = "none";
-        toast("Flux retiré");
-      });
-    }
-    loadFeed(true);
   }
 
   function init() {
@@ -274,19 +166,19 @@
     var disconnect = el("btnStravaDisconnect");
     if (disconnect) {
       disconnect.addEventListener("click", async function () {
-        await fetch("/api/strava/activities", { method: "DELETE", credentials: "same-origin" });
+        await fetch("/api/intervals/activities", { method: "DELETE", credentials: "same-origin" });
         byId = {};
         activities = [];
         setConnected(false);
         renderActivities([]);
-        toast("Compte Strava déconnecté");
+        toast("Compte intervals.icu déconnecté");
       });
     }
 
     var params = new URLSearchParams(window.location.search);
-    if (params.get("strava") === "connected") toast("Strava connecté 🎉");
-    if (params.get("strava_error")) toast("Strava : " + params.get("strava_error"));
-    if (params.get("strava") || params.get("strava_error")) {
+    if (params.get("intervals") === "connected") toast("intervals.icu connecté 🎉");
+    if (params.get("intervals_error")) toast("intervals.icu : " + params.get("intervals_error"));
+    if (params.get("intervals") || params.get("intervals_error")) {
       var nav = document.querySelector('#mainNav button[data-view="strava"]');
       if (nav) nav.click();
       window.history.replaceState({}, "", window.location.pathname);
@@ -294,7 +186,6 @@
 
     renderActivities([]);
     loadActivities();
-    initFeed();
     connectStream();
   }
 

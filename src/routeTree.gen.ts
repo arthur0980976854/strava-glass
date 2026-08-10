@@ -10,22 +10,15 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as ApiFeedRouteImport } from './routes/api/feed'
 import { Route as ApiStateRouteImport } from './routes/api/state'
-import { Route as ApiStravaActivitiesRouteImport } from './routes/api/strava/activities'
-import { Route as ApiStravaAuthorizeRouteImport } from './routes/api/strava/authorize'
-import { Route as ApiStravaCallbackRouteImport } from './routes/api/strava/callback'
-import { Route as ApiStravaStreamRouteImport } from './routes/api/strava/stream'
-import { Route as ApiPublicStravaWebhookRouteImport } from './routes/api/public/strava/webhook'
+import { Route as ApiIntervalsActivitiesRouteImport } from './routes/api/intervals/activities'
+import { Route as ApiIntervalsAuthorizeRouteImport } from './routes/api/intervals/authorize'
+import { Route as ApiIntervalsCallbackRouteImport } from './routes/api/intervals/callback'
+import { Route as ApiIntervalsStreamRouteImport } from './routes/api/intervals/stream'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiFeedRoute = ApiFeedRouteImport.update({
-  id: '/api/feed',
-  path: '/api/feed',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiStateRoute = ApiStateRouteImport.update({
@@ -33,105 +26,86 @@ const ApiStateRoute = ApiStateRouteImport.update({
   path: '/api/state',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiStravaActivitiesRoute = ApiStravaActivitiesRouteImport.update({
-  id: '/api/strava/activities',
-  path: '/api/strava/activities',
+const ApiIntervalsActivitiesRoute = ApiIntervalsActivitiesRouteImport.update({
+  id: '/api/intervals/activities',
+  path: '/api/intervals/activities',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiStravaAuthorizeRoute = ApiStravaAuthorizeRouteImport.update({
-  id: '/api/strava/authorize',
-  path: '/api/strava/authorize',
+const ApiIntervalsAuthorizeRoute = ApiIntervalsAuthorizeRouteImport.update({
+  id: '/api/intervals/authorize',
+  path: '/api/intervals/authorize',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiStravaCallbackRoute = ApiStravaCallbackRouteImport.update({
-  id: '/api/strava/callback',
-  path: '/api/strava/callback',
+const ApiIntervalsCallbackRoute = ApiIntervalsCallbackRouteImport.update({
+  id: '/api/intervals/callback',
+  path: '/api/intervals/callback',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiStravaStreamRoute = ApiStravaStreamRouteImport.update({
-  id: '/api/strava/stream',
-  path: '/api/strava/stream',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicStravaWebhookRoute = ApiPublicStravaWebhookRouteImport.update({
-  id: '/api/public/strava/webhook',
-  path: '/api/public/strava/webhook',
+const ApiIntervalsStreamRoute = ApiIntervalsStreamRouteImport.update({
+  id: '/api/intervals/stream',
+  path: '/api/intervals/stream',
   getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/api/feed': typeof ApiFeedRoute
   '/api/state': typeof ApiStateRoute
-  '/api/strava/activities': typeof ApiStravaActivitiesRoute
-  '/api/strava/authorize': typeof ApiStravaAuthorizeRoute
-  '/api/strava/callback': typeof ApiStravaCallbackRoute
-  '/api/strava/stream': typeof ApiStravaStreamRoute
-  '/api/public/strava/webhook': typeof ApiPublicStravaWebhookRoute
+  '/api/intervals/activities': typeof ApiIntervalsActivitiesRoute
+  '/api/intervals/authorize': typeof ApiIntervalsAuthorizeRoute
+  '/api/intervals/callback': typeof ApiIntervalsCallbackRoute
+  '/api/intervals/stream': typeof ApiIntervalsStreamRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/api/feed': typeof ApiFeedRoute
   '/api/state': typeof ApiStateRoute
-  '/api/strava/activities': typeof ApiStravaActivitiesRoute
-  '/api/strava/authorize': typeof ApiStravaAuthorizeRoute
-  '/api/strava/callback': typeof ApiStravaCallbackRoute
-  '/api/strava/stream': typeof ApiStravaStreamRoute
-  '/api/public/strava/webhook': typeof ApiPublicStravaWebhookRoute
+  '/api/intervals/activities': typeof ApiIntervalsActivitiesRoute
+  '/api/intervals/authorize': typeof ApiIntervalsAuthorizeRoute
+  '/api/intervals/callback': typeof ApiIntervalsCallbackRoute
+  '/api/intervals/stream': typeof ApiIntervalsStreamRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/api/feed': typeof ApiFeedRoute
   '/api/state': typeof ApiStateRoute
-  '/api/strava/activities': typeof ApiStravaActivitiesRoute
-  '/api/strava/authorize': typeof ApiStravaAuthorizeRoute
-  '/api/strava/callback': typeof ApiStravaCallbackRoute
-  '/api/strava/stream': typeof ApiStravaStreamRoute
-  '/api/public/strava/webhook': typeof ApiPublicStravaWebhookRoute
+  '/api/intervals/activities': typeof ApiIntervalsActivitiesRoute
+  '/api/intervals/authorize': typeof ApiIntervalsAuthorizeRoute
+  '/api/intervals/callback': typeof ApiIntervalsCallbackRoute
+  '/api/intervals/stream': typeof ApiIntervalsStreamRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/api/feed'
     | '/api/state'
-    | '/api/strava/activities'
-    | '/api/strava/authorize'
-    | '/api/strava/callback'
-    | '/api/strava/stream'
-    | '/api/public/strava/webhook'
+    | '/api/intervals/activities'
+    | '/api/intervals/authorize'
+    | '/api/intervals/callback'
+    | '/api/intervals/stream'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/api/feed'
     | '/api/state'
-    | '/api/strava/activities'
-    | '/api/strava/authorize'
-    | '/api/strava/callback'
-    | '/api/strava/stream'
-    | '/api/public/strava/webhook'
+    | '/api/intervals/activities'
+    | '/api/intervals/authorize'
+    | '/api/intervals/callback'
+    | '/api/intervals/stream'
   id:
     | '__root__'
     | '/'
-    | '/api/feed'
     | '/api/state'
-    | '/api/strava/activities'
-    | '/api/strava/authorize'
-    | '/api/strava/callback'
-    | '/api/strava/stream'
-    | '/api/public/strava/webhook'
+    | '/api/intervals/activities'
+    | '/api/intervals/authorize'
+    | '/api/intervals/callback'
+    | '/api/intervals/stream'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  ApiFeedRoute: typeof ApiFeedRoute
   ApiStateRoute: typeof ApiStateRoute
-  ApiStravaActivitiesRoute: typeof ApiStravaActivitiesRoute
-  ApiStravaAuthorizeRoute: typeof ApiStravaAuthorizeRoute
-  ApiStravaCallbackRoute: typeof ApiStravaCallbackRoute
-  ApiStravaStreamRoute: typeof ApiStravaStreamRoute
-  ApiPublicStravaWebhookRoute: typeof ApiPublicStravaWebhookRoute
+  ApiIntervalsActivitiesRoute: typeof ApiIntervalsActivitiesRoute
+  ApiIntervalsAuthorizeRoute: typeof ApiIntervalsAuthorizeRoute
+  ApiIntervalsCallbackRoute: typeof ApiIntervalsCallbackRoute
+  ApiIntervalsStreamRoute: typeof ApiIntervalsStreamRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -143,13 +117,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/feed': {
-      id: '/api/feed'
-      path: '/api/feed'
-      fullPath: '/api/feed'
-      preLoaderRoute: typeof ApiFeedRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/state': {
       id: '/api/state'
       path: '/api/state'
@@ -157,39 +124,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiStateRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/strava/activities': {
-      id: '/api/strava/activities'
-      path: '/api/strava/activities'
-      fullPath: '/api/strava/activities'
-      preLoaderRoute: typeof ApiStravaActivitiesRouteImport
+    '/api/intervals/activities': {
+      id: '/api/intervals/activities'
+      path: '/api/intervals/activities'
+      fullPath: '/api/intervals/activities'
+      preLoaderRoute: typeof ApiIntervalsActivitiesRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/strava/authorize': {
-      id: '/api/strava/authorize'
-      path: '/api/strava/authorize'
-      fullPath: '/api/strava/authorize'
-      preLoaderRoute: typeof ApiStravaAuthorizeRouteImport
+    '/api/intervals/authorize': {
+      id: '/api/intervals/authorize'
+      path: '/api/intervals/authorize'
+      fullPath: '/api/intervals/authorize'
+      preLoaderRoute: typeof ApiIntervalsAuthorizeRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/strava/callback': {
-      id: '/api/strava/callback'
-      path: '/api/strava/callback'
-      fullPath: '/api/strava/callback'
-      preLoaderRoute: typeof ApiStravaCallbackRouteImport
+    '/api/intervals/callback': {
+      id: '/api/intervals/callback'
+      path: '/api/intervals/callback'
+      fullPath: '/api/intervals/callback'
+      preLoaderRoute: typeof ApiIntervalsCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/strava/stream': {
-      id: '/api/strava/stream'
-      path: '/api/strava/stream'
-      fullPath: '/api/strava/stream'
-      preLoaderRoute: typeof ApiStravaStreamRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/strava/webhook': {
-      id: '/api/public/strava/webhook'
-      path: '/api/public/strava/webhook'
-      fullPath: '/api/public/strava/webhook'
-      preLoaderRoute: typeof ApiPublicStravaWebhookRouteImport
+    '/api/intervals/stream': {
+      id: '/api/intervals/stream'
+      path: '/api/intervals/stream'
+      fullPath: '/api/intervals/stream'
+      preLoaderRoute: typeof ApiIntervalsStreamRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -197,13 +157,11 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  ApiFeedRoute: ApiFeedRoute,
   ApiStateRoute: ApiStateRoute,
-  ApiStravaActivitiesRoute: ApiStravaActivitiesRoute,
-  ApiStravaAuthorizeRoute: ApiStravaAuthorizeRoute,
-  ApiStravaCallbackRoute: ApiStravaCallbackRoute,
-  ApiStravaStreamRoute: ApiStravaStreamRoute,
-  ApiPublicStravaWebhookRoute: ApiPublicStravaWebhookRoute,
+  ApiIntervalsActivitiesRoute: ApiIntervalsActivitiesRoute,
+  ApiIntervalsAuthorizeRoute: ApiIntervalsAuthorizeRoute,
+  ApiIntervalsCallbackRoute: ApiIntervalsCallbackRoute,
+  ApiIntervalsStreamRoute: ApiIntervalsStreamRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

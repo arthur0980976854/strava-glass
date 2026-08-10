@@ -1,12 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-export const Route = createFileRoute("/api/strava/activities")({
+export const Route = createFileRoute("/api/intervals/activities")({
   server: {
     handlers: {
       GET: async ({ request }) => {
         const { resolveSession } = await import("@/lib/session.server");
-        const { loadTokens, validAccessToken, fetchActivities, storeActivity, toCard } =
-          await import("@/lib/strava.server");
+        const { loadTokens, fetchActivities, storeActivity, toCard } = await import(
+          "@/lib/intervals.server"
+        );
         const { id, setCookie } = resolveSession(request);
         const headers = new Headers({ "content-type": "application/json" });
         if (setCookie) headers.append("set-cookie", setCookie);
@@ -16,11 +17,8 @@ export const Route = createFileRoute("/api/strava/activities")({
           if (!tokens) {
             return new Response(JSON.stringify({ connected: false, activities: [] }), { headers });
           }
-          const access = await validAccessToken(tokens);
-          const raw = await fetchActivities(access, 20);
-          if (tokens.athlete_id) {
-            for (const a of raw) await storeActivity(tokens.athlete_id, a);
-          }
+          const raw = await fetchActivities(tokens);
+          for (const a of raw) await storeActivity(tokens.athlete_id, a);
           return new Response(
             JSON.stringify({
               connected: true,
@@ -38,13 +36,9 @@ export const Route = createFileRoute("/api/strava/activities")({
       },
       DELETE: async ({ request }) => {
         const { resolveSession } = await import("@/lib/session.server");
-        const { ensureSchema, getDb } = await import("@/lib/turso.server");
+        const { deleteTokens } = await import("@/lib/intervals.server");
         const { id } = resolveSession(request);
-        await ensureSchema();
-        await getDb().execute({
-          sql: "DELETE FROM strava_tokens WHERE session_id = ?",
-          args: [id],
-        });
+        await deleteTokens(id);
         return Response.json({ ok: true });
       },
     },

@@ -2,18 +2,19 @@
 
   <aside id="sidebar">
     <div class="logo">
-      <div class="wordmark">Plan<span>'s</span></div>
+      <img class="brandmark" src="/__l5e/assets-v1/bbf49a13-d4ed-43bb-9865-9181387e78f2/plans-logo.png" alt="Plan's" width="150" height="42">
       <div class="tagline">Suivi &amp; planification sportive</div>
     </div>
+
     <nav id="mainNav">
       <button data-view="dashboard" class="active"><span class="n"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg></span>Tableau de bord</button>
       <button data-view="planification"><span class="n"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>Planification</button>
       <button data-view="statistiques"><span class="n"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg></span>Statistiques</button>
       <button data-view="realisees"><span class="n"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span>Séances réalisées</button>
       <button data-view="parametres"><span class="n"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>Paramètres</button>
-      <button data-view="strava"><span class="n"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><polyline points="13 2 6 14 10 14 11 22 18 10 14 10 13 2"/></svg></span>Strava</button>
+      <button data-view="strava"><span class="n"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><polyline points="13 2 6 14 10 14 11 22 18 10 14 10 13 2"/></svg></span>intervals.icu</button>
     </nav>
-    <div class="sidebar-foot">Données synchronisées&nbsp;• Turso</div>
+    <div class="sidebar-foot">Suivi &amp; planification sportive</div>
   </aside>
 
   <main id="content">
@@ -338,10 +339,10 @@
     </section>
 
 
-    <!-- ================= STRAVA ================= -->
+    <!-- ================= INTERVALS.ICU ================= -->
     <section class="view" id="view-strava">
       <div class="view-head">
-        <div><h1>Strava</h1><div class="sub">Activités synchronisées en temps réel</div></div>
+        <div><h1>intervals.icu</h1><div class="sub">Activités Strava synchronisées en temps réel</div></div>
         <div class="badges">
           <span class="live-dot" id="stravaLive"><i></i><span id="stravaLiveLabel">Hors ligne</span></span>
         </div>
@@ -349,41 +350,25 @@
 
       <div class="panel strava-connect" id="stravaConnectPanel">
         <div>
-          <h3 class="block-title" style="margin:0;">Connexion à Strava</h3>
+          <h3 class="block-title" style="margin:0;">Connexion à intervals.icu</h3>
           <div class="sub" id="stravaAccount">Non connecté</div>
         </div>
         <div class="right">
-          <a class="btn primary" id="btnStravaConnect" href="/api/strava/authorize">Se connecter avec Strava</a>
+          <a class="btn primary" id="btnStravaConnect" href="/api/intervals/authorize">Se connecter avec intervals.icu</a>
           <button class="btn ghost" id="btnStravaDisconnect" style="display:none;">Déconnecter</button>
           <button class="btn" id="btnStravaRefresh">Actualiser</button>
         </div>
       </div>
 
-      <div class="panel" id="feedPanel" style="margin-bottom:16px;">
-        <h3 class="block-title" style="margin-top:0;">Importation automatique (flux · sans OAuth)</h3>
-        <div class="sub" style="margin-bottom:10px;">
-          Colle l'URL de ton flux d'activités (RSS/Atom, JSON, ou page Strava). Les données sont
-          importées puis mises à jour automatiquement toutes les 30&nbsp;secondes.
-        </div>
-        <div class="form-grid">
-          <div class="field" style="grid-column:span 2;">
-            <label>URL du flux</label>
-            <input type="url" id="feedUrl" value="https://www.strava.com/athletes/140064405/training/log" placeholder="https://www.strava.com/athletes/…/training/log">
-          </div>
-          <div class="field" style="grid-column:span 2;">
-            <label>Jeton / cookie de session (optionnel)</label>
-            <input type="text" id="feedToken" placeholder="_strava4_session=… (si la page est privée)">
-          </div>
-        </div>
-        <div class="form-actions">
-          <span class="sub" id="feedStatus">Aucun flux configuré</span>
-          <div class="right">
-            <button class="btn ghost" id="btnFeedDisconnect" style="display:none;">Retirer</button>
-            <button class="btn" id="btnFeedSync">Synchroniser</button>
-            <button class="btn primary" id="btnFeedConnect">Connecter le flux</button>
-          </div>
+      <div class="panel" style="margin-bottom:16px;">
+        <h3 class="block-title" style="margin-top:0;">Comment ça marche</h3>
+        <div class="sub">
+          intervals.icu est relié à ton compte Strava&nbsp;: connecte-toi une fois, tes activités
+          sont importées automatiquement et mises à jour en direct, sans aucune autre manipulation.
         </div>
       </div>
+
+
 
 
       <div class="grid cols-4" id="stravaKpis" style="margin-bottom:16px;"></div>

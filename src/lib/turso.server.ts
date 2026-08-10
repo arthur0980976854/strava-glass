@@ -23,23 +23,23 @@ export async function ensureSchema(): Promise<void> {
              data TEXT NOT NULL,
              updated_at INTEGER NOT NULL
            )`,
-          `CREATE TABLE IF NOT EXISTS strava_tokens (
+          `CREATE TABLE IF NOT EXISTS intervals_tokens (
              session_id TEXT PRIMARY KEY,
-             athlete_id INTEGER,
+             athlete_id TEXT NOT NULL,
              athlete_name TEXT,
              access_token TEXT NOT NULL,
-             refresh_token TEXT NOT NULL,
+             refresh_token TEXT,
              expires_at INTEGER NOT NULL
            )`,
-          `CREATE TABLE IF NOT EXISTS strava_activities (
-             id INTEGER PRIMARY KEY,
-             athlete_id INTEGER NOT NULL,
+          `CREATE TABLE IF NOT EXISTS intervals_activities (
+             id TEXT PRIMARY KEY,
+             athlete_id TEXT NOT NULL,
              payload TEXT NOT NULL,
              start_date TEXT,
              received_at INTEGER NOT NULL
            )`,
-          `CREATE INDEX IF NOT EXISTS idx_activities_athlete
-             ON strava_activities (athlete_id, received_at DESC)`,
+          `CREATE INDEX IF NOT EXISTS idx_intervals_activities_athlete
+             ON intervals_activities (athlete_id, received_at DESC)`,
         ],
         "write",
       );
