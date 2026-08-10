@@ -629,3 +629,223 @@ h1, h2, h3, h4 { letter-spacing: -0.02em; }
   text-transform: capitalize;
   padding: 0 8px;
 }
+
+/* ============================================================
+   DESIGN REFRESH — selectors, inputs, sidebar user
+   ============================================================ */
+
+/* Remove sidebar footer tagline */
+.sidebar-foot { display: none !important; }
+.logo .tagline { display: none !important; }
+
+/* Logo area — cleaner, no tagline */
+.logo {
+  padding: 0 4px 20px;
+  margin-bottom: 16px;
+}
+
+/* ---- Custom Select ---- */
+.custom-select-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.custom-select-wrap .custom-select-arrow {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  transition: color 0.2s;
+}
+
+.custom-select,
+.filters select,
+.weektype-select {
+  appearance: none;
+  -webkit-appearance: none;
+  background: rgba(255, 255, 255, 0.5) !important;
+  backdrop-filter: blur(16px) saturate(170%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.6) !important;
+  border-radius: 12px !important;
+  color: var(--text) !important;
+  padding: 9px 36px 9px 13px !important;
+  font-size: 13px !important;
+  font-family: var(--font-body) !important;
+  font-weight: 500;
+  width: 100%;
+  cursor: pointer;
+  box-shadow: 0 2px 12px -6px rgba(15, 23, 42, 0.15), inset 0 1px 0 rgba(255,255,255,0.8) !important;
+  transition: all 0.25s ease;
+  outline: none;
+}
+
+.custom-select:focus,
+.filters select:focus,
+.weektype-select:focus {
+  border-color: rgba(10, 132, 255, 0.7) !important;
+  box-shadow: 0 0 0 4px rgba(10, 132, 255, 0.15), 0 2px 12px -6px rgba(15, 23, 42, 0.15), inset 0 1px 0 rgba(255,255,255,0.8) !important;
+  background: rgba(255, 255, 255, 0.72) !important;
+}
+
+.custom-select:hover,
+.filters select:hover,
+.weektype-select:hover {
+  border-color: rgba(255, 255, 255, 0.9) !important;
+  background: rgba(255, 255, 255, 0.65) !important;
+}
+
+.custom-select-wrap:focus-within .custom-select-arrow {
+  color: var(--accent);
+}
+
+/* ---- Improved inputs ---- */
+.field input,
+.field textarea {
+  appearance: none;
+  background: rgba(255, 255, 255, 0.5) !important;
+  backdrop-filter: blur(16px) saturate(170%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.6) !important;
+  border-radius: 12px !important;
+  color: var(--text) !important;
+  padding: 10px 14px !important;
+  font-size: 13px !important;
+  font-family: var(--font-body) !important;
+  font-weight: 500;
+  box-shadow: 0 2px 12px -6px rgba(15, 23, 42, 0.15), inset 0 1px 0 rgba(255,255,255,0.8) !important;
+  transition: all 0.25s ease !important;
+  outline: none;
+}
+
+.field input::placeholder,
+.field textarea::placeholder {
+  color: var(--text-faint);
+  font-weight: 400;
+}
+
+.field input:hover,
+.field textarea:hover {
+  border-color: rgba(255, 255, 255, 0.9) !important;
+  background: rgba(255, 255, 255, 0.65) !important;
+}
+
+.field input:focus,
+.field textarea:focus {
+  border-color: rgba(10, 132, 255, 0.7) !important;
+  box-shadow: 0 0 0 4px rgba(10, 132, 255, 0.15), 0 2px 12px -6px rgba(15, 23, 42, 0.15), inset 0 1px 0 rgba(255,255,255,0.8) !important;
+  background: rgba(255, 255, 255, 0.72) !important;
+}
+
+/* ---- Field select (inside .field, not .custom-select-wrap) --- */
+.field select:not(.custom-select) {
+  appearance: none;
+  -webkit-appearance: none;
+  background: rgba(255, 255, 255, 0.5) !important;
+  backdrop-filter: blur(16px) saturate(170%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.6) !important;
+  border-radius: 12px !important;
+  color: var(--text) !important;
+  padding: 10px 14px !important;
+  font-size: 13px !important;
+  font-family: var(--font-body) !important;
+  font-weight: 500;
+  box-shadow: 0 2px 12px -6px rgba(15, 23, 42, 0.15), inset 0 1px 0 rgba(255,255,255,0.8) !important;
+  transition: all 0.25s ease !important;
+}
+
+.field select:not(.custom-select):focus {
+  border-color: rgba(10, 132, 255, 0.7) !important;
+  box-shadow: 0 0 0 4px rgba(10, 132, 255, 0.15) !important;
+}
+
+/* weekobj-input */
+.weekobj-input {
+  background: rgba(255, 255, 255, 0.5) !important;
+  backdrop-filter: blur(16px) saturate(170%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.6) !important;
+  border-radius: 12px !important;
+  color: var(--text) !important;
+  padding: 8px 13px !important;
+  font-size: 12px !important;
+  font-family: var(--font-body) !important;
+  box-shadow: 0 2px 12px -6px rgba(15, 23, 42, 0.15), inset 0 1px 0 rgba(255,255,255,0.8) !important;
+  transition: all 0.25s ease !important;
+  outline: none;
+}
+
+.weekobj-input:focus {
+  border-color: rgba(10, 132, 255, 0.7) !important;
+  box-shadow: 0 0 0 4px rgba(10, 132, 255, 0.15) !important;
+}
+
+/* ---- Field label upgrade ---- */
+.field label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+}
+
+/* ---- Sidebar user block ---- */
+.sidebar-user {
+  margin-top: auto;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255,255,255,0.35);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sidebar-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(10,132,255,0.18), rgba(94,92,230,0.18));
+  border: 1px solid rgba(255,255,255,0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+  flex-shrink: 0;
+  backdrop-filter: blur(10px);
+}
+
+.sidebar-user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.sidebar-user-name {
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-user-sub {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* Filters row selects */
+.filters .custom-select-wrap {
+  flex: 0 0 auto;
+}
+
+.filters .custom-select {
+  min-width: 160px;
+}
