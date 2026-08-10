@@ -36,7 +36,7 @@ var MONTHS_FULL = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","A
 var state = {
   profile:{firstName:"",lastName:"",age:null,height:null,weight:null,vma:null,hrMax:null,hrRest:null,zones:[],weeklyTargetHours:null,weeklyTargetKm:null},
   sports: DEFAULT_SPORTS.slice(),
-  sportGroups: defaultSportGroups(),
+  dashSports: ["Course à pied","Trail"],
   sessionTypes: DEFAULT_SESSION_TYPES.slice(),
   cycleNames: [],
   season:{start:null,end:null},
@@ -51,6 +51,7 @@ var charts = {};
 var planMonthCursor = new Date(); planMonthCursor.setDate(1);
 var doneMonthCursor = new Date(); doneMonthCursor.setDate(1);
 var editCycleId=null, editSubId=null, editSubSubId=null;
+var dashWeekOffset=0;
 
 async function loadData(){
   try{
@@ -59,7 +60,7 @@ async function loadData(){
       var p = JSON.parse(res.value);
       state.profile = Object.assign(state.profile, p.profile||{});
       if(p.sports && p.sports.length) state.sports = p.sports;
-      state.sportGroups = p.sportGroups || defaultSportGroups();
+      state.dashSports = (p.dashSports && p.dashSports.length) ? p.dashSports : ["Course à pied","Trail"];
       if(p.sessionTypes && p.sessionTypes.length) state.sessionTypes = p.sessionTypes;
       state.cycleNames = p.cycleNames || [];
       state.season = p.season || state.season;
@@ -89,7 +90,7 @@ function toast(msg){
 }
 
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
-function isoDate(d){ return d.toISOString().slice(0,10); }
+function isoDate(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
 function parseISO(s){ var p=s.split("-"); return new Date(+p[0],+p[1]-1,+p[2]); }
 function todayISO(){ return isoDate(new Date()); }
 function fmtShort(s){ var d=parseISO(s); return d.getDate()+" "+MONTHS_FR[d.getMonth()]; }
@@ -175,7 +176,7 @@ document.getElementById("btnToggleConfig").addEventListener("click", function(){
    ========================================================================= */
 window.renderKPIs=function(){ renderKPIs(); };
 function renderKPIs(){
-  var days=weekDays(0), d0=days[0], d1=days[6];
+  var days=weekDays(dashWeekOffset), d0=days[0], d1=days[6];
   var weekSessions = state.sessions.filter(function(s){return inRange(s.date,d0,d1);});
   var done = weekSessions.filter(function(s){return s.status==="done";});
   var volumeH = done.reduce(function(a,s){return a+((s.actual&&s.actual.duration)||0);},0)/60;
@@ -220,7 +221,7 @@ function groupForSport(name){
   return (state.sportGroups||[]).find(function(g){ return (g.sports||[]).indexOf(name)!==-1; }) || null;
 }
 function weekSportTotals(){
-  var days=weekDays(0), d0=days[0], d1=days[6];
+  var days=weekDays(dashWeekOffset), d0=days[0], d1=days[6];
   var totals={};
   function add(sport,km,deniv){
     if(!sport) sport="Autre";
@@ -369,7 +370,7 @@ function renderCycleWeeksProgress(cyc){
 }
 
 function renderWeekPanel(){
-  var days=weekDays(0), monday=isoDate(days[0]), today=todayISO();
+  var days=weekDays(dashWeekOffset), monday=isoDate(days[0]), today=todayISO();
   var cyc = activeCycleForDate(today);
   var badge = document.getElementById("currentCycleBadge");
   var box = document.getElementById("weekPanelBox");
@@ -438,7 +439,7 @@ function makePill(s){
 }
 
 function renderSportKmChart(){
-  var days=weekDays(0), d0=days[0], d1=days[6];
+  var days=weekDays(dashWeekOffset), d0=days[0], d1=days[6];
   var done = state.sessions.filter(function(s){return s.status==="done" && inRange(s.date,d0,d1);});
   var bySport = {};
   done.forEach(function(s){
