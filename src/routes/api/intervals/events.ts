@@ -64,8 +64,9 @@ export const Route = createFileRoute("/api/intervals/events")({
             payload.moving_time = Math.round(body.durationPlanned * 60);
           }
 
+          const athleteId = tokens.athlete_id.replace(/^i/i, "");
           const res = await fetch(
-            `https://intervals.icu/api/v1/athlete/${encodeURIComponent(tokens.athlete_id)}/events?upsertOnUid=true`,
+            `https://intervals.icu/api/v1/athlete/${encodeURIComponent(athleteId)}/events?upsertOnUid=true`,
             {
               method: "POST",
               headers: {
@@ -107,8 +108,9 @@ export const Route = createFileRoute("/api/intervals/events")({
             return new Response(JSON.stringify({ error: "Non connecté" }), { status: 401, headers });
           }
           const body = (await request.json()) as { eventId: number | string };
+          const athleteId = tokens.athlete_id.replace(/^i/i, "");
           const res = await fetch(
-            `https://intervals.icu/api/v1/athlete/${encodeURIComponent(tokens.athlete_id)}/events/${body.eventId}`,
+            `https://intervals.icu/api/v1/athlete/${encodeURIComponent(athleteId)}/events/${body.eventId}`,
             {
               method: "DELETE",
               headers: { Authorization: `Bearer ${tokens.access_token}` },
