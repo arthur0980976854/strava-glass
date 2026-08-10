@@ -29,7 +29,17 @@
 
     <!-- ================= TABLEAU DE BORD ================= -->
     <section class="view active" id="view-dashboard">
-      <div class="view-head"><div><h1>Tableau de bord</h1><div class="sub" id="dashDateRange"></div></div></div>
+      <div class="view-head">
+        <div><h1>Tableau de bord</h1><div class="sub" id="dashDateRange"></div></div>
+        <div class="badges">
+          <div class="month-nav">
+            <button id="dashWeekPrev" title="Semaine précédente">‹</button>
+            <span class="month-label" id="dashWeekLabel">Semaine en cours</span>
+            <button id="dashWeekNext" title="Semaine suivante">›</button>
+          </div>
+          <button class="btn small" id="dashWeekToday">Aujourd'hui</button>
+        </div>
+      </div>
 
       <div class="panel goal-banner" id="goalBanner"></div>
 
@@ -38,6 +48,7 @@
       <div class="panel" id="sportKpiPanel" style="margin-bottom:16px;">
         <div class="week-panel-head">
           <h3 class="block-title" style="margin:0;">Kilomètres &amp; D+ par sport — semaine</h3>
+
           <button class="btn small" id="btnSportGroups">⚙ Regrouper des sports</button>
         </div>
         <div class="grid cols-4" id="sportKpiGrid" style="margin-top:12px;"></div>
