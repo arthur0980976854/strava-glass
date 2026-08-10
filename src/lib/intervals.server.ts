@@ -21,7 +21,7 @@ export const INTERVALS_SCOPES = "ACTIVITY:READ,SETTINGS:READ";
 
 /**
  * Nettoie les identifiants pour retirer le préfixe "i" (ex: "i670840" -> "670840")
- * qui fait crasher le contrôleur Java d'Intervals.icu.
+ * si un ID explicite est manipulé en local.
  */
 function cleanId(id: unknown): string {
   if (!id) return "";
@@ -72,7 +72,7 @@ export async function exchangeCode(code: string, redirectUri: string) {
 
 export async function saveTokens(t: IntervalsTokens) {
   await ensureSchema();
-  const safeAthleteId = cleanId(t.athlete_id);
+  const safeAthleteId = cleanId(t.athlete_id) || "0";
 
   await getDb().execute({
     sql: `INSERT INTO intervals_tokens (session_id, athlete_id, athlete_name, access_token, refresh_token, expires_at)
@@ -95,7 +95,7 @@ export async function loadTokens(sessionId: string): Promise<IntervalsTokens | n
   if (!row) return null;
   return {
     session_id: sessionId,
-    athlete_id: cleanId(row["athlete_id"]),
+    athlete_id: cleanId(row["athlete_id"]) || "0",
     athlete_name: (row["athlete_name"] as string) ?? null,
     access_token: row["access_token"] as string,
     refresh_token: (row["refresh_token"] as string) ?? null,
@@ -179,30 +179,47 @@ function isoDaysAgo(days: number) {
   return new Date(Date.now() - days * 864e5).toISOString().slice(0, 10);
 }
 
+/**
+ * Utilise l'identifiant "0" qui est résolu automatiquement par l'API
+ * Intervals.icu vers l'athlète correspondant au Bearer token OAuth fourni.
+ */
 export async function fetchActivities(tokens: IntervalsTokens, days = 120) {
-  const safeAthleteId = cleanId(tokens.athlete_id);
-  const url = `${API}/athlete/${encodeURIComponent(safeAthleteId)}/activities?oldest=${isoDaysAgo(days)}&newest=${new Date().toISOString().slice(0, 10)}`;
-  
+  const url = `${API}/athlete/0/activities?oldest=${isoDaysAgo(days)}&newest=${new Date().toISOString().slice(0, 10)}`;
+
   const res = await fetch(url, {
-    headers: { Authorization: `Bearer ${tokens.access_token}` },
+    headers: {
+      Authorization: `Bearer ${tokens.access_token}`,
+      Accept: "application/json",
+    },
   });
-  if (!res.ok) throw new Error(`intervals.icu activities request failed (${res.status})`);
+
+  if (!res.ok) {
+    const errorDetail = await res.text().catch(() => "");
+    throw new Error(`intervals.icu activities request failed (${res.status}): ${errorDetail}`);
+  }
+
   const json = (await res.json()) as RawActivity[];
   return Array.isArray(json) ? json : [];
 }
 
-export async function fetchAthlete(accessToken: string, athleteId: string) {
-  const safeAthleteId = cleanId(athleteId);
-  const res = await fetch(`${API}/athlete/${encodeURIComponent(safeAthleteId)}`, {
-    headers: { Authorization: `Bearer ${accessToken}` },
+/**
+ * Récupère le profil du compte connecté via "/athlete/0"
+ */
+export async function fetchAthlete(accessToken: string, _athleteId?: string) {
+  const res = await fetch(`${API}/athlete/0`, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      Accept: "application/json",
+    },
   });
+
   if (!res.ok) return null;
   return (await res.json()) as { id?: string; name?: string };
 }
 
 export async function storeActivity(athleteId: string, activity: RawActivity) {
   await ensureSchema();
-  const safeAthleteId = cleanId(athleteId);
+  const safeAthleteId = cleanId(athleteId) || "0";
   const safeActivityId = cleanId(activity["id"]);
 
   await getDb().execute({
@@ -221,7 +238,7 @@ export async function storeActivity(athleteId: string, activity: RawActivity) {
 
 export async function recentStoredActivities(athleteId: string, since = 0) {
   await ensureSchema();
-  const safeAthleteId = cleanId(athleteId);
+  const safeAthleteId = cleanId(athleteId) || "0";
 
   const rs = await getDb().execute({
     sql: `SELECT payload, received_at FROM intervals_activities
