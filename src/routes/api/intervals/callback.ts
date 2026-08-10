@@ -1,0 +1,54 @@
+import { createFileRoute } from "@tanstack/react-router";
+
+export const Route = createFileRoute("/api/intervals/callback")({
+  server: {
+    handlers: {
+      GET: async ({ request }) => {
+        const url = new URL(request.url);
+        const code = url.searchParams.get("code");
+        const error = url.searchParams.get("error");
+        const { readSessionId, newSessionId, sessionCookie } = await import(
+          "@/lib/session.server"
+        );
+        const headers = new Headers();
+        const sessionId = url.searchParams.get("state") || readSessionId(request) || newSessionId();
+        headers.append("set-cookie", sessionCookie(sessionId));
+
+        if (error || !code) {
+          headers.set(
+            "location",
+            `/?intervals_error=${encodeURIComponent(error ?? "missing_code")}`,
+          );
+          return new Response(null, { status: 302, headers });
+        }
+
+        try {
+          const { exchangeCode, saveTokens, fetchAthlete, fetchActivities, storeActivity } =
+            await import("@/lib/intervals.server");
+          const token = await exchangeCode(code, `${url.origin}/api/intervals/callback`);
+          const athleteId = String(token.athlete_id ?? token.athlete?.id ?? "");
+          if (!athleteId) throw new Error("intervals.icu n'a pas renvoyé d'athlète");
+          const profile = await fetchAthlete(token.access_token, athleteId);
+          const tokens = {
+            session_id: sessionId,
+            athlete_id: athleteId,
+            athlete_name: profile?.name ?? token.athlete?.name ?? null,
+            access_token: token.access_token,
+            refresh_token: token.refresh_token ?? null,
+            expires_at: Math.floor(Date.now() / 1000) + (token.expires_in ?? 60 * 60 * 24 * 365),
+          };
+          await saveTokens(tokens);
+          const activities = await fetchActivities(tokens);
+          for (const activity of activities) await storeActivity(athleteId, activity);
+          headers.set("location", "/?intervals=connected");
+        } catch (e) {
+          headers.set(
+            "location",
+            `/?intervals_error=${encodeURIComponent((e as Error).message)}`,
+          );
+        }
+        return new Response(null, { status: 302, headers });
+      },
+    },
+  },
+});
