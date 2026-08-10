@@ -46,7 +46,7 @@ function Index() {
       if (cancelled) return;
       await loadScript("/plans/app.js");
       if (cancelled) return;
-      await loadScript("/plans/strava.js");
+      await loadScript("/plans/intervals.js");
     })().catch((error) => console.error(error));
     return () => {
       cancelled = true;
