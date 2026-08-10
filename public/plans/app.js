@@ -1158,6 +1158,7 @@ function renderSportThumbs(){
 }
 
 function renderStats(){
+  if(typeof renderSportTracking==="function") renderSportTracking();
   renderSportThumbs();
   var doneSessions=state.sessions.filter(function(s){return s.status==="done";});
 
@@ -1398,4 +1399,95 @@ function renderAll(){
 }
 
 loadData();
+})();
+
+/* =========================================================================
+   STATISTIQUES — suivi par sport avec filtre de période
+   ========================================================================= */
+var SPORT_METRICS = {
+  "Trail":        {km:true, deniv:true, hours:true},
+  "Course à pied":{km:true, deniv:true, hours:true},
+  "Vélo":         {km:true, deniv:true, hours:true},
+  "Natation":     {meters:true, hours:true},
+  "Musculation":  {sessions:true, hours:true}
+};
+function statsPeriodRange(mode){
+  var now=new Date(); now.setHours(0,0,0,0);
+  if(mode==="week"){ var d=weekDays(0); return {start:d[0], end:d[6], label:"Semaine du "+fmtShort(isoDate(d[0]))}; }
+  if(mode==="month"){
+    var s=new Date(now.getFullYear(), now.getMonth(), 1), e=new Date(now.getFullYear(), now.getMonth()+1, 0);
+    return {start:s, end:e, label:MONTHS_FR[now.getMonth()]+" "+now.getFullYear()};
+  }
+  if(mode==="cycle"){
+    var c=state.cycles.find(function(x){ var t=todayISO(); return t>=x.start && t<=x.end; });
+    if(c) return {start:parseISO(c.start), end:parseISO(c.end), label:cycleLabel(c)};
+    return {start:new Date(now.getFullYear(),0,1), end:new Date(now.getFullYear(),11,31), label:"Aucun cycle en cours — année "+now.getFullYear()};
+  }
+  return {start:new Date(now.getFullYear(),0,1), end:new Date(now.getFullYear(),11,31), label:"Année "+now.getFullYear()};
+}
+function sportTrackTotals(range){
+  var totals={};
+  state.sessions.filter(function(s){return s.status==="done" && inRange(s.date,range.start,range.end);}).forEach(function(s){
+    var sp=s.sport||"Autre";
+    if(!SPORT_METRICS[sp]) return;
+    if(!totals[sp]) totals[sp]={km:0,deniv:0,hours:0,sessions:0};
+    var a=s.actual||{};
+    totals[sp].km += a.distance||0;
+    totals[sp].deniv += a.elevation||0;
+    totals[sp].hours += (a.duration||0)/60;
+    totals[sp].sessions += 1;
+  });
+  return totals;
+}
+function renderSportTracking(){
+  var kpis=document.getElementById("sportTrackKpis"); if(!kpis) return;
+  var sel=document.getElementById("statsPeriodFilter");
+  var range=statsPeriodRange(sel? sel.value : "year");
+  var rangeEl=document.getElementById("statsPeriodRange");
+  if(rangeEl) rangeEl.textContent = range.label+" · "+fmtShort(isoDate(range.start))+" → "+fmtShort(isoDate(range.end));
+  var totals=sportTrackTotals(range);
+  var sports=Object.keys(totals);
+  if(!sports.length){
+    kpis.innerHTML='<div class="kpi" style="grid-column:1/-1;"><div class="label">Aucune activité sur la période</div><div class="value">—</div></div>';
+    document.getElementById("sportTrackCharts").innerHTML="";
+    return;
+  }
+  kpis.innerHTML="";
+  sports.forEach(function(sp){
+    var m=SPORT_METRICS[sp], t=totals[sp], lines=[];
+    if(m.km) lines.push(t.km.toFixed(1)+" km");
+    if(m.deniv) lines.push(Math.round(t.deniv).toLocaleString('fr-FR')+" m D+");
+    if(m.meters) lines.push(Math.round(t.km*1000).toLocaleString('fr-FR')+" m");
+    if(m.sessions) lines.push(t.sessions+" séance"+(t.sessions>1?"s":""));
+    var el=document.createElement("div"); el.className="kpi";
+    el.style.borderLeft="3px solid "+sportColor(sp);
+    el.innerHTML='<div class="label">'+escapeHtml(sp)+'</div>'+
+      '<div class="value">'+t.hours.toFixed(1)+' <span class="unit">h</span></div>'+
+      '<div class="label" style="margin-top:6px;">'+lines.join(" · ")+'</div>';
+    kpis.appendChild(el);
+  });
+  /* Barres comparatives : une par métrique pertinente, axes cohérents. */
+  var charts=document.getElementById("sportTrackCharts"); charts.innerHTML="";
+  function bars(title, unit, valueFn, fmt){
+    var rows=sports.filter(function(sp){ return valueFn(sp)!==null; });
+    if(!rows.length) return;
+    var max=Math.max.apply(null, rows.map(valueFn))||1;
+    var html='<div class="panel"><h3 class="block-title">'+title+' <span class="unit">('+unit+')</span></h3>';
+    rows.sort(function(a,b){return valueFn(b)-valueFn(a);}).forEach(function(sp){
+      var v=valueFn(sp);
+      html+='<div class="track-row"><span class="track-label">'+escapeHtml(sp)+'</span>'+
+        '<span class="track-bar"><i style="width:'+(v/max*100)+'%;background:'+sportColor(sp)+'"></i></span>'+
+        '<span class="track-val">'+fmt(v)+'</span></div>';
+    });
+    charts.insertAdjacentHTML("beforeend", html+'</div>');
+  }
+  bars("Temps par sport","h",function(sp){return totals[sp].hours;},function(v){return v.toFixed(1)+" h";});
+  bars("Distance","km",function(sp){return SPORT_METRICS[sp].km? totals[sp].km : null;},function(v){return v.toFixed(1)+" km";});
+  bars("Dénivelé","m D+",function(sp){return SPORT_METRICS[sp].deniv? totals[sp].deniv : null;},function(v){return Math.round(v)+" m";});
+  bars("Natation","m",function(sp){return SPORT_METRICS[sp].meters? totals[sp].km*1000 : null;},function(v){return Math.round(v)+" m";});
+  bars("Séances de musculation","séances",function(sp){return SPORT_METRICS[sp].sessions? totals[sp].sessions : null;},function(v){return v+"";});
+}
+(function initSportTracking(){
+  var sel=document.getElementById("statsPeriodFilter");
+  if(sel) sel.addEventListener("change", renderSportTracking);
 })();
