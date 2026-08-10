@@ -784,7 +784,49 @@ function laneAssign(items){
   });
   return {items:sorted, laneCount:lanes.length};
 }
-function renderTimelineLevel(containerId, items, colorFn, labelFn){
+/* ---------- Infos d'un cycle au clic sur la timeline ---------- */
+function cycleInfoHTML(kind, c){
+  var rows=[];
+  var d0=parseISO(c.start), d1=parseISO(c.end);
+  var weeks=Math.round((d1-d0)/(7*864e5))+1;
+  rows.push(["Type", kind]);
+  if(kind==="Cycle" && c.type && CYCLE_TYPES[c.type]) rows.push(["Nature", CYCLE_TYPES[c.type].label||c.type]);
+  rows.push(["Début", fmtShort(c.start)]);
+  rows.push(["Fin", fmtShort(c.end)]);
+  rows.push(["Durée", weeks+" semaine"+(weeks>1?"s":"")]);
+  if(c.targetKm) rows.push(["Objectif hebdo", c.targetKm+" km"]);
+  if(kind!=="Cycle"){
+    var parentSub = kind==="Division" ? state.subcycles.find(function(x){return x.id===c.subId;}) : null;
+    var parentCycle = kind==="Sous-cycle"
+      ? state.cycles.find(function(x){return x.id===c.cycleId;})
+      : (parentSub ? state.cycles.find(function(x){return x.id===parentSub.cycleId;}) : null);
+    if(parentSub) rows.push(["Sous-cycle parent", parentSub.name]);
+    if(parentCycle) rows.push(["Cycle parent", cycleLabel(parentCycle)]);
+  }
+  var sess=state.sessions.filter(function(s){return inRange(s.date,d0,d1);});
+  var done=sess.filter(function(s){return s.status==="done";});
+  var km=done.reduce(function(a,s){return a+((s.actual&&s.actual.distance)||0);},0);
+  var dplus=done.reduce(function(a,s){return a+((s.actual&&s.actual.elevation)||0);},0);
+  var hrs=done.reduce(function(a,s){return a+((s.actual&&s.actual.duration)||0);},0)/60;
+  rows.push(["Séances", done.length+" réalisées / "+sess.length+" planifiées"]);
+  rows.push(["Volume", hrs.toFixed(1)+" h · "+km.toFixed(1)+" km · "+Math.round(dplus)+" m D+"]);
+  return '<div class="info-rows">'+rows.map(function(r){
+    return '<div class="info-row"><span>'+escapeHtml(r[0])+'</span><b>'+escapeHtml(String(r[1]))+'</b></div>';
+  }).join("")+'</div>';
+}
+function openCycleInfo(kind, c){
+  var ov=document.getElementById("cycleInfoOverlay"); if(!ov) return;
+  document.getElementById("cycleInfoTitle").textContent = (kind==="Cycle"? cycleLabel(c) : c.name);
+  document.getElementById("cycleInfoBody").innerHTML = cycleInfoHTML(kind, c);
+  ov.classList.add("open");
+}
+(function initCycleInfo(){
+  var ov=document.getElementById("cycleInfoOverlay"); if(!ov) return;
+  ov.addEventListener("click", function(e){ if(e.target===ov) ov.classList.remove("open"); });
+  document.getElementById("btnCycleInfoClose").addEventListener("click", function(){ ov.classList.remove("open"); });
+})();
+
+function renderTimelineLevel(containerId, items, colorFn, labelFn, kind){
   var wrap=document.getElementById(containerId);
   wrap.innerHTML="";
   if(!state.season.start||!state.season.end) return;
@@ -802,6 +844,8 @@ function renderTimelineLevel(containerId, items, colorFn, labelFn){
     block.style.background=colorFn(c);
     block.textContent=labelFn(c);
     block.title=labelFn(c)+" · "+fmtShort(c.start)+" → "+fmtShort(c.end);
+    block.style.cursor="pointer";
+    block.addEventListener("click", function(){ openCycleInfo(kind||"Cycle", c); });
     wrap.appendChild(block);
   });
 }
@@ -823,18 +867,18 @@ function renderTimeline(){
     tlMonths.appendChild(tick);
     cur.setMonth(cur.getMonth()+1);
   }
-  renderTimelineLevel("tlLanesCycles", state.cycles, function(c){return CYCLE_TYPES[c.type].color;}, cycleLabel);
+  renderTimelineLevel("tlLanesCycles", state.cycles, function(c){return CYCLE_TYPES[c.type].color;}, cycleLabel, "Cycle");
   renderTimelineLevel("tlLanesSub", state.subcycles, function(c){
     var parent=state.cycles.find(function(x){return x.id===c.cycleId;});
     var hex= parent? CYCLE_TYPES[parent.type].color : CYCLE_TYPES.libre.color;
     return "color-mix(in srgb, "+hex+" 55%, white)";
-  }, function(c){return c.name;});
+  }, function(c){return c.name;}, "Sous-cycle");
   renderTimelineLevel("tlLanesSubSub", state.subsubcycles, function(c){
     var parentSub=state.subcycles.find(function(x){return x.id===c.subId;});
     var parent= parentSub? state.cycles.find(function(x){return x.id===parentSub.cycleId;}) : null;
     var hex= parent? CYCLE_TYPES[parent.type].color : CYCLE_TYPES.libre.color;
     return "color-mix(in srgb, "+hex+" 30%, white)";
-  }, function(c){return c.name;});
+  }, function(c){return c.name;}, "Division");
 
   var today=new Date(); today.setHours(0,0,0,0);
   if(today>=s0 && today<=s1){
