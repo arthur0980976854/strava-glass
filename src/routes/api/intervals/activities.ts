@@ -44,7 +44,8 @@ export const Route = createFileRoute("/api/intervals/activities")({
             return new Response(JSON.stringify({ connected: false, activities: [] }), { headers });
           }
           const raw = await fetchActivities(tokens);
-          for (const a of raw) await storeActivity(tokens.athlete_id, a);
+          const normalizedId = tokens.athlete_id.replace(/^i/i, "");
+          for (const a of raw) await storeActivity(normalizedId, a);
           return new Response(
             JSON.stringify({
               connected: true,
@@ -109,8 +110,9 @@ export const Route = createFileRoute("/api/intervals/activities")({
           if (body.charge) payload.icu_training_load = body.charge;
           if (body.detail) payload.description = body.detail;
 
+          const athleteId = tokens.athlete_id.replace(/^i/i, "");
           const res = await fetch(
-            `https://intervals.icu/api/v1/athlete/${encodeURIComponent(tokens.athlete_id)}/activities/manual/bulk`,
+            `https://intervals.icu/api/v1/athlete/${encodeURIComponent(athleteId)}/activities/manual/bulk`,
             {
               method: "POST",
               headers: {
