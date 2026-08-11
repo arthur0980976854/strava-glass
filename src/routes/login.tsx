@@ -470,34 +470,42 @@ function LoginPage() {
             {/* Submit */}
             <button className="lf-submit" type="submit" disabled={loading}>
               {loading ? (
-                <><div className="lf-spinner"/><span>Connexion…</span></>
+                <><div className="lf-spinner"/><span>Un instant…</span></>
               ) : (
                 <>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
                     <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/>
                   </svg>
-                  Se connecter
+                  {mode === "login" ? "Se connecter" : "Créer mon compte"}
                 </>
               )}
             </button>
-
-            <div className="lf-divider"><span>ou continuer avec</span></div>
-
-            {/* Strava OAuth */}
-            <a className="lf-oauth" href="/api/intervals/authorize">
-              <span className="lf-oauth-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" width="13" height="13">
-                  <polyline points="13 2 6 14 10 14 11 22 18 10 14 10 13 2"/>
-                </svg>
-              </span>
-              Continuer avec intervals.icu
-            </a>
           </form>
 
           <div className="lf-footer">
-            Pas encore de compte ?{" "}
-            <a href="#">Créer un compte</a>
+            {mode === "login" ? (
+              <>
+                Pas encore de compte ?{" "}
+                <a
+                  href="#"
+                  onClick={(e) => { e.preventDefault(); setError(""); setMode("signup"); }}
+                >
+                  Créer un compte
+                </a>
+              </>
+            ) : (
+              <>
+                Déjà inscrit ?{" "}
+                <a
+                  href="#"
+                  onClick={(e) => { e.preventDefault(); setError(""); setMode("login"); }}
+                >
+                  Se connecter
+                </a>
+              </>
+            )}
           </div>
+
         </div>
       </div>
     </>
