@@ -387,30 +387,35 @@ function LoginPage() {
             </div>
           </div>
 
-          <h1 className="login-title">Connexion</h1>
-          <p className="login-subtitle">Accédez à votre tableau de bord sportif</p>
+          <h1 className="login-title">{mode === "login" ? "Connexion" : "Créer un compte"}</h1>
+          <p className="login-subtitle">
+            {mode === "login"
+              ? "Accédez à votre tableau de bord sportif"
+              : "Votre planification et vos données, sur tous vos appareils"}
+          </p>
 
           <form className="login-form" onSubmit={handleSubmit}>
-            {/* Username */}
+            {/* Email */}
             <div className="lf-field">
-              <label className="lf-label">Nom d'utilisateur</label>
+              <label className="lf-label">Adresse e-mail</label>
               <div className="lf-input-wrap">
                 <span className="lf-icon">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="15" height="15">
-                    <circle cx="12" cy="8" r="4"/>
-                    <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+                    <rect x="2" y="4" width="20" height="16" rx="2"/>
+                    <polyline points="2 6 12 13 22 6"/>
                   </svg>
                 </span>
                 <input
                   className="lf-input"
-                  type="text"
-                  placeholder="votre_pseudo"
-                  autoComplete="username"
-                  value={username}
-                  onChange={e => setUsername(e.target.value)}
+                  type="email"
+                  placeholder="vous@exemple.com"
+                  autoComplete="email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
                 />
               </div>
             </div>
+
 
             {/* Password */}
             <div className="lf-field">
