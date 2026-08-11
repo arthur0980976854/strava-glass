@@ -1149,3 +1149,54 @@ h1, h2, h3, h4 { letter-spacing: -0.02em; }
 }
 .sess-btn-save:hover:not(:disabled) { filter: brightness(1.07); transform: translateY(-1px); }
 .sess-btn-save:disabled { opacity: 0.65; cursor: not-allowed; transform: none; }
+
+/* =============================================================
+   FIX SCROLL MODALE SEANCE + MOBILE
+   Le <form id="sessForm"> est l'enfant flex réel : il doit lui
+   aussi être une colonne flexible, sinon body+footer débordent
+   et on ne peut pas descendre en bas du formulaire.
+   ============================================================= */
+#sessForm {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.sess-modal {
+  height: min(90vh, 900px);
+  max-height: 90vh;
+}
+@supports (height: 100dvh) {
+  .sess-modal { height: min(90dvh, 900px); max-height: 90dvh; }
+}
+.sess-modal-body { overscroll-behavior: contain; }
+
+/* Autres modales : scroll interne fiable */
+.modal-overlay { overflow-y: auto; }
+.modal { max-height: 90vh; overflow-y: auto; overscroll-behavior: contain; }
+@supports (height: 100dvh) {
+  .modal { max-height: 90dvh; }
+}
+
+@media (max-width: 600px) {
+  .sess-modal-overlay { padding: 0; align-items: flex-end; }
+  .sess-modal {
+    height: 94dvh;
+    max-height: 94dvh;
+    border-radius: 24px 24px 0 0;
+    max-width: none;
+  }
+  .sess-modal-head { padding: 14px 16px 12px; }
+  .sess-modal-body { padding: 14px 16px 20px; }
+  .sess-modal-foot {
+    padding: 12px 16px calc(14px + env(safe-area-inset-bottom));
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .sess-foot-right { flex: 1; justify-content: flex-end; }
+  .sess-btn-save, .sess-btn-cancel, .sess-btn-del { padding: 11px 16px; font-size: 13px; }
+  .sess-modal-title { font-size: 16px; }
+  /* évite le zoom auto iOS sur les champs */
+  .sess-modal input, .sess-modal select, .sess-modal textarea { font-size: 16px; }
+  .modal { border-radius: 22px 22px 0 0; padding: 16px; }
+}
