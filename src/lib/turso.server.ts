@@ -18,6 +18,13 @@ export async function ensureSchema(): Promise<void> {
     ready = (async () => {
       await db.batch(
         [
+          `CREATE TABLE IF NOT EXISTS users (
+             id TEXT PRIMARY KEY,
+             email TEXT NOT NULL UNIQUE,
+             password_hash TEXT NOT NULL,
+             salt TEXT NOT NULL,
+             created_at INTEGER NOT NULL
+           )`,
           `CREATE TABLE IF NOT EXISTS app_state (
              session_id TEXT PRIMARY KEY,
              data TEXT NOT NULL,

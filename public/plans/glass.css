@@ -1149,3 +1149,105 @@ h1, h2, h3, h4 { letter-spacing: -0.02em; }
 }
 .sess-btn-save:hover:not(:disabled) { filter: brightness(1.07); transform: translateY(-1px); }
 .sess-btn-save:disabled { opacity: 0.65; cursor: not-allowed; transform: none; }
+
+/* =============================================================
+   FIX SCROLL MODALE SEANCE + MOBILE
+   Le <form id="sessForm"> est l'enfant flex réel : il doit lui
+   aussi être une colonne flexible, sinon body+footer débordent
+   et on ne peut pas descendre en bas du formulaire.
+   ============================================================= */
+#sessForm {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.sess-modal {
+  height: min(90vh, 900px);
+  max-height: 90vh;
+}
+@supports (height: 100dvh) {
+  .sess-modal { height: min(90dvh, 900px); max-height: 90dvh; }
+}
+.sess-modal-body { overscroll-behavior: contain; }
+
+/* Autres modales : scroll interne fiable */
+.modal-overlay { overflow-y: auto; }
+.modal { max-height: 90vh; overflow-y: auto; overscroll-behavior: contain; }
+@supports (height: 100dvh) {
+  .modal { max-height: 90dvh; }
+}
+
+@media (max-width: 600px) {
+  .sess-modal-overlay { padding: 0; align-items: flex-end; }
+  .sess-modal {
+    height: 94dvh;
+    max-height: 94dvh;
+    border-radius: 24px 24px 0 0;
+    max-width: none;
+  }
+  .sess-modal-head { padding: 14px 16px 12px; }
+  .sess-modal-body { padding: 14px 16px 20px; }
+  .sess-modal-foot {
+    padding: 12px 16px calc(14px + env(safe-area-inset-bottom));
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .sess-foot-right { flex: 1; justify-content: flex-end; }
+  .sess-btn-save, .sess-btn-cancel, .sess-btn-del { padding: 11px 16px; font-size: 13px; }
+  .sess-modal-title { font-size: 16px; }
+  /* évite le zoom auto iOS sur les champs */
+  .sess-modal input, .sess-modal select, .sess-modal textarea { font-size: 16px; }
+  .modal { border-radius: 22px 22px 0 0; padding: 16px; }
+}
+
+/* Bouton déconnexion sidebar */
+.sidebar-logout {
+  margin-left: auto;
+  width: 30px; height: 30px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.6);
+  background: rgba(255,255,255,0.45);
+  color: #64748b;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all .2s; flex-shrink: 0;
+}
+.sidebar-logout:hover {
+  background: rgba(255,69,58,0.1);
+  border-color: rgba(255,69,58,0.28);
+  color: #ff453a;
+}
+
+/* =============== SIDEBAR MOBILE =============== */
+@media (max-width: 900px) {
+  aside#sidebar {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    overflow: visible;
+  }
+  aside#sidebar .logo { padding: 0 10px 0 0; margin: 0; }
+  aside#sidebar .logo img,
+  aside#sidebar .logo svg { height: 26px !important; width: auto !important; max-width: 96px; }
+  nav#mainNav {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  nav#mainNav::-webkit-scrollbar { display: none; }
+  .sidebar-user {
+    margin-left: auto;
+    gap: 6px;
+    padding-left: 10px;
+    flex-shrink: 0;
+  }
+  .sidebar-user-info { display: none; }
+  .sidebar-avatar { width: 28px; height: 28px; }
+}
+@media (max-width: 600px) {
+  aside#sidebar .logo img { height: 22px !important; max-width: 80px; }
+  nav#mainNav button { padding: 7px 10px; font-size: 11.5px; }
+}

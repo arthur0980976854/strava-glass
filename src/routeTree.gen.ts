@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ApiStateRouteImport } from './routes/api/state'
+import { Route as ApiAuthSessionRouteImport } from './routes/api/auth/session'
 import { Route as ApiIntervalsActivitiesRouteImport } from './routes/api/intervals/activities'
 import { Route as ApiIntervalsAuthorizeRouteImport } from './routes/api/intervals/authorize'
 import { Route as ApiIntervalsCallbackRouteImport } from './routes/api/intervals/callback'
@@ -31,6 +32,11 @@ const LoginRoute = LoginRouteImport.update({
 const ApiStateRoute = ApiStateRouteImport.update({
   id: '/api/state',
   path: '/api/state',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAuthSessionRoute = ApiAuthSessionRouteImport.update({
+  id: '/api/auth/session',
+  path: '/api/auth/session',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiIntervalsActivitiesRoute = ApiIntervalsActivitiesRouteImport.update({
@@ -63,6 +69,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/api/state': typeof ApiStateRoute
+  '/api/auth/session': typeof ApiAuthSessionRoute
   '/api/intervals/activities': typeof ApiIntervalsActivitiesRoute
   '/api/intervals/authorize': typeof ApiIntervalsAuthorizeRoute
   '/api/intervals/callback': typeof ApiIntervalsCallbackRoute
@@ -73,6 +80,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/api/state': typeof ApiStateRoute
+  '/api/auth/session': typeof ApiAuthSessionRoute
   '/api/intervals/activities': typeof ApiIntervalsActivitiesRoute
   '/api/intervals/authorize': typeof ApiIntervalsAuthorizeRoute
   '/api/intervals/callback': typeof ApiIntervalsCallbackRoute
@@ -84,6 +92,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/api/state': typeof ApiStateRoute
+  '/api/auth/session': typeof ApiAuthSessionRoute
   '/api/intervals/activities': typeof ApiIntervalsActivitiesRoute
   '/api/intervals/authorize': typeof ApiIntervalsAuthorizeRoute
   '/api/intervals/callback': typeof ApiIntervalsCallbackRoute
@@ -96,6 +105,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/api/state'
+    | '/api/auth/session'
     | '/api/intervals/activities'
     | '/api/intervals/authorize'
     | '/api/intervals/callback'
@@ -106,6 +116,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/api/state'
+    | '/api/auth/session'
     | '/api/intervals/activities'
     | '/api/intervals/authorize'
     | '/api/intervals/callback'
@@ -116,6 +127,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/api/state'
+    | '/api/auth/session'
     | '/api/intervals/activities'
     | '/api/intervals/authorize'
     | '/api/intervals/callback'
@@ -127,6 +139,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LoginRoute: typeof LoginRoute
   ApiStateRoute: typeof ApiStateRoute
+  ApiAuthSessionRoute: typeof ApiAuthSessionRoute
   ApiIntervalsActivitiesRoute: typeof ApiIntervalsActivitiesRoute
   ApiIntervalsAuthorizeRoute: typeof ApiIntervalsAuthorizeRoute
   ApiIntervalsCallbackRoute: typeof ApiIntervalsCallbackRoute
@@ -155,6 +168,13 @@ declare module '@tanstack/react-router' {
       path: '/api/state'
       fullPath: '/api/state'
       preLoaderRoute: typeof ApiStateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/auth/session': {
+      id: '/api/auth/session'
+      path: '/api/auth/session'
+      fullPath: '/api/auth/session'
+      preLoaderRoute: typeof ApiAuthSessionRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/intervals/activities': {
@@ -199,6 +219,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
   ApiStateRoute: ApiStateRoute,
+  ApiAuthSessionRoute: ApiAuthSessionRoute,
   ApiIntervalsActivitiesRoute: ApiIntervalsActivitiesRoute,
   ApiIntervalsAuthorizeRoute: ApiIntervalsAuthorizeRoute,
   ApiIntervalsCallbackRoute: ApiIntervalsCallbackRoute,
@@ -208,13 +229,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
