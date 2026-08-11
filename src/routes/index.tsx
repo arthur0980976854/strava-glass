@@ -1,6 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import markup from "@/app-legacy/markup.html?raw";
+
 
 const TITLE = "Plan's — Planificateur d'entraînement & Strava";
 const DESCRIPTION =
