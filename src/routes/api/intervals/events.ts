@@ -58,10 +58,10 @@ export const Route = createFileRoute("/api/intervals/events")({
           };
 
           if (body.detail || body.objective) {
-            payload.description = [body.objective, body.detail].filter(Boolean).join("\n");
+            payload["description"] = [body.objective, body.detail].filter(Boolean).join("\n");
           }
           if (body.durationPlanned) {
-            payload.moving_time = Math.round(body.durationPlanned * 60);
+            payload["moving_time"] = Math.round(body.durationPlanned * 60);
           }
 
           const athleteId = tokens.athlete_id.replace(/^i/i, "");

@@ -102,13 +102,13 @@ export const Route = createFileRoute("/api/intervals/activities")({
             start_date_local: startDateLocal,
           };
 
-          if (movingTimeSec) payload.moving_time = movingTimeSec;
-          if (distanceM) payload.distance = distanceM;
-          if (body.elevation) payload.total_elevation_gain = body.elevation;
-          if (body.bpmAvg) payload.average_heartrate = body.bpmAvg;
-          if (body.rpe) payload.perceived_exertion = body.rpe;
-          if (body.charge) payload.icu_training_load = body.charge;
-          if (body.detail) payload.description = body.detail;
+          if (movingTimeSec) payload["moving_time"] = movingTimeSec;
+          if (distanceM) payload["distance"] = distanceM;
+          if (body.elevation) payload["total_elevation_gain"] = body.elevation;
+          if (body.bpmAvg) payload["average_heartrate"] = body.bpmAvg;
+          if (body.rpe) payload["perceived_exertion"] = body.rpe;
+          if (body.charge) payload["icu_training_load"] = body.charge;
+          if (body.detail) payload["description"] = body.detail;
 
           const athleteId = tokens.athlete_id.replace(/^i/i, "");
           const res = await fetch(
