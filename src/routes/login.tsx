@@ -19,26 +19,37 @@ export const Route = createFileRoute("/login")({
 
 function LoginPage() {
   const navigate = useNavigate();
-  const [username, setUsername] = useState("");
+  const [mode, setMode] = useState<"login" | "signup">("login");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
-    if (!username || !password) {
+    if (!email || !password) {
       setError("Veuillez remplir tous les champs.");
       return;
     }
     setLoading(true);
-    // Simulate auth — replace with real logic
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      const res = await fetch("/api/auth/session", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ mode, email, password }),
+      });
+      const data = (await res.json()) as { ok?: boolean; error?: string };
+      if (!res.ok || !data.ok) throw new Error(data.error || "Connexion impossible.");
       navigate({ to: "/" });
-    }, 900);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setLoading(false);
+    }
   }
+
 
   return (
     <>
