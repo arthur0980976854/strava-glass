@@ -44,12 +44,15 @@ var state = {
   weekTypes:{},
   weekObjectives:{},
   sessionTemplates:[],
+  sportGroups:[],
   sessions:[]
 };
 var charts = {};
 var planMonthCursor = new Date(); planMonthCursor.setDate(1);
 var doneMonthCursor = new Date(); doneMonthCursor.setDate(1);
 var editCycleId=null, editSubId=null, editSubSubId=null;
+var dashWeekOffset=0;
+var cycleClipboard=null;
 
 async function loadData(){
   try{
@@ -68,6 +71,7 @@ async function loadData(){
       state.weekTypes = p.weekTypes || {};
       state.weekObjectives = p.weekObjectives || {};
       state.sessionTemplates = p.sessionTemplates || [];
+      state.sportGroups = p.sportGroups || [];
       state.sessions = p.sessions || [];
     }
   }catch(e){}
@@ -87,7 +91,7 @@ function toast(msg){
 }
 
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
-function isoDate(d){ return d.toISOString().slice(0,10); }
+function isoDate(d){ var y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,"0"), dd=String(d.getDate()).padStart(2,"0"); return y+"-"+m+"-"+dd; }
 function parseISO(s){ var p=s.split("-"); return new Date(+p[0],+p[1]-1,+p[2]); }
 function todayISO(){ return isoDate(new Date()); }
 function fmtShort(s){ var d=parseISO(s); return d.getDate()+" "+MONTHS_FR[d.getMonth()]; }
