@@ -207,25 +207,3 @@
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
   else init();
 })();
-
-/* ---- Compte utilisateur : nom affiché + déconnexion ---- */
-(function () {
-  fetch("/api/auth/session")
-    .then(function (r) { return r.json(); })
-    .then(function (d) {
-      if (d && d.authenticated && d.user && d.user.email) {
-        var el = document.getElementById("sidebarUserName");
-        if (el) el.textContent = d.user.email.split("@")[0];
-      }
-    })
-    .catch(function () {});
-
-  var btn = document.getElementById("btnLogout");
-  if (btn) {
-    btn.addEventListener("click", function () {
-      fetch("/api/auth/session", { method: "DELETE" }).finally(function () {
-        window.location.href = "/login";
-      });
-    });
-  }
-})();
