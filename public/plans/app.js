@@ -44,12 +44,15 @@ var state = {
   weekTypes:{},
   weekObjectives:{},
   sessionTemplates:[],
+  sportGroups:[],
   sessions:[]
 };
 var charts = {};
 var planMonthCursor = new Date(); planMonthCursor.setDate(1);
 var doneMonthCursor = new Date(); doneMonthCursor.setDate(1);
 var editCycleId=null, editSubId=null, editSubSubId=null;
+var dashWeekOffset=0;
+var cycleClipboard=null;
 
 async function loadData(){
   try{
@@ -68,6 +71,7 @@ async function loadData(){
       state.weekTypes = p.weekTypes || {};
       state.weekObjectives = p.weekObjectives || {};
       state.sessionTemplates = p.sessionTemplates || [];
+      state.sportGroups = p.sportGroups || [];
       state.sessions = p.sessions || [];
     }
   }catch(e){}
@@ -87,7 +91,7 @@ function toast(msg){
 }
 
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
-function isoDate(d){ return d.toISOString().slice(0,10); }
+function isoDate(d){ var y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,"0"), dd=String(d.getDate()).padStart(2,"0"); return y+"-"+m+"-"+dd; }
 function parseISO(s){ var p=s.split("-"); return new Date(+p[0],+p[1]-1,+p[2]); }
 function todayISO(){ return isoDate(new Date()); }
 function fmtShort(s){ var d=parseISO(s); return d.getDate()+" "+MONTHS_FR[d.getMonth()]; }
@@ -100,6 +104,7 @@ function sortAscBy(k){ return function(a,b){return a[k].localeCompare(b[k]);}; }
 function escapeHtml(str){ var d=document.createElement("div"); d.textContent=str||""; return d.innerHTML; }
 function emptyHTML(title,sub){ return '<div class="empty-state"><b>'+title+'</b>'+sub+'</div>'; }
 function sportColor(name){ var s=state.sports.find(function(x){return x.name===name;}); return s?s.color:PALETTE[0]; }
+function cycleColor(c){ return (c && c.color) ? c.color : CYCLE_TYPES[c.type].color; }
 function cycleLabel(c){ return c.type==="libre" && c.label ? c.label : CYCLE_TYPES[c.type].label; }
 function activeCycleForDate(dateISO){ return state.cycles.find(function(c){return dateISO>=c.start && dateISO<=c.end;}); }
 function activeSubForDate(dateISO){ return state.subcycles.find(function(c){return dateISO>=c.start && dateISO<=c.end;}); }
@@ -172,26 +177,34 @@ document.getElementById("btnToggleConfig").addEventListener("click", function(){
    TABLEAU DE BORD
    ========================================================================= */
 window.renderKPIs=function(){ renderKPIs(); };
+function currentWeekDays(){ return weekDays(dashWeekOffset); }
+function isSwim(name){ return /natation|swim/i.test(name||""); }
+function sportUnit(name){ return isSwim(name) ? "m" : "km"; }
+function sportDistance(s){
+  var a=s.actual||{}; var v=a.distance||0;
+  return v;
+}
+function weekObjectiveFor(mondayISO){
+  var ss = state.subsubcycles.find(function(x){ return mondayISO>=x.start && mondayISO<=x.end && x.objective; });
+  if(ss) return {text:ss.objective, source:ss.name};
+  var sub = state.subcycles.find(function(x){ return mondayISO>=x.start && mondayISO<=x.end && x.objective; });
+  if(sub) return {text:sub.objective, source:sub.name};
+  if(state.weekObjectives[mondayISO]) return {text:state.weekObjectives[mondayISO], source:null};
+  return null;
+}
 function renderKPIs(){
-  var days=weekDays(0), d0=days[0], d1=days[6];
+  var days=currentWeekDays(), d0=days[0], d1=days[6];
   var weekSessions = state.sessions.filter(function(s){return inRange(s.date,d0,d1);});
   var done = weekSessions.filter(function(s){return s.status==="done";});
   var volumeH = done.reduce(function(a,s){return a+((s.actual&&s.actual.duration)||0);},0)/60;
-  var deniv = done.reduce(function(a,s){return a+((s.actual&&s.actual.elevation)||0);},0);
   var ratio = weekSessions.length ? Math.round(done.length/weekSessions.length*100) : 0;
-
-  /* Kilomètres de la semaine : séances saisies + activités importées (Strava / flux). */
-  var kmSessions = done.reduce(function(a,s){return a+((s.actual&&s.actual.distance)||0);},0);
-  var kmImported = (window.STRAVA_WEEK_KM_BY_DAY ? window.STRAVA_WEEK_KM_BY_DAY(isoDate(d0), isoDate(d1)) : 0);
-  var km = kmSessions + kmImported;
-  var targetKm = state.profile.weeklyTargetKm;
-  var kmPct = targetKm ? Math.min(100, km/targetKm*100) : 0;
+  var sessionCount = done.length;
 
   var cards=[
     {label:"Volume horaire — semaine",value:volumeH.toFixed(1),unit:"h"},
-    {label:"Dénivelé — semaine",value:Math.round(deniv).toLocaleString('fr-FR'),unit:"m D+"},
-    {label:"Kilomètres — semaine",value: targetKm ? (km.toFixed(1)+" / "+targetKm) : km.toFixed(1),unit:"km",pct:targetKm?kmPct:undefined},
-    {label:"Séances réalisées",value:done.length+" / "+weekSessions.length,unit:"",pct:ratio}
+    {label:"Séances réalisées",value:done.length+" / "+weekSessions.length,unit:"",pct:ratio},
+    {label:"Sports pratiqués",value:String(new Set(done.map(function(s){return s.sport;})).size),unit:""},
+    {label:"Charge cumulée",value:Math.round(done.reduce(function(a,s){return a+((s.actual&&s.actual.charge)||0);},0)).toLocaleString('fr-FR'),unit:""}
   ];
 
   var grid=document.getElementById("kpiGrid"); grid.innerHTML="";
@@ -201,8 +214,108 @@ function renderKPIs(){
       (c.pct!==undefined?'<div class="bar"><i style="width:'+Math.max(0,Math.min(100,c.pct))+'%"></i></div>':'');
     grid.appendChild(el);
   });
-  document.getElementById("dashDateRange").textContent = fmtShort(isoDate(d0)).toUpperCase()+" — "+fmtShort(isoDate(d1)).toUpperCase();
+  var label = fmtShort(isoDate(d0)).toUpperCase()+" — "+fmtShort(isoDate(d1)).toUpperCase();
+  if(dashWeekOffset!==0) label += "  ·  "+(dashWeekOffset>0?"+":"")+dashWeekOffset+" sem.";
+  document.getElementById("dashDateRange").textContent = label;
 }
+
+/* Compteurs distance / D+ par sport (avec groupes personnalisés) */
+function renderSportCounters(){
+  var days=currentWeekDays(), d0=days[0], d1=days[6];
+  var done = state.sessions.filter(function(s){return s.status==="done" && inRange(s.date,d0,d1);});
+  var bySport={};
+  done.forEach(function(s){
+    var sp=s.sport||"Autre";
+    if(!bySport[sp]) bySport[sp]={dist:0,deniv:0,min:0,n:0};
+    bySport[sp].dist += sportDistance(s);
+    bySport[sp].deniv += (s.actual&&s.actual.elevation)||0;
+    bySport[sp].min += (s.actual&&s.actual.duration)||0;
+    bySport[sp].n++;
+  });
+
+  var used={}, cards=[];
+  (state.sportGroups||[]).forEach(function(g){
+    var agg={dist:0,deniv:0,min:0,n:0}, any=false;
+    (g.sports||[]).forEach(function(sp){
+      used[sp]=true;
+      var d=bySport[sp]; if(!d) return;
+      any=true; agg.dist+=d.dist; agg.deniv+=d.deniv; agg.min+=d.min; agg.n+=d.n;
+    });
+    if(any) cards.push({name:g.name, color:sportColor((g.sports||[])[0]), data:agg, unit: (g.sports||[]).every(isSwim)?"m":"km", sub:(g.sports||[]).join(" + ")});
+  });
+  Object.keys(bySport).forEach(function(sp){
+    if(used[sp]) return;
+    cards.push({name:sp, color:sportColor(sp), data:bySport[sp], unit:sportUnit(sp), sub:null});
+  });
+
+  var wrap=document.getElementById("sportCounters"); if(!wrap) return;
+  wrap.innerHTML="";
+  if(!cards.length){ wrap.innerHTML=emptyHTML("Aucune séance cette semaine","Les compteurs par sport apparaîtront ici."); return; }
+  cards.forEach(function(c){
+    var dist = c.unit==="m" ? Math.round(c.data.dist) : round1(c.data.dist);
+    var el=document.createElement("div"); el.className="sport-counter";
+    el.style.borderTopColor=c.color;
+    el.innerHTML='<div class="sc-name" style="color:'+c.color+'">'+escapeHtml(c.name)+'</div>'+
+      (c.sub?'<div class="sc-sub">'+escapeHtml(c.sub)+'</div>':'')+
+      '<div class="sc-main">'+dist.toLocaleString('fr-FR')+' <span>'+c.unit+'</span></div>'+
+      '<div class="sc-meta">'+Math.round(c.data.deniv).toLocaleString('fr-FR')+' m D+ · '+fmtMin(c.data.min)+' · '+c.data.n+' séance'+(c.data.n>1?'s':'')+'</div>';
+    wrap.appendChild(el);
+  });
+}
+
+/* Modale groupes de sports */
+function renderGroupsModal(){
+  var wrap=document.getElementById("groupsList"); if(!wrap) return;
+  wrap.innerHTML="";
+  if(!(state.sportGroups||[]).length){ wrap.innerHTML=emptyHTML("Aucun groupe","Créez un groupe pour cumuler plusieurs sports."); }
+  (state.sportGroups||[]).forEach(function(g){
+    var box=document.createElement("div"); box.className="group-box";
+    var head=document.createElement("div"); head.className="group-head";
+    head.innerHTML='<b>'+escapeHtml(g.name)+'</b>';
+    var del=document.createElement("button"); del.className="btn ghost small"; del.textContent="Supprimer";
+    del.addEventListener("click", function(){ confirmDelete(del, function(){ state.sportGroups=state.sportGroups.filter(function(x){return x.id!==g.id;}); saveData(true); renderGroupsModal(); renderSportCounters(); }); });
+    head.appendChild(del); box.appendChild(head);
+    var chips=document.createElement("div"); chips.className="chip-row";
+    state.sports.forEach(function(sp){
+      var on=(g.sports||[]).indexOf(sp.name)!==-1;
+      var chip=document.createElement("button"); chip.type="button"; chip.className="chip"+(on?" active":"");
+      if(on){ chip.style.background=sp.color; chip.style.borderColor=sp.color; }
+      chip.textContent=sp.name;
+      chip.addEventListener("click", function(){
+        g.sports=g.sports||[];
+        if(on) g.sports=g.sports.filter(function(x){return x!==sp.name;});
+        else g.sports.push(sp.name);
+        saveData(true); renderGroupsModal(); renderSportCounters();
+      });
+      chips.appendChild(chip);
+    });
+    box.appendChild(chips); wrap.appendChild(box);
+  });
+}
+(function initGroupsModal(){
+  var overlay=document.getElementById("groupsOverlay");
+  var btn=document.getElementById("btnSportGroups");
+  if(!overlay||!btn) return;
+  btn.addEventListener("click", function(){ renderGroupsModal(); overlay.classList.add("open"); });
+  document.getElementById("groupsClose").addEventListener("click", function(){ overlay.classList.remove("open"); });
+  overlay.addEventListener("click", function(e){ if(e.target===overlay) overlay.classList.remove("open"); });
+  document.getElementById("btnCreateGroup").addEventListener("click", function(){
+    var inp=document.getElementById("newGroupName");
+    var name=inp.value.trim(); if(!name){ toast("Nom du groupe requis"); return; }
+    state.sportGroups=state.sportGroups||[];
+    state.sportGroups.push({id:uid(),name:name,sports:[]});
+    inp.value=""; saveData(true); renderGroupsModal(); renderSportCounters();
+  });
+})();
+
+/* Navigation de semaine */
+(function initWeekNav(){
+  var prev=document.getElementById("dashWeekPrev"), next=document.getElementById("dashWeekNext"), today=document.getElementById("dashWeekToday");
+  function go(delta){ dashWeekOffset+= delta; renderKPIs(); renderWeekPanel(); renderSportCounters(); }
+  if(prev) prev.addEventListener("click", function(){ go(-1); });
+  if(next) next.addEventListener("click", function(){ go(1); });
+  if(today) today.addEventListener("click", function(){ dashWeekOffset=0; renderKPIs(); renderWeekPanel(); renderSportCounters(); });
+})();
 
 function renderGoalBanner(){
   var upcoming = state.seasonGoals.filter(function(g){return g.date>=todayISO();}).sort(sortAscBy('date'))[0];
@@ -219,7 +332,7 @@ function renderCycleWeeksProgress(cyc){
   if(!cyc){ wrap.innerHTML=""; return; }
   var totalWeeks=Math.ceil((parseISO(cyc.end)-parseISO(cyc.start))/(7*864e5))+1;
   var curWeek=Math.min(totalWeeks, Math.floor((parseISO(todayISO())-parseISO(cyc.start))/(7*864e5))+1);
-  var color=CYCLE_TYPES[cyc.type].color;
+  var color=cycleColor(cyc);
   var html='<span class="cw-label">Semaine '+curWeek+' / '+totalWeeks+' — '+escapeHtml(cycleLabel(cyc))+'</span><div class="cw-dots">';
   for(var i=1;i<=totalWeeks;i++){
     html += i===curWeek
@@ -231,35 +344,33 @@ function renderCycleWeeksProgress(cyc){
 }
 
 function renderWeekPanel(){
-  var days=weekDays(0), monday=isoDate(days[0]), today=todayISO();
-  var cyc = activeCycleForDate(today);
+  var days=currentWeekDays(), monday=isoDate(days[0]), today=todayISO();
+  var refDate = (today>=monday && today<=isoDate(days[6])) ? today : monday;
+  var cyc = activeCycleForDate(refDate);
   var badge = document.getElementById("currentCycleBadge");
   var box = document.getElementById("weekPanelBox");
-  if(cyc){ paintBadge(badge, "Cycle : "+cycleLabel(cyc), CYCLE_TYPES[cyc.type].color); box.style.borderTop="3px solid "+CYCLE_TYPES[cyc.type].color; }
+  if(cyc){ paintBadge(badge, "Cycle : "+cycleLabel(cyc), cycleColor(cyc)); box.style.borderTop="3px solid "+cycleColor(cyc); }
   else { paintBadge(badge, "Aucun cycle défini", null); box.style.borderTop="3px solid transparent"; }
   renderCycleWeeksProgress(cyc);
 
-  var sub = activeSubForDate(today);
+  var sub = activeSubForDate(refDate);
   var subBadge = document.getElementById("currentSubBadge");
   if(sub) paintBadge(subBadge, "Sous-cycle : "+sub.name, "#F59E0B");
   else subBadge.style.display="none";
 
-  var sel=document.getElementById("weekTypeSelect");
-  sel.innerHTML="";
-  WEEK_TYPE_OPTIONS.forEach(function(opt){var o=document.createElement("option");o.value=opt;o.textContent="Semaine : "+opt;sel.appendChild(o);});
-  sel.value = state.weekTypes[monday] || "—";
-  sel.onchange=function(){ state.weekTypes[monday]=sel.value; saveData(true); };
-
-  var objInput=document.getElementById("weekObjectiveInput");
-  objInput.value = state.weekObjectives[monday] || "";
-  objInput.onchange=function(){ state.weekObjectives[monday]=objInput.value; saveData(true); };
+  var obj = weekObjectiveFor(monday);
+  var big=document.getElementById("weekObjectiveBig");
+  var hint=document.getElementById("weekObjectiveHint");
+  if(big) big.textContent = obj ? obj.text : "Aucun objectif — définissez-le dans le sous-sous-cycle";
+  if(big) big.classList.toggle("empty", !obj);
+  if(hint) hint.textContent = obj && obj.source ? "Défini par : "+obj.source : "";
 
   var grid=document.getElementById("weekGrid"); grid.innerHTML="";
   days.forEach(function(d,i){
     var dISO=isoDate(d);
     var cell=document.createElement("div"); cell.className="day-cell"+(dISO===today?" today":"");
     var dc=activeCycleForDate(dISO);
-    cell.style.borderTopColor = dc ? CYCLE_TYPES[dc.type].color : "transparent";
+    cell.style.borderTopColor = dc ? cycleColor(dc) : "transparent";
     if(dc) cell.title = cycleLabel(dc);
     var head=document.createElement("div"); head.className="dh";
     head.innerHTML="<span>"+DAY_LABELS[i]+"</span><b>"+d.getDate()+"</b>";
@@ -267,8 +378,8 @@ function renderWeekPanel(){
     state.sessions.filter(function(s){return s.date===dISO;}).forEach(function(s){
       cell.appendChild(makePill(s));
     });
-    var hint=document.createElement("div"); hint.className="add-hint"; hint.textContent="+ ajouter";
-    cell.appendChild(hint);
+    var hintEl=document.createElement("div"); hintEl.className="add-hint"; hintEl.textContent="+ ajouter une séance";
+    cell.appendChild(hintEl);
     cell.addEventListener("click", function(){ openSessionModal(null, dISO); });
     grid.appendChild(cell);
   });
@@ -297,40 +408,6 @@ function makePill(s){
   pill.title = s.sport+" · "+(s.sessionType||"")+(s.detail?" — "+s.detail:"");
   pill.addEventListener("click", function(ev){ev.stopPropagation();openSessionModal(s);});
   return pill;
-}
-
-function renderSportKmChart(){
-  var days=weekDays(0), d0=days[0], d1=days[6];
-  var done = state.sessions.filter(function(s){return s.status==="done" && inRange(s.date,d0,d1);});
-  var bySport = {};
-  done.forEach(function(s){
-    var sp=s.sport||"Autre";
-    if(!bySport[sp]) bySport[sp]={km:0,min:0,deniv:0};
-    bySport[sp].km += (s.actual&&s.actual.distance)||0;
-    bySport[sp].min += (s.actual&&s.actual.duration)||0;
-    bySport[sp].deniv += (s.actual&&s.actual.elevation)||0;
-  });
-  var sports = Object.keys(bySport);
-  var chips = document.getElementById("sportStatChips");
-  chips.innerHTML="";
-  if(!sports.length){ chips.innerHTML='<span style="color:var(--text-faint);font-size:12px;">Aucune séance réalisée cette semaine.</span>'; }
-  sports.forEach(function(sp){
-    var d=bySport[sp];
-    var chip=document.createElement("div"); chip.className="stat-chip";
-    chip.innerHTML='<b style="color:'+sportColor(sp)+'">'+escapeHtml(sp)+'</b> — '+fmtMin(d.min)+' · '+Math.round(d.deniv)+' m D+';
-    chips.appendChild(chip);
-  });
-
-  var ctx=document.getElementById("chartSportKm").getContext("2d");
-  if(charts.sportKm) charts.sportKm.destroy();
-  charts.sportKm = new Chart(ctx,{
-    type:"bar",
-    data:{ labels:sports, datasets:[{label:"Km", data:sports.map(function(sp){return +bySport[sp].km.toFixed(1);}), backgroundColor:sports.map(sportColor), borderRadius:4, maxBarThickness:46}] },
-    options:{ responsive:true, maintainAspectRatio:false,
-      plugins:{legend:{display:false}, tooltip:{backgroundColor:"#FFFFFF",borderColor:"#E2E8F0",borderWidth:1,titleColor:"#0F172A",bodyColor:"#0F172A",bodyFont:{family:"IBM Plex Mono"}}},
-      scales:{ x:{grid:{display:false},ticks:{color:"#64748B",font:{family:"Inter",size:11}}}, y:{grid:{color:"rgba(15,23,42,0.06)"},ticks:{color:"#64748B",font:{family:"IBM Plex Mono",size:10}},beginAtZero:true} }
-    }
-  });
 }
 
 /* =========================================================================
@@ -698,7 +775,7 @@ sessForm.addEventListener("submit", async function(e){
    ========================================================================= */
 document.getElementById("btnSaveSeason").addEventListener("click", function(){
   var s=document.getElementById("seasonStart").value, e=document.getElementById("seasonEnd").value;
-  if(!s||!e||s>=e){ toast("Dates de saison invalides"); return; }
+  if(!s||!e||s>e){ toast("Dates de saison invalides"); return; }
   state.season={start:s,end:e}; saveData(true); renderPlanification();
 });
 document.getElementById("cycleType").addEventListener("change", function(){
@@ -720,7 +797,7 @@ document.getElementById("btnAddCycle").addEventListener("click", function(){
   var type=document.getElementById("cycleType").value;
   var label=document.getElementById("cycleLabel").value.trim();
   var start=document.getElementById("cycleStart").value, end=document.getElementById("cycleEnd").value;
-  if(!start||!end||start>=end){ toast("Dates de cycle invalides"); return; }
+  if(!start||!end||start>end){ toast("Dates de cycle invalides"); return; }
   if(type==="libre" && !label){ toast("Ajoutez un nom pour un cycle libre"); return; }
   if(editCycleId){
     var c=state.cycles.find(function(x){return x.id===editCycleId;});
@@ -778,6 +855,7 @@ document.getElementById("btnAddSub").addEventListener("click", function(){
 function resetSubSubForm(){
   editSubSubId=null;
   document.getElementById("subsubName").value="";
+  if(document.getElementById("subsubObjective")) document.getElementById("subsubObjective").value="";
   document.getElementById("subsubWeeks").value="1";
   document.getElementById("btnAddSubSub").textContent="Ajouter";
   document.getElementById("subsubEditHint").style.display="none";
@@ -799,16 +877,18 @@ document.getElementById("btnAddSubSub").addEventListener("click", function(){
   var name=document.getElementById("subsubName").value.trim();
   var weeks=+document.getElementById("subsubWeeks").value;
   var start=document.getElementById("subsubStart").value;
+  var objective=(document.getElementById("subsubObjective")||{value:""}).value.trim();
   if(!parent){ toast("Ajoutez d'abord un sous-cycle"); return; }
   if(!name||!weeks||!start){ toast("Champs incomplets"); return; }
   var sd=parseISO(start); var ed=new Date(sd); ed.setDate(ed.getDate()+weeks*7-1);
   if(editSubSubId){
     var ss=state.subsubcycles.find(function(x){return x.id===editSubSubId;});
-    Object.assign(ss,{subId:parent,name:name,start:start,end:isoDate(ed)});
+    Object.assign(ss,{subId:parent,name:name,start:start,end:isoDate(ed),objective:objective});
     resetSubSubForm();
   } else {
-    state.subsubcycles.push({id:uid(),subId:parent,name:name,start:start,end:isoDate(ed)});
+    state.subsubcycles.push({id:uid(),subId:parent,name:name,start:start,end:isoDate(ed),objective:objective});
     document.getElementById("subsubName").value="";
+    if(document.getElementById("subsubObjective")) document.getElementById("subsubObjective").value="";
     autofillSubSubStart();
   }
   saveData(true); renderPlanification();
@@ -848,7 +928,7 @@ function laneAssign(items){
   });
   return {items:sorted, laneCount:lanes.length};
 }
-function renderTimelineLevel(containerId, items, colorFn, labelFn){
+function renderTimelineLevel(containerId, items, colorFn, labelFn, kind){
   var wrap=document.getElementById(containerId);
   wrap.innerHTML="";
   if(!state.season.start||!state.season.end) return;
@@ -865,10 +945,96 @@ function renderTimelineLevel(containerId, items, colorFn, labelFn){
     block.style.left=left+"%"; block.style.width=width+"%"; block.style.top=(c._lane*laneH)+"px";
     block.style.background=colorFn(c);
     block.textContent=labelFn(c);
-    block.title=labelFn(c)+" · "+fmtShort(c.start)+" → "+fmtShort(c.end);
+    block.title=labelFn(c)+" · "+fmtShort(c.start)+" → "+fmtShort(c.end)+" — cliquez pour les détails";
+    block.style.cursor="pointer";
+    block.addEventListener("click", function(){ openCycleInfo(kind, c); });
     wrap.appendChild(block);
   });
 }
+
+/* Modale d'informations sur un bloc de la timeline */
+function periodSummary(startISO, endISO){
+  var d0=parseISO(startISO), d1=parseISO(endISO);
+  var list=state.sessions.filter(function(s){return inRange(s.date,d0,d1);});
+  var done=list.filter(function(s){return s.status==="done";});
+  return {
+    planned:list.length, done:done.length,
+    hours:done.reduce(function(a,s){return a+((s.actual&&s.actual.duration)||0);},0)/60,
+    km:done.reduce(function(a,s){return a+((s.actual&&s.actual.distance)||0);},0),
+    deniv:done.reduce(function(a,s){return a+((s.actual&&s.actual.elevation)||0);},0)
+  };
+}
+function openCycleInfo(kind, item){
+  var overlay=document.getElementById("tlInfoOverlay"); if(!overlay) return;
+  var title = kind==="cycle" ? cycleLabel(item) : item.name;
+  document.getElementById("tlInfoTitle").textContent=title;
+  var weeks=Math.round((parseISO(item.end)-parseISO(item.start))/(7*864e5))+1;
+  var sum=periodSummary(item.start,item.end);
+  var parentTxt="";
+  if(kind==="sub"){ var pc=state.cycles.find(function(x){return x.id===item.cycleId;}); if(pc) parentTxt=cycleLabel(pc); }
+  if(kind==="subsub"){ var ps=state.subcycles.find(function(x){return x.id===item.subId;}); if(ps) parentTxt=ps.name; }
+  var goals=state.seasonGoals.filter(function(g){return g.date>=item.start && g.date<=item.end;});
+  var html='<div class="info-grid">'+
+    '<div><span>Début</span><b>'+fmtShort(item.start)+'</b></div>'+
+    '<div><span>Fin</span><b>'+fmtShort(item.end)+'</b></div>'+
+    '<div><span>Durée</span><b>'+weeks+' semaine'+(weeks>1?'s':'')+'</b></div>'+
+    (parentTxt?'<div><span>Parent</span><b>'+escapeHtml(parentTxt)+'</b></div>':'')+
+    '<div><span>Séances</span><b>'+sum.done+' / '+sum.planned+'</b></div>'+
+    '<div><span>Volume</span><b>'+sum.hours.toFixed(1)+' h</b></div>'+
+    '<div><span>Distance</span><b>'+round1(sum.km)+' km</b></div>'+
+    '<div><span>D+</span><b>'+Math.round(sum.deniv).toLocaleString('fr-FR')+' m</b></div>'+
+    '</div>';
+  if(item.objective) html+='<div class="info-obj"><span>Objectif</span><b>'+escapeHtml(item.objective)+'</b></div>';
+  if(goals.length) html+='<div class="info-obj"><span>Objectifs de saison</span><b>'+goals.map(function(g){return escapeHtml(g.name)+" ("+fmtShort(g.date)+")";}).join(" · ")+'</b></div>';
+  html+='<div class="info-actions"><button class="btn small" id="tlInfoCopy">⧉ Copier ce cycle</button></div>';
+  document.getElementById("tlInfoBody").innerHTML=html;
+  document.getElementById("tlInfoCopy").addEventListener("click", function(){
+    copyCycleItem(kind, item); overlay.classList.remove("open");
+  });
+  overlay.classList.add("open");
+}
+(function initInfoModal(){
+  var overlay=document.getElementById("tlInfoOverlay"); if(!overlay) return;
+  document.getElementById("tlInfoClose").addEventListener("click", function(){ overlay.classList.remove("open"); });
+  overlay.addEventListener("click", function(e){ if(e.target===overlay) overlay.classList.remove("open"); });
+})();
+
+/* Copier / coller de cycles */
+function copyCycleItem(kind, item){
+  cycleClipboard={kind:kind, item:JSON.parse(JSON.stringify(item))};
+  toast("Copié — collez-le depuis la barre « Presse-papier »");
+  renderClipboardBar();
+}
+function renderClipboardBar(){
+  var bar=document.getElementById("cycleClipboardBar");
+  if(!bar){
+    bar=document.createElement("div"); bar.id="cycleClipboardBar"; bar.className="clipboard-bar";
+    var tl=document.getElementById("timeline");
+    tl.parentNode.parentNode.appendChild(bar);
+  }
+  if(!cycleClipboard){ bar.style.display="none"; return; }
+  var it=cycleClipboard.item;
+  var name = cycleClipboard.kind==="cycle" ? cycleLabel(it) : it.name;
+  bar.style.display="flex";
+  bar.innerHTML='<span class="cb-label">Presse-papier : <b>'+escapeHtml(name)+'</b></span>'+
+    '<input type="date" id="cbDate" value="'+it.start+'">'+
+    '<button class="btn primary small" id="cbPaste">Coller à cette date</button>'+
+    '<button class="btn ghost small" id="cbClear">Vider</button>';
+  document.getElementById("cbClear").addEventListener("click", function(){ cycleClipboard=null; renderClipboardBar(); });
+  document.getElementById("cbPaste").addEventListener("click", function(){
+    var newStart=document.getElementById("cbDate").value;
+    if(!newStart){ toast("Choisissez une date"); return; }
+    var days=Math.round((parseISO(it.end)-parseISO(it.start))/864e5);
+    var end=parseISO(newStart); end.setDate(end.getDate()+days);
+    var copy=Object.assign({},it,{id:uid(),start:newStart,end:isoDate(end)});
+    delete copy._lane;
+    if(cycleClipboard.kind==="cycle") state.cycles.push(copy);
+    else if(cycleClipboard.kind==="sub") state.subcycles.push(copy);
+    else state.subsubcycles.push(copy);
+    saveData(true); renderPlanification(); toast("Cycle collé");
+  });
+}
+
 function renderTimeline(){
   var tlMonths=document.getElementById("tlMonths");
   tlMonths.innerHTML="";
@@ -887,18 +1053,28 @@ function renderTimeline(){
     tlMonths.appendChild(tick);
     cur.setMonth(cur.getMonth()+1);
   }
-  renderTimelineLevel("tlLanesCycles", state.cycles, function(c){return CYCLE_TYPES[c.type].color;}, cycleLabel);
+  renderTimelineLevel("tlLanesCycles", state.cycles, function(c){return cycleColor(c);}, cycleLabel, "cycle");
   renderTimelineLevel("tlLanesSub", state.subcycles, function(c){
     var parent=state.cycles.find(function(x){return x.id===c.cycleId;});
-    var hex= parent? CYCLE_TYPES[parent.type].color : CYCLE_TYPES.libre.color;
+    var hex= parent? cycleColor(parent) : CYCLE_TYPES.libre.color;
     return "color-mix(in srgb, "+hex+" 55%, white)";
-  }, function(c){return c.name;});
+  }, function(c){return c.name;}, "sub");
   renderTimelineLevel("tlLanesSubSub", state.subsubcycles, function(c){
     var parentSub=state.subcycles.find(function(x){return x.id===c.subId;});
     var parent= parentSub? state.cycles.find(function(x){return x.id===parentSub.cycleId;}) : null;
-    var hex= parent? CYCLE_TYPES[parent.type].color : CYCLE_TYPES.libre.color;
+    var hex= parent? cycleColor(parent) : CYCLE_TYPES.libre.color;
     return "color-mix(in srgb, "+hex+" 30%, white)";
-  }, function(c){return c.name;});
+  }, function(c){return c.name;}, "subsub");
+
+  state.seasonGoals.forEach(function(g){
+    var gd=parseISO(g.date);
+    if(gd<s0 || gd>s1) return;
+    var m=document.createElement("div"); m.className="tl-goal";
+    m.style.left=((gd-s0)/total*100)+"%";
+    m.title=g.name+" · "+fmtShort(g.date)+(g.target?" · "+g.target:"");
+    m.innerHTML='<i></i><span>'+escapeHtml(g.name)+'</span>';
+    tlMonths.appendChild(m);
+  });
 
   var today=new Date(); today.setHours(0,0,0,0);
   if(today>=s0 && today<=s1){
@@ -916,10 +1092,17 @@ function renderCycleList(){
   var wrap=document.getElementById("cycleList"); wrap.innerHTML="";
   if(!state.cycles.length){ wrap.innerHTML=emptyHTML("Aucun cycle","Ajoutez votre premier cycle ci-dessus."); }
   state.cycles.slice().sort(sortAscBy('start')).forEach(function(c){
-    var meta=CYCLE_TYPES[c.type];
     var row=document.createElement("div"); row.className="cycle-row";
-    row.innerHTML='<span class="sw" style="background:'+meta.color+'"></span><div class="main"><div class="t1">'+escapeHtml(cycleLabel(c))+'</div><div class="t2">'+fmtShort(c.start)+' → '+fmtShort(c.end)+'</div></div>';
+    row.innerHTML='<span class="sw" style="background:'+cycleColor(c)+'"></span><div class="main"><div class="t1">'+escapeHtml(cycleLabel(c))+'</div><div class="t2">'+fmtShort(c.start)+' → '+fmtShort(c.end)+'</div></div>';
     var btns=document.createElement("div"); btns.className="rowbtns";
+    var color=document.createElement("input"); color.type="color"; color.className="cycle-color";
+    color.value=cycleColor(c); color.title="Couleur du cycle";
+    color.addEventListener("input", function(){ c.color=color.value; renderTimeline(); });
+    color.addEventListener("change", function(){ c.color=color.value; saveData(true); renderPlanification(); renderWeekPanel(); });
+    btns.appendChild(color);
+    var copy=document.createElement("button"); copy.className="btn small"; copy.textContent="Copier";
+    copy.addEventListener("click", function(){ copyCycleItem("cycle", c); });
+    btns.appendChild(copy);
     var edit=document.createElement("button"); edit.className="btn small"; edit.textContent="Modifier";
     edit.addEventListener("click", function(){
       editCycleId=c.id;
@@ -958,6 +1141,9 @@ function renderSubList(){
     var row=document.createElement("div"); row.className="cycle-row";
     row.innerHTML='<span class="sw" style="background:#F59E0B"></span><div class="main"><div class="t1">'+escapeHtml(sc.name)+'</div><div class="t2">'+fmtShort(sc.start)+' → '+fmtShort(sc.end)+(parent?' · '+escapeHtml(cycleLabel(parent)):'')+'</div></div>';
     var btns=document.createElement("div"); btns.className="rowbtns";
+    var copy=document.createElement("button"); copy.className="btn small"; copy.textContent="Copier";
+    copy.addEventListener("click", function(){ copyCycleItem("sub", sc); });
+    btns.appendChild(copy);
     var edit=document.createElement("button"); edit.className="btn small"; edit.textContent="Modifier";
     edit.addEventListener("click", function(){
       editSubId=sc.id;
@@ -993,8 +1179,11 @@ function renderSubSubList(){
   state.subsubcycles.slice().sort(sortAscBy('start')).forEach(function(ss){
     var parent=state.subcycles.find(function(c){return c.id===ss.subId;});
     var row=document.createElement("div"); row.className="cycle-row";
-    row.innerHTML='<span class="sw" style="background:#06B6D4"></span><div class="main"><div class="t1">'+escapeHtml(ss.name)+'</div><div class="t2">'+fmtShort(ss.start)+' → '+fmtShort(ss.end)+(parent?' · '+escapeHtml(parent.name):'')+'</div></div>';
+    row.innerHTML='<span class="sw" style="background:#06B6D4"></span><div class="main"><div class="t1">'+escapeHtml(ss.name)+'</div><div class="t2">'+fmtShort(ss.start)+' → '+fmtShort(ss.end)+(parent?' · '+escapeHtml(parent.name):'')+(ss.objective?' · 🎯 '+escapeHtml(ss.objective):'')+'</div></div>';
     var btns=document.createElement("div"); btns.className="rowbtns";
+    var copy=document.createElement("button"); copy.className="btn small"; copy.textContent="Copier";
+    copy.addEventListener("click", function(){ copyCycleItem("subsub", ss); });
+    btns.appendChild(copy);
     var edit=document.createElement("button"); edit.className="btn small"; edit.textContent="Modifier";
     edit.addEventListener("click", function(){
       editSubSubId=ss.id;
@@ -1003,6 +1192,7 @@ function renderSubSubList(){
       var weeks=Math.round((parseISO(ss.end)-parseISO(ss.start))/(7*864e5))+1;
       document.getElementById("subsubWeeks").value=weeks;
       document.getElementById("subsubStart").value=ss.start;
+      if(document.getElementById("subsubObjective")) document.getElementById("subsubObjective").value=ss.objective||"";
       document.getElementById("btnAddSubSub").textContent="Enregistrer les modifications";
       document.getElementById("subsubEditHint").style.display="block";
       document.getElementById("subsubParentSub").scrollIntoView({behavior:"smooth",block:"center"});
@@ -1030,7 +1220,7 @@ function renderMonthGrid(gridEl, cursor, labelEl, cycleBadgeEl){
   labelEl.textContent = MONTHS_FULL[cursor.getMonth()]+" "+cursor.getFullYear();
   if(cycleBadgeEl){
     var cyc=activeCycleForDate(todayISO());
-    if(cyc) paintBadge(cycleBadgeEl,"Cycle en cours : "+cycleLabel(cyc),CYCLE_TYPES[cyc.type].color);
+    if(cyc) paintBadge(cycleBadgeEl,"Cycle en cours : "+cycleLabel(cyc),cycleColor(cyc));
     else paintBadge(cycleBadgeEl,"Aucun cycle en cours",null);
   }
   gridEl.innerHTML="";
@@ -1041,7 +1231,7 @@ function renderMonthGrid(gridEl, cursor, labelEl, cycleBadgeEl){
     var cell=document.createElement("div");
     cell.className="day-cell"+(dISO===today?" today":"")+(d.getMonth()!==cursor.getMonth()?" outmonth":"");
     var dc=activeCycleForDate(dISO);
-    cell.style.borderTopColor = dc ? CYCLE_TYPES[dc.type].color : "transparent";
+    cell.style.borderTopColor = dc ? cycleColor(dc) : "transparent";
     if(dc) cell.title = cycleLabel(dc);
     var head=document.createElement("div"); head.className="dh";
     head.innerHTML="<span>"+DAY_LABELS[d.getDay()===0?6:d.getDay()-1]+"</span><b>"+d.getDate()+"</b>";
@@ -1069,6 +1259,7 @@ function renderPlanification(){
   renderSubSubList();
   renderGoals();
   renderPlanMonth();
+  renderClipboardBar();
 }
 
 /* =========================================================================
@@ -1409,7 +1600,7 @@ function renderAll(){
   renderKPIs();
   renderGoalBanner();
   renderWeekPanel();
-  renderSportKmChart();
+  renderSportCounters();
   renderPlanification();
   renderRealisees();
   renderParametres();
