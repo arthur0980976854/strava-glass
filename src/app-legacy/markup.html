@@ -30,9 +30,22 @@
 
     <!-- ================= TABLEAU DE BORD ================= -->
     <section class="view active" id="view-dashboard">
-      <div class="view-head"><div><h1>Tableau de bord</h1><div class="sub" id="dashDateRange"></div></div></div>
+      <div class="view-head">
+        <div><h1>Tableau de bord</h1><div class="sub" id="dashDateRange"></div></div>
+        <div class="month-nav">
+          <button id="dashWeekPrev">‹</button>
+          <button class="btn small" id="dashWeekToday">Aujourd'hui</button>
+          <button id="dashWeekNext">›</button>
+        </div>
+      </div>
 
       <div class="panel goal-banner" id="goalBanner"></div>
+
+      <div class="panel week-objective-panel" id="weekObjectivePanel">
+        <div class="wo-label">Objectif de la semaine</div>
+        <div class="wo-value" id="weekObjectiveBig">—</div>
+        <div class="wo-hint" id="weekObjectiveHint"></div>
+      </div>
 
       <div class="grid cols-4" id="kpiGrid" style="margin-bottom:16px;"></div>
 
@@ -42,11 +55,6 @@
           <div class="badges">
             <span class="cycle-badge" id="currentCycleBadge">—</span>
             <span class="cycle-badge" id="currentSubBadge" style="display:none;">—</span>
-            <div class="custom-select-wrap">
-              <select class="weektype-select custom-select" id="weekTypeSelect"></select>
-              <span class="custom-select-arrow"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" width="10" height="10"><polyline points="2 4 6 8 10 4"/></svg></span>
-            </div>
-            <input type="text" class="weekobj-input" id="weekObjectiveInput" placeholder="Objectif de la semaine…">
           </div>
         </div>
         <div class="cw-row" id="cycleWeeksRow"></div>
@@ -59,11 +67,14 @@
       </div>
 
       <div class="panel">
-        <h3 class="block-title">Kilométrage par sport — semaine en cours</h3>
-        <div class="stat-chips" id="sportStatChips"></div>
-        <div class="chart-box"><canvas id="chartSportKm"></canvas></div>
+        <div class="week-panel-head">
+          <h3 class="block-title" style="margin:0;">Distance &amp; D+ par sport — semaine</h3>
+          <div class="badges"><button class="btn small" id="btnSportGroups">⛓ Groupes de sports</button></div>
+        </div>
+        <div class="sport-counter-grid" id="sportCounters"></div>
       </div>
     </section>
+
 
     <!-- ================= PLANIFICATION ================= -->
     <section class="view" id="view-planification">
