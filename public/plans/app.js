@@ -925,7 +925,7 @@ function laneAssign(items){
   });
   return {items:sorted, laneCount:lanes.length};
 }
-function renderTimelineLevel(containerId, items, colorFn, labelFn){
+function renderTimelineLevel(containerId, items, colorFn, labelFn, kind){
   var wrap=document.getElementById(containerId);
   wrap.innerHTML="";
   if(!state.season.start||!state.season.end) return;
@@ -942,10 +942,96 @@ function renderTimelineLevel(containerId, items, colorFn, labelFn){
     block.style.left=left+"%"; block.style.width=width+"%"; block.style.top=(c._lane*laneH)+"px";
     block.style.background=colorFn(c);
     block.textContent=labelFn(c);
-    block.title=labelFn(c)+" · "+fmtShort(c.start)+" → "+fmtShort(c.end);
+    block.title=labelFn(c)+" · "+fmtShort(c.start)+" → "+fmtShort(c.end)+" — cliquez pour les détails";
+    block.style.cursor="pointer";
+    block.addEventListener("click", function(){ openCycleInfo(kind, c); });
     wrap.appendChild(block);
   });
 }
+
+/* Modale d'informations sur un bloc de la timeline */
+function periodSummary(startISO, endISO){
+  var d0=parseISO(startISO), d1=parseISO(endISO);
+  var list=state.sessions.filter(function(s){return inRange(s.date,d0,d1);});
+  var done=list.filter(function(s){return s.status==="done";});
+  return {
+    planned:list.length, done:done.length,
+    hours:done.reduce(function(a,s){return a+((s.actual&&s.actual.duration)||0);},0)/60,
+    km:done.reduce(function(a,s){return a+((s.actual&&s.actual.distance)||0);},0),
+    deniv:done.reduce(function(a,s){return a+((s.actual&&s.actual.elevation)||0);},0)
+  };
+}
+function openCycleInfo(kind, item){
+  var overlay=document.getElementById("tlInfoOverlay"); if(!overlay) return;
+  var title = kind==="cycle" ? cycleLabel(item) : item.name;
+  document.getElementById("tlInfoTitle").textContent=title;
+  var weeks=Math.round((parseISO(item.end)-parseISO(item.start))/(7*864e5))+1;
+  var sum=periodSummary(item.start,item.end);
+  var parentTxt="";
+  if(kind==="sub"){ var pc=state.cycles.find(function(x){return x.id===item.cycleId;}); if(pc) parentTxt=cycleLabel(pc); }
+  if(kind==="subsub"){ var ps=state.subcycles.find(function(x){return x.id===item.subId;}); if(ps) parentTxt=ps.name; }
+  var goals=state.seasonGoals.filter(function(g){return g.date>=item.start && g.date<=item.end;});
+  var html='<div class="info-grid">'+
+    '<div><span>Début</span><b>'+fmtShort(item.start)+'</b></div>'+
+    '<div><span>Fin</span><b>'+fmtShort(item.end)+'</b></div>'+
+    '<div><span>Durée</span><b>'+weeks+' semaine'+(weeks>1?'s':'')+'</b></div>'+
+    (parentTxt?'<div><span>Parent</span><b>'+escapeHtml(parentTxt)+'</b></div>':'')+
+    '<div><span>Séances</span><b>'+sum.done+' / '+sum.planned+'</b></div>'+
+    '<div><span>Volume</span><b>'+sum.hours.toFixed(1)+' h</b></div>'+
+    '<div><span>Distance</span><b>'+round1(sum.km)+' km</b></div>'+
+    '<div><span>D+</span><b>'+Math.round(sum.deniv).toLocaleString('fr-FR')+' m</b></div>'+
+    '</div>';
+  if(item.objective) html+='<div class="info-obj"><span>Objectif</span><b>'+escapeHtml(item.objective)+'</b></div>';
+  if(goals.length) html+='<div class="info-obj"><span>Objectifs de saison</span><b>'+goals.map(function(g){return escapeHtml(g.name)+" ("+fmtShort(g.date)+")";}).join(" · ")+'</b></div>';
+  html+='<div class="info-actions"><button class="btn small" id="tlInfoCopy">⧉ Copier ce cycle</button></div>';
+  document.getElementById("tlInfoBody").innerHTML=html;
+  document.getElementById("tlInfoCopy").addEventListener("click", function(){
+    copyCycleItem(kind, item); overlay.classList.remove("open");
+  });
+  overlay.classList.add("open");
+}
+(function initInfoModal(){
+  var overlay=document.getElementById("tlInfoOverlay"); if(!overlay) return;
+  document.getElementById("tlInfoClose").addEventListener("click", function(){ overlay.classList.remove("open"); });
+  overlay.addEventListener("click", function(e){ if(e.target===overlay) overlay.classList.remove("open"); });
+})();
+
+/* Copier / coller de cycles */
+function copyCycleItem(kind, item){
+  cycleClipboard={kind:kind, item:JSON.parse(JSON.stringify(item))};
+  toast("Copié — collez-le depuis la barre « Presse-papier »");
+  renderClipboardBar();
+}
+function renderClipboardBar(){
+  var bar=document.getElementById("cycleClipboardBar");
+  if(!bar){
+    bar=document.createElement("div"); bar.id="cycleClipboardBar"; bar.className="clipboard-bar";
+    var tl=document.getElementById("timeline");
+    tl.parentNode.parentNode.appendChild(bar);
+  }
+  if(!cycleClipboard){ bar.style.display="none"; return; }
+  var it=cycleClipboard.item;
+  var name = cycleClipboard.kind==="cycle" ? cycleLabel(it) : it.name;
+  bar.style.display="flex";
+  bar.innerHTML='<span class="cb-label">Presse-papier : <b>'+escapeHtml(name)+'</b></span>'+
+    '<input type="date" id="cbDate" value="'+it.start+'">'+
+    '<button class="btn primary small" id="cbPaste">Coller à cette date</button>'+
+    '<button class="btn ghost small" id="cbClear">Vider</button>';
+  document.getElementById("cbClear").addEventListener("click", function(){ cycleClipboard=null; renderClipboardBar(); });
+  document.getElementById("cbPaste").addEventListener("click", function(){
+    var newStart=document.getElementById("cbDate").value;
+    if(!newStart){ toast("Choisissez une date"); return; }
+    var days=Math.round((parseISO(it.end)-parseISO(it.start))/864e5);
+    var end=parseISO(newStart); end.setDate(end.getDate()+days);
+    var copy=Object.assign({},it,{id:uid(),start:newStart,end:isoDate(end)});
+    delete copy._lane;
+    if(cycleClipboard.kind==="cycle") state.cycles.push(copy);
+    else if(cycleClipboard.kind==="sub") state.subcycles.push(copy);
+    else state.subsubcycles.push(copy);
+    saveData(true); renderPlanification(); toast("Cycle collé");
+  });
+}
+
 function renderTimeline(){
   var tlMonths=document.getElementById("tlMonths");
   tlMonths.innerHTML="";
@@ -976,6 +1062,16 @@ function renderTimeline(){
     var hex= parent? cycleColor(parent) : CYCLE_TYPES.libre.color;
     return "color-mix(in srgb, "+hex+" 30%, white)";
   }, function(c){return c.name;}, "subsub");
+
+  state.seasonGoals.forEach(function(g){
+    var gd=parseISO(g.date);
+    if(gd<s0 || gd>s1) return;
+    var m=document.createElement("div"); m.className="tl-goal";
+    m.style.left=((gd-s0)/total*100)+"%";
+    m.title=g.name+" · "+fmtShort(g.date)+(g.target?" · "+g.target:"");
+    m.innerHTML='<i></i><span>'+escapeHtml(g.name)+'</span>';
+    tlMonths.appendChild(m);
+  });
 
   var today=new Date(); today.setHours(0,0,0,0);
   if(today>=s0 && today<=s1){
@@ -1145,6 +1241,7 @@ function renderPlanification(){
   renderSubSubList();
   renderGoals();
   renderPlanMonth();
+  renderClipboardBar();
 }
 
 /* =========================================================================
