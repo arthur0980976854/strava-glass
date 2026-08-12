@@ -775,7 +775,7 @@ sessForm.addEventListener("submit", async function(e){
    ========================================================================= */
 document.getElementById("btnSaveSeason").addEventListener("click", function(){
   var s=document.getElementById("seasonStart").value, e=document.getElementById("seasonEnd").value;
-  if(!s||!e||s>=e){ toast("Dates de saison invalides"); return; }
+  if(!s||!e||s>e){ toast("Dates de saison invalides"); return; }
   state.season={start:s,end:e}; saveData(true); renderPlanification();
 });
 document.getElementById("cycleType").addEventListener("change", function(){
@@ -797,7 +797,7 @@ document.getElementById("btnAddCycle").addEventListener("click", function(){
   var type=document.getElementById("cycleType").value;
   var label=document.getElementById("cycleLabel").value.trim();
   var start=document.getElementById("cycleStart").value, end=document.getElementById("cycleEnd").value;
-  if(!start||!end||start>=end){ toast("Dates de cycle invalides"); return; }
+  if(!start||!end||start>end){ toast("Dates de cycle invalides"); return; }
   if(type==="libre" && !label){ toast("Ajoutez un nom pour un cycle libre"); return; }
   if(editCycleId){
     var c=state.cycles.find(function(x){return x.id===editCycleId;});
@@ -855,6 +855,7 @@ document.getElementById("btnAddSub").addEventListener("click", function(){
 function resetSubSubForm(){
   editSubSubId=null;
   document.getElementById("subsubName").value="";
+  if(document.getElementById("subsubObjective")) document.getElementById("subsubObjective").value="";
   document.getElementById("subsubWeeks").value="1";
   document.getElementById("btnAddSubSub").textContent="Ajouter";
   document.getElementById("subsubEditHint").style.display="none";
@@ -876,16 +877,18 @@ document.getElementById("btnAddSubSub").addEventListener("click", function(){
   var name=document.getElementById("subsubName").value.trim();
   var weeks=+document.getElementById("subsubWeeks").value;
   var start=document.getElementById("subsubStart").value;
+  var objective=(document.getElementById("subsubObjective")||{value:""}).value.trim();
   if(!parent){ toast("Ajoutez d'abord un sous-cycle"); return; }
   if(!name||!weeks||!start){ toast("Champs incomplets"); return; }
   var sd=parseISO(start); var ed=new Date(sd); ed.setDate(ed.getDate()+weeks*7-1);
   if(editSubSubId){
     var ss=state.subsubcycles.find(function(x){return x.id===editSubSubId;});
-    Object.assign(ss,{subId:parent,name:name,start:start,end:isoDate(ed)});
+    Object.assign(ss,{subId:parent,name:name,start:start,end:isoDate(ed),objective:objective});
     resetSubSubForm();
   } else {
-    state.subsubcycles.push({id:uid(),subId:parent,name:name,start:start,end:isoDate(ed)});
+    state.subsubcycles.push({id:uid(),subId:parent,name:name,start:start,end:isoDate(ed),objective:objective});
     document.getElementById("subsubName").value="";
+    if(document.getElementById("subsubObjective")) document.getElementById("subsubObjective").value="";
     autofillSubSubStart();
   }
   saveData(true); renderPlanification();
@@ -1092,6 +1095,14 @@ function renderCycleList(){
     var row=document.createElement("div"); row.className="cycle-row";
     row.innerHTML='<span class="sw" style="background:'+cycleColor(c)+'"></span><div class="main"><div class="t1">'+escapeHtml(cycleLabel(c))+'</div><div class="t2">'+fmtShort(c.start)+' → '+fmtShort(c.end)+'</div></div>';
     var btns=document.createElement("div"); btns.className="rowbtns";
+    var color=document.createElement("input"); color.type="color"; color.className="cycle-color";
+    color.value=cycleColor(c); color.title="Couleur du cycle";
+    color.addEventListener("input", function(){ c.color=color.value; renderTimeline(); });
+    color.addEventListener("change", function(){ c.color=color.value; saveData(true); renderPlanification(); renderWeekPanel(); });
+    btns.appendChild(color);
+    var copy=document.createElement("button"); copy.className="btn small"; copy.textContent="Copier";
+    copy.addEventListener("click", function(){ copyCycleItem("cycle", c); });
+    btns.appendChild(copy);
     var edit=document.createElement("button"); edit.className="btn small"; edit.textContent="Modifier";
     edit.addEventListener("click", function(){
       editCycleId=c.id;
@@ -1130,6 +1141,9 @@ function renderSubList(){
     var row=document.createElement("div"); row.className="cycle-row";
     row.innerHTML='<span class="sw" style="background:#F59E0B"></span><div class="main"><div class="t1">'+escapeHtml(sc.name)+'</div><div class="t2">'+fmtShort(sc.start)+' → '+fmtShort(sc.end)+(parent?' · '+escapeHtml(cycleLabel(parent)):'')+'</div></div>';
     var btns=document.createElement("div"); btns.className="rowbtns";
+    var copy=document.createElement("button"); copy.className="btn small"; copy.textContent="Copier";
+    copy.addEventListener("click", function(){ copyCycleItem("sub", sc); });
+    btns.appendChild(copy);
     var edit=document.createElement("button"); edit.className="btn small"; edit.textContent="Modifier";
     edit.addEventListener("click", function(){
       editSubId=sc.id;
@@ -1165,8 +1179,11 @@ function renderSubSubList(){
   state.subsubcycles.slice().sort(sortAscBy('start')).forEach(function(ss){
     var parent=state.subcycles.find(function(c){return c.id===ss.subId;});
     var row=document.createElement("div"); row.className="cycle-row";
-    row.innerHTML='<span class="sw" style="background:#06B6D4"></span><div class="main"><div class="t1">'+escapeHtml(ss.name)+'</div><div class="t2">'+fmtShort(ss.start)+' → '+fmtShort(ss.end)+(parent?' · '+escapeHtml(parent.name):'')+'</div></div>';
+    row.innerHTML='<span class="sw" style="background:#06B6D4"></span><div class="main"><div class="t1">'+escapeHtml(ss.name)+'</div><div class="t2">'+fmtShort(ss.start)+' → '+fmtShort(ss.end)+(parent?' · '+escapeHtml(parent.name):'')+(ss.objective?' · 🎯 '+escapeHtml(ss.objective):'')+'</div></div>';
     var btns=document.createElement("div"); btns.className="rowbtns";
+    var copy=document.createElement("button"); copy.className="btn small"; copy.textContent="Copier";
+    copy.addEventListener("click", function(){ copyCycleItem("subsub", ss); });
+    btns.appendChild(copy);
     var edit=document.createElement("button"); edit.className="btn small"; edit.textContent="Modifier";
     edit.addEventListener("click", function(){
       editSubSubId=ss.id;
@@ -1175,6 +1192,7 @@ function renderSubSubList(){
       var weeks=Math.round((parseISO(ss.end)-parseISO(ss.start))/(7*864e5))+1;
       document.getElementById("subsubWeeks").value=weeks;
       document.getElementById("subsubStart").value=ss.start;
+      if(document.getElementById("subsubObjective")) document.getElementById("subsubObjective").value=ss.objective||"";
       document.getElementById("btnAddSubSub").textContent="Enregistrer les modifications";
       document.getElementById("subsubEditHint").style.display="block";
       document.getElementById("subsubParentSub").scrollIntoView({behavior:"smooth",block:"center"});
