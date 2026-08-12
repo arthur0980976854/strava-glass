@@ -104,6 +104,7 @@ function sortAscBy(k){ return function(a,b){return a[k].localeCompare(b[k]);}; }
 function escapeHtml(str){ var d=document.createElement("div"); d.textContent=str||""; return d.innerHTML; }
 function emptyHTML(title,sub){ return '<div class="empty-state"><b>'+title+'</b>'+sub+'</div>'; }
 function sportColor(name){ var s=state.sports.find(function(x){return x.name===name;}); return s?s.color:PALETTE[0]; }
+function cycleColor(c){ return (c && c.color) ? c.color : CYCLE_TYPES[c.type].color; }
 function cycleLabel(c){ return c.type==="libre" && c.label ? c.label : CYCLE_TYPES[c.type].label; }
 function activeCycleForDate(dateISO){ return state.cycles.find(function(c){return dateISO>=c.start && dateISO<=c.end;}); }
 function activeSubForDate(dateISO){ return state.subcycles.find(function(c){return dateISO>=c.start && dateISO<=c.end;}); }
@@ -331,7 +332,7 @@ function renderCycleWeeksProgress(cyc){
   if(!cyc){ wrap.innerHTML=""; return; }
   var totalWeeks=Math.ceil((parseISO(cyc.end)-parseISO(cyc.start))/(7*864e5))+1;
   var curWeek=Math.min(totalWeeks, Math.floor((parseISO(todayISO())-parseISO(cyc.start))/(7*864e5))+1);
-  var color=CYCLE_TYPES[cyc.type].color;
+  var color=cycleColor(cyc);
   var html='<span class="cw-label">Semaine '+curWeek+' / '+totalWeeks+' — '+escapeHtml(cycleLabel(cyc))+'</span><div class="cw-dots">';
   for(var i=1;i<=totalWeeks;i++){
     html += i===curWeek
@@ -343,35 +344,33 @@ function renderCycleWeeksProgress(cyc){
 }
 
 function renderWeekPanel(){
-  var days=weekDays(0), monday=isoDate(days[0]), today=todayISO();
-  var cyc = activeCycleForDate(today);
+  var days=currentWeekDays(), monday=isoDate(days[0]), today=todayISO();
+  var refDate = (today>=monday && today<=isoDate(days[6])) ? today : monday;
+  var cyc = activeCycleForDate(refDate);
   var badge = document.getElementById("currentCycleBadge");
   var box = document.getElementById("weekPanelBox");
-  if(cyc){ paintBadge(badge, "Cycle : "+cycleLabel(cyc), CYCLE_TYPES[cyc.type].color); box.style.borderTop="3px solid "+CYCLE_TYPES[cyc.type].color; }
+  if(cyc){ paintBadge(badge, "Cycle : "+cycleLabel(cyc), cycleColor(cyc)); box.style.borderTop="3px solid "+cycleColor(cyc); }
   else { paintBadge(badge, "Aucun cycle défini", null); box.style.borderTop="3px solid transparent"; }
   renderCycleWeeksProgress(cyc);
 
-  var sub = activeSubForDate(today);
+  var sub = activeSubForDate(refDate);
   var subBadge = document.getElementById("currentSubBadge");
   if(sub) paintBadge(subBadge, "Sous-cycle : "+sub.name, "#F59E0B");
   else subBadge.style.display="none";
 
-  var sel=document.getElementById("weekTypeSelect");
-  sel.innerHTML="";
-  WEEK_TYPE_OPTIONS.forEach(function(opt){var o=document.createElement("option");o.value=opt;o.textContent="Semaine : "+opt;sel.appendChild(o);});
-  sel.value = state.weekTypes[monday] || "—";
-  sel.onchange=function(){ state.weekTypes[monday]=sel.value; saveData(true); };
-
-  var objInput=document.getElementById("weekObjectiveInput");
-  objInput.value = state.weekObjectives[monday] || "";
-  objInput.onchange=function(){ state.weekObjectives[monday]=objInput.value; saveData(true); };
+  var obj = weekObjectiveFor(monday);
+  var big=document.getElementById("weekObjectiveBig");
+  var hint=document.getElementById("weekObjectiveHint");
+  if(big) big.textContent = obj ? obj.text : "Aucun objectif — définissez-le dans le sous-sous-cycle";
+  if(big) big.classList.toggle("empty", !obj);
+  if(hint) hint.textContent = obj && obj.source ? "Défini par : "+obj.source : "";
 
   var grid=document.getElementById("weekGrid"); grid.innerHTML="";
   days.forEach(function(d,i){
     var dISO=isoDate(d);
     var cell=document.createElement("div"); cell.className="day-cell"+(dISO===today?" today":"");
     var dc=activeCycleForDate(dISO);
-    cell.style.borderTopColor = dc ? CYCLE_TYPES[dc.type].color : "transparent";
+    cell.style.borderTopColor = dc ? cycleColor(dc) : "transparent";
     if(dc) cell.title = cycleLabel(dc);
     var head=document.createElement("div"); head.className="dh";
     head.innerHTML="<span>"+DAY_LABELS[i]+"</span><b>"+d.getDate()+"</b>";
@@ -379,8 +378,8 @@ function renderWeekPanel(){
     state.sessions.filter(function(s){return s.date===dISO;}).forEach(function(s){
       cell.appendChild(makePill(s));
     });
-    var hint=document.createElement("div"); hint.className="add-hint"; hint.textContent="+ ajouter";
-    cell.appendChild(hint);
+    var hintEl=document.createElement("div"); hintEl.className="add-hint"; hintEl.textContent="+ ajouter une séance";
+    cell.appendChild(hintEl);
     cell.addEventListener("click", function(){ openSessionModal(null, dISO); });
     grid.appendChild(cell);
   });
@@ -409,40 +408,6 @@ function makePill(s){
   pill.title = s.sport+" · "+(s.sessionType||"")+(s.detail?" — "+s.detail:"");
   pill.addEventListener("click", function(ev){ev.stopPropagation();openSessionModal(s);});
   return pill;
-}
-
-function renderSportKmChart(){
-  var days=weekDays(0), d0=days[0], d1=days[6];
-  var done = state.sessions.filter(function(s){return s.status==="done" && inRange(s.date,d0,d1);});
-  var bySport = {};
-  done.forEach(function(s){
-    var sp=s.sport||"Autre";
-    if(!bySport[sp]) bySport[sp]={km:0,min:0,deniv:0};
-    bySport[sp].km += (s.actual&&s.actual.distance)||0;
-    bySport[sp].min += (s.actual&&s.actual.duration)||0;
-    bySport[sp].deniv += (s.actual&&s.actual.elevation)||0;
-  });
-  var sports = Object.keys(bySport);
-  var chips = document.getElementById("sportStatChips");
-  chips.innerHTML="";
-  if(!sports.length){ chips.innerHTML='<span style="color:var(--text-faint);font-size:12px;">Aucune séance réalisée cette semaine.</span>'; }
-  sports.forEach(function(sp){
-    var d=bySport[sp];
-    var chip=document.createElement("div"); chip.className="stat-chip";
-    chip.innerHTML='<b style="color:'+sportColor(sp)+'">'+escapeHtml(sp)+'</b> — '+fmtMin(d.min)+' · '+Math.round(d.deniv)+' m D+';
-    chips.appendChild(chip);
-  });
-
-  var ctx=document.getElementById("chartSportKm").getContext("2d");
-  if(charts.sportKm) charts.sportKm.destroy();
-  charts.sportKm = new Chart(ctx,{
-    type:"bar",
-    data:{ labels:sports, datasets:[{label:"Km", data:sports.map(function(sp){return +bySport[sp].km.toFixed(1);}), backgroundColor:sports.map(sportColor), borderRadius:4, maxBarThickness:46}] },
-    options:{ responsive:true, maintainAspectRatio:false,
-      plugins:{legend:{display:false}, tooltip:{backgroundColor:"#FFFFFF",borderColor:"#E2E8F0",borderWidth:1,titleColor:"#0F172A",bodyColor:"#0F172A",bodyFont:{family:"IBM Plex Mono"}}},
-      scales:{ x:{grid:{display:false},ticks:{color:"#64748B",font:{family:"Inter",size:11}}}, y:{grid:{color:"rgba(15,23,42,0.06)"},ticks:{color:"#64748B",font:{family:"IBM Plex Mono",size:10}},beginAtZero:true} }
-    }
-  });
 }
 
 /* =========================================================================
@@ -999,18 +964,18 @@ function renderTimeline(){
     tlMonths.appendChild(tick);
     cur.setMonth(cur.getMonth()+1);
   }
-  renderTimelineLevel("tlLanesCycles", state.cycles, function(c){return CYCLE_TYPES[c.type].color;}, cycleLabel);
+  renderTimelineLevel("tlLanesCycles", state.cycles, function(c){return cycleColor(c);}, cycleLabel, "cycle");
   renderTimelineLevel("tlLanesSub", state.subcycles, function(c){
     var parent=state.cycles.find(function(x){return x.id===c.cycleId;});
-    var hex= parent? CYCLE_TYPES[parent.type].color : CYCLE_TYPES.libre.color;
+    var hex= parent? cycleColor(parent) : CYCLE_TYPES.libre.color;
     return "color-mix(in srgb, "+hex+" 55%, white)";
-  }, function(c){return c.name;});
+  }, function(c){return c.name;}, "sub");
   renderTimelineLevel("tlLanesSubSub", state.subsubcycles, function(c){
     var parentSub=state.subcycles.find(function(x){return x.id===c.subId;});
     var parent= parentSub? state.cycles.find(function(x){return x.id===parentSub.cycleId;}) : null;
-    var hex= parent? CYCLE_TYPES[parent.type].color : CYCLE_TYPES.libre.color;
+    var hex= parent? cycleColor(parent) : CYCLE_TYPES.libre.color;
     return "color-mix(in srgb, "+hex+" 30%, white)";
-  }, function(c){return c.name;});
+  }, function(c){return c.name;}, "subsub");
 
   var today=new Date(); today.setHours(0,0,0,0);
   if(today>=s0 && today<=s1){
@@ -1028,9 +993,8 @@ function renderCycleList(){
   var wrap=document.getElementById("cycleList"); wrap.innerHTML="";
   if(!state.cycles.length){ wrap.innerHTML=emptyHTML("Aucun cycle","Ajoutez votre premier cycle ci-dessus."); }
   state.cycles.slice().sort(sortAscBy('start')).forEach(function(c){
-    var meta=CYCLE_TYPES[c.type];
     var row=document.createElement("div"); row.className="cycle-row";
-    row.innerHTML='<span class="sw" style="background:'+meta.color+'"></span><div class="main"><div class="t1">'+escapeHtml(cycleLabel(c))+'</div><div class="t2">'+fmtShort(c.start)+' → '+fmtShort(c.end)+'</div></div>';
+    row.innerHTML='<span class="sw" style="background:'+cycleColor(c)+'"></span><div class="main"><div class="t1">'+escapeHtml(cycleLabel(c))+'</div><div class="t2">'+fmtShort(c.start)+' → '+fmtShort(c.end)+'</div></div>';
     var btns=document.createElement("div"); btns.className="rowbtns";
     var edit=document.createElement("button"); edit.className="btn small"; edit.textContent="Modifier";
     edit.addEventListener("click", function(){
@@ -1142,7 +1106,7 @@ function renderMonthGrid(gridEl, cursor, labelEl, cycleBadgeEl){
   labelEl.textContent = MONTHS_FULL[cursor.getMonth()]+" "+cursor.getFullYear();
   if(cycleBadgeEl){
     var cyc=activeCycleForDate(todayISO());
-    if(cyc) paintBadge(cycleBadgeEl,"Cycle en cours : "+cycleLabel(cyc),CYCLE_TYPES[cyc.type].color);
+    if(cyc) paintBadge(cycleBadgeEl,"Cycle en cours : "+cycleLabel(cyc),cycleColor(cyc));
     else paintBadge(cycleBadgeEl,"Aucun cycle en cours",null);
   }
   gridEl.innerHTML="";
@@ -1153,7 +1117,7 @@ function renderMonthGrid(gridEl, cursor, labelEl, cycleBadgeEl){
     var cell=document.createElement("div");
     cell.className="day-cell"+(dISO===today?" today":"")+(d.getMonth()!==cursor.getMonth()?" outmonth":"");
     var dc=activeCycleForDate(dISO);
-    cell.style.borderTopColor = dc ? CYCLE_TYPES[dc.type].color : "transparent";
+    cell.style.borderTopColor = dc ? cycleColor(dc) : "transparent";
     if(dc) cell.title = cycleLabel(dc);
     var head=document.createElement("div"); head.className="dh";
     head.innerHTML="<span>"+DAY_LABELS[d.getDay()===0?6:d.getDay()-1]+"</span><b>"+d.getDate()+"</b>";
@@ -1521,7 +1485,7 @@ function renderAll(){
   renderKPIs();
   renderGoalBanner();
   renderWeekPanel();
-  renderSportKmChart();
+  renderSportCounters();
   renderPlanification();
   renderRealisees();
   renderParametres();
