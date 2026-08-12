@@ -627,3 +627,32 @@
 </div>
 
 <div class="toast" id="toast">Enregistré</div>
+
+<!-- ================= MODALE : GROUPES DE SPORTS ================= -->
+<div class="modal-overlay" id="groupsOverlay">
+  <div class="modal-card">
+    <div class="modal-head">
+      <h3>Groupes de sports</h3>
+      <button class="modal-close" id="groupsClose">✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="modal-hint">Regroupez autant de sports que vous voulez : leurs distances et D+ sont cumulés dans une seule carte du tableau de bord.</p>
+      <div id="groupsList"></div>
+      <div class="group-create">
+        <input type="text" id="newGroupName" placeholder="Nom du groupe (ex : Running)">
+        <button class="btn primary small" id="btnCreateGroup">Créer le groupe</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= MODALE : INFOS CYCLE (TIMELINE) ================= -->
+<div class="modal-overlay" id="tlInfoOverlay">
+  <div class="modal-card">
+    <div class="modal-head">
+      <h3 id="tlInfoTitle">Cycle</h3>
+      <button class="modal-close" id="tlInfoClose">✕</button>
+    </div>
+    <div class="modal-body" id="tlInfoBody"></div>
+  </div>
+</div>
