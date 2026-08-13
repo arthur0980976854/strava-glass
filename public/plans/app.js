@@ -384,10 +384,10 @@ function renderGroupsModal(){
 /* Navigation de semaine */
 (function initWeekNav(){
   var prev=document.getElementById("dashWeekPrev"), next=document.getElementById("dashWeekNext"), today=document.getElementById("dashWeekToday");
-  function go(delta){ dashWeekOffset+= delta; renderKPIs(); renderWeekPanel(); renderSportCounters(); }
+  function go(delta){ dashWeekOffset+= delta; renderKPIs(); renderWeekPanel(); renderSportCounters(); renderIntensityWeek(); }
   if(prev) prev.addEventListener("click", function(){ go(-1); });
   if(next) next.addEventListener("click", function(){ go(1); });
-  if(today) today.addEventListener("click", function(){ dashWeekOffset=0; renderKPIs(); renderWeekPanel(); renderSportCounters(); });
+  if(today) today.addEventListener("click", function(){ dashWeekOffset=0; renderKPIs(); renderWeekPanel(); renderSportCounters(); renderIntensityWeek(); });
 })();
 
 function renderGoalBanner(){
@@ -1013,6 +1013,8 @@ document.getElementById("btnAddCycle").addEventListener("click", function(){
 function resetSubForm(){
   editSubId=null;
   document.getElementById("subName").value="";
+  if(document.getElementById("subObjective")) document.getElementById("subObjective").value="";
+  if(document.getElementById("subObjectiveKm")) document.getElementById("subObjectiveKm").value="";
   document.getElementById("subWeeks").value="4";
   document.getElementById("btnAddSub").textContent="Ajouter le sous-cycle";
   document.getElementById("subEditHint").style.display="none";
@@ -1034,16 +1036,19 @@ document.getElementById("btnAddSub").addEventListener("click", function(){
   var name=document.getElementById("subName").value.trim();
   var weeks=+document.getElementById("subWeeks").value;
   var start=document.getElementById("subStart").value;
+  var objective=(document.getElementById("subObjective")||{value:""}).value.trim();
+  var objectiveKm=(document.getElementById("subObjectiveKm")||{value:""}).value;
   if(!parent){ toast("Ajoutez d'abord un cycle"); return; }
   if(!name||!weeks||!start){ toast("Champs sous-cycle incomplets"); return; }
   var sd=parseISO(start); var ed=new Date(sd); ed.setDate(ed.getDate()+weeks*7-1);
   if(editSubId){
     var sc=state.subcycles.find(function(x){return x.id===editSubId;});
-    Object.assign(sc,{cycleId:parent,name:name,start:start,end:isoDate(ed)});
+    Object.assign(sc,{cycleId:parent,name:name,start:start,end:isoDate(ed),objective:objective,objectiveKm:objectiveKm?+objectiveKm:null});
     resetSubForm();
   } else {
-    state.subcycles.push({id:uid(),cycleId:parent,name:name,start:start,end:isoDate(ed)});
+    state.subcycles.push({id:uid(),cycleId:parent,name:name,start:start,end:isoDate(ed),objective:objective,objectiveKm:objectiveKm?+objectiveKm:null});
     document.getElementById("subName").value="";
+    if(document.getElementById("subObjective")) document.getElementById("subObjective").value="";
     autofillSubStart();
   }
   saveData(true); renderPlanification();
@@ -1076,15 +1081,16 @@ document.getElementById("btnAddSubSub").addEventListener("click", function(){
   var weeks=+document.getElementById("subsubWeeks").value;
   var start=document.getElementById("subsubStart").value;
   var objective=(document.getElementById("subsubObjective")||{value:""}).value.trim();
+  var objectiveKm=(document.getElementById("subsubObjectiveKm")||{value:""}).value;
   if(!parent){ toast("Ajoutez d'abord un sous-cycle"); return; }
   if(!name||!weeks||!start){ toast("Champs incomplets"); return; }
   var sd=parseISO(start); var ed=new Date(sd); ed.setDate(ed.getDate()+weeks*7-1);
   if(editSubSubId){
     var ss=state.subsubcycles.find(function(x){return x.id===editSubSubId;});
-    Object.assign(ss,{subId:parent,name:name,start:start,end:isoDate(ed),objective:objective});
+    Object.assign(ss,{subId:parent,name:name,start:start,end:isoDate(ed),objective:objective,objectiveKm:objectiveKm?+objectiveKm:null});
     resetSubSubForm();
   } else {
-    state.subsubcycles.push({id:uid(),subId:parent,name:name,start:start,end:isoDate(ed),objective:objective});
+    state.subsubcycles.push({id:uid(),subId:parent,name:name,start:start,end:isoDate(ed),objective:objective,objectiveKm:objectiveKm?+objectiveKm:null});
     document.getElementById("subsubName").value="";
     if(document.getElementById("subsubObjective")) document.getElementById("subsubObjective").value="";
     autofillSubSubStart();
@@ -1391,6 +1397,7 @@ function renderSubSubList(){
       document.getElementById("subsubWeeks").value=weeks;
       document.getElementById("subsubStart").value=ss.start;
       if(document.getElementById("subsubObjective")) document.getElementById("subsubObjective").value=ss.objective||"";
+      if(document.getElementById("subsubObjectiveKm")) document.getElementById("subsubObjectiveKm").value=ss.objectiveKm||"";
       document.getElementById("btnAddSubSub").textContent="Enregistrer les modifications";
       document.getElementById("subsubEditHint").style.display="block";
       document.getElementById("subsubParentSub").scrollIntoView({behavior:"smooth",block:"center"});
@@ -1799,6 +1806,7 @@ function renderAll(){
   renderGoalBanner();
   renderWeekPanel();
   renderSportCounters();
+  renderIntensityWeek();
   renderPlanification();
   renderRealisees();
   renderParametres();
