@@ -324,12 +324,14 @@ function renderIntensityWeek(){
     legend.innerHTML = Object.keys(INTENSITIES).map(function(k){
       var v=tot[k], pct=sum?Math.round(v/sum*100):0;
       var share = objKm ? (objKm*(k==="endurance"?0.8:k==="seuil"?0.15:0.05)) : 0;
-      var rest = objKm ? Math.max(0, objKm - sum) : 0;
+      var rest = share ? Math.max(0, share - v) : 0;
       return '<div class="int-row"><span class="int-dot" style="background:'+INTENSITIES[k].color+'"></span>'+
         '<span class="int-name">'+INTENSITIES[k].label+'</span>'+
         '<span class="int-pct">'+pct+' %</span>'+
-        '<span class="int-km">'+round1(v)+' km</span></div>';
+        '<span class="int-km">'+round1(v)+' km</span>'+
+        (share?'<span class="int-rest">reste '+round1(rest)+' km</span>':'')+'</div>';
     }).join("") +
+
     '<div class="int-total">Total '+round1(sum)+' km'+(objKm?(' / '+round1(objKm)+' km · reste '+round1(Math.max(0,objKm-sum))+' km'):'')+'</div>';
   }
 }
