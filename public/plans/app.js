@@ -1343,7 +1343,7 @@ function renderSubList(){
   state.subcycles.slice().sort(sortAscBy('start')).forEach(function(sc){
     var parent=state.cycles.find(function(c){return c.id===sc.cycleId;});
     var row=document.createElement("div"); row.className="cycle-row";
-    row.innerHTML='<span class="sw" style="background:#F59E0B"></span><div class="main"><div class="t1">'+escapeHtml(sc.name)+'</div><div class="t2">'+fmtShort(sc.start)+' → '+fmtShort(sc.end)+(parent?' · '+escapeHtml(cycleLabel(parent)):'')+'</div></div>';
+    row.innerHTML='<span class="sw" style="background:#F59E0B"></span><div class="main"><div class="t1">'+escapeHtml(sc.name)+'</div><div class="t2">'+fmtShort(sc.start)+' → '+fmtShort(sc.end)+(parent?' · '+escapeHtml(cycleLabel(parent)):'')+(sc.objective?' · 🎯 '+escapeHtml(sc.objective):'')+(sc.objectiveKm?' · '+sc.objectiveKm+' km':'')+'</div></div>';
     var btns=document.createElement("div"); btns.className="rowbtns";
     var copy=document.createElement("button"); copy.className="btn small"; copy.textContent="Copier";
     copy.addEventListener("click", function(){ copyCycleItem("sub", sc); });
@@ -1356,6 +1356,8 @@ function renderSubList(){
       var weeks=Math.round((parseISO(sc.end)-parseISO(sc.start))/(7*864e5))+1;
       document.getElementById("subWeeks").value=weeks;
       document.getElementById("subStart").value=sc.start;
+      if(document.getElementById("subObjective")) document.getElementById("subObjective").value=sc.objective||"";
+      if(document.getElementById("subObjectiveKm")) document.getElementById("subObjectiveKm").value=sc.objectiveKm||"";
       document.getElementById("btnAddSub").textContent="Enregistrer les modifications";
       document.getElementById("subEditHint").style.display="block";
       document.getElementById("subParentCycle").scrollIntoView({behavior:"smooth",block:"center"});
