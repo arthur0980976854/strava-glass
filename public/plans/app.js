@@ -263,6 +263,79 @@ function renderSportCounters(){
   });
 }
 
+/* ---------- Répartition par intensité ---------- */
+function weekObjectiveKm(mondayISO){
+  var ss = state.subsubcycles.find(function(x){ return mondayISO>=x.start && mondayISO<=x.end && x.objectiveKm; });
+  if(ss) return +ss.objectiveKm;
+  var sub = state.subcycles.find(function(x){ return mondayISO>=x.start && mondayISO<=x.end && x.objectiveKm; });
+  if(sub) return +sub.objectiveKm;
+  var obj = weekObjectiveFor(mondayISO);
+  if(obj){ var m=String(obj.text).match(/(\d+(?:[.,]\d+)?)\s*km/i); if(m) return +m[1].replace(",","."); }
+  return state.profile.weeklyTargetKm ? +state.profile.weeklyTargetKm : 0;
+}
+function sessionIntensityKm(s){
+  var out={endurance:0,seuil:0,vma:0};
+  if(!s.actual) return out;
+  var segs=s.actual.segments;
+  if(segs && segs.length){
+    segs.forEach(function(g){ out[g.intensity||"endurance"] = (out[g.intensity||"endurance"]||0) + (+g.km||0); });
+    return out;
+  }
+  if(!isRunSport(s.sport)) return out;
+  var km=+(s.actual.distance||0); if(!km) return out;
+  var t=(s.sessionType||"")+" "+(s.name||"");
+  if(/vma|fractionn|interval/i.test(t)) out.vma=km;
+  else if(/seuil|tempo|allure sp/i.test(t)) out.seuil=km;
+  else out.endurance=km;
+  return out;
+}
+function intensityTotals(sessions){
+  var tot={endurance:0,seuil:0,vma:0};
+  sessions.forEach(function(s){
+    var k=sessionIntensityKm(s);
+    tot.endurance+=k.endurance; tot.seuil+=k.seuil; tot.vma+=k.vma;
+  });
+  return tot;
+}
+function renderIntensityWeek(){
+  var canvas=document.getElementById("chartIntensityWeek"); if(!canvas||!window.Chart) return;
+  var days=currentWeekDays(), d0=days[0], d1=days[6], monday=isoDate(d0);
+  var done=state.sessions.filter(function(s){return s.status==="done" && inRange(s.date,d0,d1);});
+  var tot=intensityTotals(done);
+  var sum=tot.endurance+tot.seuil+tot.vma;
+  var objKm=weekObjectiveKm(monday);
+  var badge=document.getElementById("intensityObjBadge");
+  if(badge) paintBadge(badge, objKm ? ("Objectif : "+round1(objKm)+" km") : "Objectif km non défini", objKm?"#2563EB":null);
+
+  drawChart("chartIntensityWeek",{
+    type:"doughnut",
+    data:{labels:["Endurance","Seuil","VMA"],
+      datasets:[{data:[round1(tot.endurance),round1(tot.seuil),round1(tot.vma)],
+        backgroundColor:[INTENSITIES.endurance.color,INTENSITIES.seuil.color,INTENSITIES.vma.color],borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:"62%",
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){
+        var pct=sum?Math.round(c.parsed/sum*100):0; return c.label+" : "+c.parsed+" km ("+pct+"%)";
+      }}}}}
+  });
+
+  var legend=document.getElementById("intensityLegend");
+  if(legend){
+    if(!sum){ legend.innerHTML=emptyHTML("Aucun km d'intensité","Détaillez vos séances de course à pied ou trail pour alimenter ce diagramme."); return; }
+    legend.innerHTML = Object.keys(INTENSITIES).map(function(k){
+      var v=tot[k], pct=sum?Math.round(v/sum*100):0;
+      var share = objKm ? (objKm*(k==="endurance"?0.8:k==="seuil"?0.15:0.05)) : 0;
+      var rest = share ? Math.max(0, share - v) : 0;
+      return '<div class="int-row"><span class="int-dot" style="background:'+INTENSITIES[k].color+'"></span>'+
+        '<span class="int-name">'+INTENSITIES[k].label+'</span>'+
+        '<span class="int-pct">'+pct+' %</span>'+
+        '<span class="int-km">'+round1(v)+' km</span>'+
+        (share?'<span class="int-rest">reste '+round1(rest)+' km</span>':'')+'</div>';
+    }).join("") +
+
+    '<div class="int-total">Total '+round1(sum)+' km'+(objKm?(' / '+round1(objKm)+' km · reste '+round1(Math.max(0,objKm-sum))+' km'):'')+'</div>';
+  }
+}
+
 /* Modale groupes de sports */
 function renderGroupsModal(){
   var wrap=document.getElementById("groupsList"); if(!wrap) return;
@@ -311,10 +384,10 @@ function renderGroupsModal(){
 /* Navigation de semaine */
 (function initWeekNav(){
   var prev=document.getElementById("dashWeekPrev"), next=document.getElementById("dashWeekNext"), today=document.getElementById("dashWeekToday");
-  function go(delta){ dashWeekOffset+= delta; renderKPIs(); renderWeekPanel(); renderSportCounters(); }
+  function go(delta){ dashWeekOffset+= delta; renderKPIs(); renderWeekPanel(); renderSportCounters(); renderIntensityWeek(); }
   if(prev) prev.addEventListener("click", function(){ go(-1); });
   if(next) next.addEventListener("click", function(){ go(1); });
-  if(today) today.addEventListener("click", function(){ dashWeekOffset=0; renderKPIs(); renderWeekPanel(); renderSportCounters(); });
+  if(today) today.addEventListener("click", function(){ dashWeekOffset=0; renderKPIs(); renderWeekPanel(); renderSportCounters(); renderIntensityWeek(); });
 })();
 
 function renderGoalBanner(){
@@ -588,7 +661,120 @@ function renderSportFields(sport, existing){
     container.appendChild(div);
   });
 }
-document.getElementById("sessSport").addEventListener("change", function(){ renderSportFields(this.value, null); });
+/* ---------- Détail par intensité & calculateurs d'allure ---------- */
+var INTENSITIES = {
+  endurance:{label:"Endurance", color:"#10B981"},
+  seuil:{label:"Seuil", color:"#F97316"},
+  vma:{label:"VMA", color:"#EF4444"}
+};
+var DEFAULT_SEGMENTS = [
+  {name:"Échauffement", km:"", intensity:"endurance"},
+  {name:"Bloc de séance", km:"", intensity:"seuil"},
+  {name:"Retour au calme", km:"", intensity:"endurance"}
+];
+var sessSegments = [];
+function isRunSport(name){ return /course|trail|run/i.test(name||""); }
+function isBike(name){ return /vélo|velo|bike|ride/i.test(name||""); }
+
+function segTotalKm(){ return sessSegments.reduce(function(a,s){ return a+(+s.km||0); },0); }
+function renderSegments(){
+  var wrap=document.getElementById("sessSegments"); if(!wrap) return;
+  wrap.innerHTML="";
+  sessSegments.forEach(function(seg, i){
+    var row=document.createElement("div"); row.className="seg-row";
+    row.innerHTML =
+      '<input type="text" class="seg-name" value="'+escapeHtml(seg.name||"")+'" placeholder="Nom du bloc">'+
+      '<div class="seg-km"><input type="number" step="0.1" min="0" value="'+(seg.km===""||seg.km==null?"":seg.km)+'" placeholder="0"><span>km</span></div>'+
+      '<div class="seg-int">'+Object.keys(INTENSITIES).map(function(k){
+        return '<button type="button" class="seg-pill'+(seg.intensity===k?" active":"")+'" data-int="'+k+'" style="--c:'+INTENSITIES[k].color+'">'+INTENSITIES[k].label+'</button>';
+      }).join("")+'</div>'+
+      '<button type="button" class="seg-del" aria-label="Retirer">✕</button>';
+    row.querySelector(".seg-name").addEventListener("input", function(){ seg.name=this.value; });
+    row.querySelector(".seg-km input").addEventListener("input", function(){ seg.km=this.value; updateSegHint(); });
+    row.querySelectorAll(".seg-pill").forEach(function(b){
+      b.addEventListener("click", function(){ seg.intensity=b.dataset.int; renderSegments(); });
+    });
+    row.querySelector(".seg-del").addEventListener("click", function(){ sessSegments.splice(i,1); renderSegments(); updateSegHint(); });
+    wrap.appendChild(row);
+  });
+  var add=document.createElement("button"); add.type="button"; add.className="btn small seg-add"; add.textContent="＋ Ajouter un bloc";
+  add.addEventListener("click", function(){ sessSegments.push({name:"Bloc",km:"",intensity:"endurance"}); renderSegments(); });
+  wrap.appendChild(add);
+  updateSegHint();
+}
+function updateSegHint(){
+  var hint=document.getElementById("segTotalHint"); if(!hint) return;
+  var tot=segTotalKm();
+  var by={endurance:0,seuil:0,vma:0};
+  sessSegments.forEach(function(s){ by[s.intensity]=(by[s.intensity]||0)+(+s.km||0); });
+  hint.textContent = tot ? ("Total "+round1(tot)+" km · End. "+round1(by.endurance)+" · Seuil "+round1(by.seuil)+" · VMA "+round1(by.vma)) : "";
+  // reporte le total dans le champ distance si détaillé
+  var distInput=document.querySelector('#sportSpecificFields [data-metric-key="distance"]');
+  if(distInput && tot) { distInput.value=round1(tot); updatePaceCalc(); }
+}
+function updateSessIntensityUI(sport, session){
+  var wrap=document.getElementById("sessIntensityWrap");
+  if(!wrap) return;
+  var on = isRunSport(sport);
+  wrap.style.display = on ? "block" : "none";
+  var box=document.getElementById("sessSegments");
+  var btn=document.getElementById("btnToggleSegments");
+  var existing = session && session.actual && session.actual.segments;
+  sessSegments = existing && existing.length ? existing.map(function(s){return {name:s.name,km:s.km,intensity:s.intensity};}) : DEFAULT_SEGMENTS.map(function(s){return Object.assign({},s);});
+  var open = !!(existing && existing.length);
+  if(box) box.style.display = open ? "block" : "none";
+  if(btn) btn.textContent = open ? "− Masquer le détail" : "＋ Détailler la séance";
+  if(on) renderSegments();
+}
+(function initSegments(){
+  var btn=document.getElementById("btnToggleSegments"); if(!btn) return;
+  btn.addEventListener("click", function(){
+    var box=document.getElementById("sessSegments");
+    var open = box.style.display!=="none";
+    box.style.display = open ? "none" : "block";
+    btn.textContent = open ? "＋ Détailler la séance" : "− Masquer le détail";
+    if(!open) renderSegments();
+  });
+})();
+
+function fmtPace(minPerUnit){
+  var m=Math.floor(minPerUnit), s=Math.round((minPerUnit-m)*60);
+  if(s===60){ m++; s=0; }
+  return m+"'"+String(s).padStart(2,"0")+"\"";
+}
+function updatePaceCalc(){
+  var box=document.getElementById("sessPaceBox"); if(!box) return;
+  var sport=(document.getElementById("sessSport")||{value:""}).value;
+  var dur=+(sessForm.duration?sessForm.duration.value:0)||0;
+  var distInput=document.querySelector('#sportSpecificFields [data-metric-key="distance"]');
+  var dist=distInput?+distInput.value||0:0;
+  var label=document.getElementById("sessPaceLabel"), val=document.getElementById("sessPaceValue");
+  if(!dur || !dist){ box.style.display="none"; return; }
+  box.style.display="flex";
+  var target=null;
+  if(isSwim(sport)){
+    label.textContent="Allure moyenne";
+    val.textContent = fmtPace(dur/(dist/100))+" /100m";
+    target='paceAvg';
+  } else if(isBike(sport)){
+    label.textContent="Vitesse moyenne";
+    val.textContent = round1(dist/(dur/60))+" km/h";
+    target='speedAvg';
+  } else {
+    label.textContent="Allure moyenne";
+    val.textContent = fmtPace(dur/dist)+" /km";
+    target='paceAvg';
+  }
+  var t=document.querySelector('#sportSpecificFields [data-metric-key="'+target+'"]');
+  if(t) t.value = target==='speedAvg' ? round1(dist/(dur/60)) : val.textContent.replace(/ \/.*$/,"");
+}
+if(sessForm.duration) sessForm.duration.addEventListener("input", updatePaceCalc);
+document.getElementById("sportSpecificFields").addEventListener("input", function(e){
+  if(e.target.dataset && e.target.dataset.metricKey==="distance") updatePaceCalc();
+});
+
+document.getElementById("sessSport").addEventListener("change", function(){ renderSportFields(this.value, null); updateSessIntensityUI(this.value, null); updatePaceCalc(); });
+
 
 function populateTemplateSelect(){
   var sel=document.getElementById("templateLoadSelect");
@@ -681,7 +867,10 @@ function openSessionModal(session, presetDate){
   if(document.getElementById("rpeVal")) document.getElementById("rpeVal").textContent = rpeSlider?rpeSlider.value:"5";
   if(document.getElementById("plaisirVal")) document.getElementById("plaisirVal").textContent = plaisirSlider?plaisirSlider.value:"7";
   renderSportFields(session?session.sport:(document.getElementById("sessSport").value), session&&session.actual?session.actual:null);
+  updateSessIntensityUI(session?session.sport:(document.getElementById("sessSport").value), session);
+  updatePaceCalc();
   toggleSessGroups();
+
   updateBpmZoneHint();
   updateDeltaHint();
   sessOverlay.classList.add("open");
@@ -714,6 +903,13 @@ sessForm.addEventListener("submit", async function(e){
   var distanceKm = metrics["distance"] ? +metrics["distance"] : null;
   var elevation  = metrics["elevation"] ? +metrics["elevation"] : null;
 
+  // Segments d'intensité (course à pied / trail)
+  var segsOpen = document.getElementById("sessSegments") && document.getElementById("sessSegments").style.display!=="none";
+  var segments = (isRunSport(fd.get("sport")) && segsOpen)
+    ? sessSegments.filter(function(s){ return +s.km>0; }).map(function(s){ return {name:s.name||"Bloc", km:+s.km, intensity:s.intensity||"endurance"}; })
+    : [];
+  if(segments.length && !distanceKm){ distanceKm = segments.reduce(function(a,s){return a+s.km;},0); metrics["distance"]=distanceKm; }
+
   var payload={
     date:fd.get("date"), sport:fd.get("sport"), sessionType:fd.get("sessionType"),
     detail:fd.get("detail")||"", objective:fd.get("objective")||"",
@@ -724,9 +920,11 @@ sessForm.addEventListener("submit", async function(e){
       bpmAvg:fd.get("bpmAvg")?+fd.get("bpmAvg"):null,
       rpe:fd.get("rpe")?+fd.get("rpe"):null,
       charge:fd.get("charge")?+fd.get("charge"):0,
-      plaisir:fd.get("plaisir")?+fd.get("plaisir"):null
+      plaisir:fd.get("plaisir")?+fd.get("plaisir"):null,
+      segments: segments
     }, metrics) : null
   };
+
 
   // Save locally first
   if(id){ var s=state.sessions.find(function(x){return x.id===id;}); Object.assign(s,payload); }
@@ -815,6 +1013,8 @@ document.getElementById("btnAddCycle").addEventListener("click", function(){
 function resetSubForm(){
   editSubId=null;
   document.getElementById("subName").value="";
+  if(document.getElementById("subObjective")) document.getElementById("subObjective").value="";
+  if(document.getElementById("subObjectiveKm")) document.getElementById("subObjectiveKm").value="";
   document.getElementById("subWeeks").value="4";
   document.getElementById("btnAddSub").textContent="Ajouter le sous-cycle";
   document.getElementById("subEditHint").style.display="none";
@@ -836,16 +1036,19 @@ document.getElementById("btnAddSub").addEventListener("click", function(){
   var name=document.getElementById("subName").value.trim();
   var weeks=+document.getElementById("subWeeks").value;
   var start=document.getElementById("subStart").value;
+  var objective=(document.getElementById("subObjective")||{value:""}).value.trim();
+  var objectiveKm=(document.getElementById("subObjectiveKm")||{value:""}).value;
   if(!parent){ toast("Ajoutez d'abord un cycle"); return; }
   if(!name||!weeks||!start){ toast("Champs sous-cycle incomplets"); return; }
   var sd=parseISO(start); var ed=new Date(sd); ed.setDate(ed.getDate()+weeks*7-1);
   if(editSubId){
     var sc=state.subcycles.find(function(x){return x.id===editSubId;});
-    Object.assign(sc,{cycleId:parent,name:name,start:start,end:isoDate(ed)});
+    Object.assign(sc,{cycleId:parent,name:name,start:start,end:isoDate(ed),objective:objective,objectiveKm:objectiveKm?+objectiveKm:null});
     resetSubForm();
   } else {
-    state.subcycles.push({id:uid(),cycleId:parent,name:name,start:start,end:isoDate(ed)});
+    state.subcycles.push({id:uid(),cycleId:parent,name:name,start:start,end:isoDate(ed),objective:objective,objectiveKm:objectiveKm?+objectiveKm:null});
     document.getElementById("subName").value="";
+    if(document.getElementById("subObjective")) document.getElementById("subObjective").value="";
     autofillSubStart();
   }
   saveData(true); renderPlanification();
@@ -878,15 +1081,16 @@ document.getElementById("btnAddSubSub").addEventListener("click", function(){
   var weeks=+document.getElementById("subsubWeeks").value;
   var start=document.getElementById("subsubStart").value;
   var objective=(document.getElementById("subsubObjective")||{value:""}).value.trim();
+  var objectiveKm=(document.getElementById("subsubObjectiveKm")||{value:""}).value;
   if(!parent){ toast("Ajoutez d'abord un sous-cycle"); return; }
   if(!name||!weeks||!start){ toast("Champs incomplets"); return; }
   var sd=parseISO(start); var ed=new Date(sd); ed.setDate(ed.getDate()+weeks*7-1);
   if(editSubSubId){
     var ss=state.subsubcycles.find(function(x){return x.id===editSubSubId;});
-    Object.assign(ss,{subId:parent,name:name,start:start,end:isoDate(ed),objective:objective});
+    Object.assign(ss,{subId:parent,name:name,start:start,end:isoDate(ed),objective:objective,objectiveKm:objectiveKm?+objectiveKm:null});
     resetSubSubForm();
   } else {
-    state.subsubcycles.push({id:uid(),subId:parent,name:name,start:start,end:isoDate(ed),objective:objective});
+    state.subsubcycles.push({id:uid(),subId:parent,name:name,start:start,end:isoDate(ed),objective:objective,objectiveKm:objectiveKm?+objectiveKm:null});
     document.getElementById("subsubName").value="";
     if(document.getElementById("subsubObjective")) document.getElementById("subsubObjective").value="";
     autofillSubSubStart();
@@ -1139,7 +1343,7 @@ function renderSubList(){
   state.subcycles.slice().sort(sortAscBy('start')).forEach(function(sc){
     var parent=state.cycles.find(function(c){return c.id===sc.cycleId;});
     var row=document.createElement("div"); row.className="cycle-row";
-    row.innerHTML='<span class="sw" style="background:#F59E0B"></span><div class="main"><div class="t1">'+escapeHtml(sc.name)+'</div><div class="t2">'+fmtShort(sc.start)+' → '+fmtShort(sc.end)+(parent?' · '+escapeHtml(cycleLabel(parent)):'')+'</div></div>';
+    row.innerHTML='<span class="sw" style="background:#F59E0B"></span><div class="main"><div class="t1">'+escapeHtml(sc.name)+'</div><div class="t2">'+fmtShort(sc.start)+' → '+fmtShort(sc.end)+(parent?' · '+escapeHtml(cycleLabel(parent)):'')+(sc.objective?' · 🎯 '+escapeHtml(sc.objective):'')+(sc.objectiveKm?' · '+sc.objectiveKm+' km':'')+'</div></div>';
     var btns=document.createElement("div"); btns.className="rowbtns";
     var copy=document.createElement("button"); copy.className="btn small"; copy.textContent="Copier";
     copy.addEventListener("click", function(){ copyCycleItem("sub", sc); });
@@ -1152,6 +1356,8 @@ function renderSubList(){
       var weeks=Math.round((parseISO(sc.end)-parseISO(sc.start))/(7*864e5))+1;
       document.getElementById("subWeeks").value=weeks;
       document.getElementById("subStart").value=sc.start;
+      if(document.getElementById("subObjective")) document.getElementById("subObjective").value=sc.objective||"";
+      if(document.getElementById("subObjectiveKm")) document.getElementById("subObjectiveKm").value=sc.objectiveKm||"";
       document.getElementById("btnAddSub").textContent="Enregistrer les modifications";
       document.getElementById("subEditHint").style.display="block";
       document.getElementById("subParentCycle").scrollIntoView({behavior:"smooth",block:"center"});
@@ -1193,6 +1399,7 @@ function renderSubSubList(){
       document.getElementById("subsubWeeks").value=weeks;
       document.getElementById("subsubStart").value=ss.start;
       if(document.getElementById("subsubObjective")) document.getElementById("subsubObjective").value=ss.objective||"";
+      if(document.getElementById("subsubObjectiveKm")) document.getElementById("subsubObjectiveKm").value=ss.objectiveKm||"";
       document.getElementById("btnAddSubSub").textContent="Enregistrer les modifications";
       document.getElementById("subsubEditHint").style.display="block";
       document.getElementById("subsubParentSub").scrollIntoView({behavior:"smooth",block:"center"});
@@ -1429,36 +1636,45 @@ function renderStats(){
   drawChart("chartPlaisir",{type:"bar",data:{labels:weeks12.map(function(w){return w.label;}),datasets:[{label:"Plaisir /10",data:agg12.map(function(a){return a.plaisir;}),backgroundColor:"#10B981",borderRadius:4}]},options:baseOptions()});
   document.getElementById("statsPlaisirStats").textContent = statLine(agg12.map(function(a){return a.plaisir;}));
 
-  var zoneMins=[0,0,0,0,0];
-  filteredDone.forEach(function(s){ if(s.actual && s.actual.bpmAvg){ var z=bpmZone(s.actual.bpmAvg); if(z) zoneMins[z-1]+=s.actual.duration||0; } });
-  drawChart("chartZones",{type:"bar",data:{labels:["Zone 1","Zone 2","Zone 3","Zone 4","Zone 5"],datasets:[{label:"Minutes",data:zoneMins,backgroundColor:["#10B981","#2563EB","#F59E0B","#F97316","#EF4444"],borderRadius:4}]},options:baseOptions()});
+  /* ---- Répartition par intensité (interactif) ---- */
+  var modeSel=document.getElementById("statsIntensityMode");
+  if(modeSel && !modeSel._bound){ modeSel._bound=true; modeSel.addEventListener("change", renderStats); }
+  var mode = modeSel ? modeSel.value : "stack";
+  var intWeeks = weeksBack(12);
+  var intData = intWeeks.map(function(w){
+    var ws=filteredDone.filter(function(s){ return inRange(s.date,w.start,w.end); });
+    var t=intensityTotals(ws);
+    if(mode==="pct"){
+      var sum=t.endurance+t.seuil+t.vma;
+      return sum ? {endurance:Math.round(t.endurance/sum*100),seuil:Math.round(t.seuil/sum*100),vma:Math.round(t.vma/sum*100)} : {endurance:0,seuil:0,vma:0};
+    }
+    return {endurance:round1(t.endurance),seuil:round1(t.seuil),vma:round1(t.vma)};
+  });
+  var unit = mode==="pct" ? " %" : " km";
+  drawChart("chartIntensityStats",{ type:"bar",
+    data:{labels:intWeeks.map(function(w){return w.label;}),
+      datasets:Object.keys(INTENSITIES).map(function(k){
+        return {label:INTENSITIES[k].label, data:intData.map(function(d){return d[k];}),
+          backgroundColor:INTENSITIES[k].color, borderRadius:4, stack:"i"};
+      })},
+    options:Object.assign(baseOptions({legend:true}),{
+      onClick:function(evt,els){
+        if(!els.length) return;
+        var i=els[0].index, d=intData[i];
+        var box=document.getElementById("statsIntensityStats");
+        if(box) box.textContent = intWeeks[i].label+" — Endurance "+d.endurance+unit+" · Seuil "+d.seuil+unit+" · VMA "+d.vma+unit;
+      },
+      scales:{
+        x:{stacked:true,grid:{display:false},ticks:{color:"#94A3B8",font:{family:"IBM Plex Mono",size:9}}},
+        y:{stacked:true,beginAtZero:true,max: mode==="pct"?100:undefined,
+           grid:{color:"rgba(15,23,42,0.06)"},
+           ticks:{color:"#64748B",font:{family:"IBM Plex Mono",size:10},callback:function(v){return v+unit;}}}
+      },
+      plugins:{legend:{display:true,position:"bottom",labels:{color:"#64748B",font:{family:"Inter",size:11},boxWidth:10,padding:10}},
+        tooltip:{callbacks:{label:function(c){ return c.dataset.label+" : "+c.parsed.y+unit; }}}}
+    })
+  });
 
-  var selA=document.getElementById("cmpA"), selB=document.getElementById("cmpB");
-  if(!selA.options.length){
-    Object.keys(CMP_METRICS).forEach(function(k){
-      var oA=document.createElement("option");oA.value=k;oA.textContent=CMP_METRICS[k];selA.appendChild(oA);
-      var oB=document.createElement("option");oB.value=k;oB.textContent=CMP_METRICS[k];selB.appendChild(oB);
-    });
-    selA.value="km"; selB.value="deniv";
-    selA.addEventListener("change",renderCompareChart);
-    selB.addEventListener("change",renderCompareChart);
-  }
-  renderCompareChart();
-  function renderCompareChart(){
-    var a=selA.value,b=selB.value;
-    drawChart("chartCompare",{
-      data:{labels:weeks12.map(function(w){return w.label;}),
-        datasets:[
-          {type:"bar",label:CMP_METRICS[a],data:agg12.map(function(x){return x[a];}),backgroundColor:"#2563EB",borderRadius:4,yAxisID:"y"},
-          {type:"line",label:CMP_METRICS[b],data:agg12.map(function(x){return x[b];}),borderColor:"#8B5CF6",backgroundColor:"transparent",tension:.3,pointRadius:2,yAxisID:"y1"}
-        ]},
-      options:Object.assign(baseOptions({legend:true}),{scales:{
-        x:{grid:{display:false},ticks:{color:"#94A3B8",font:{family:"IBM Plex Mono",size:9}}},
-        y:{position:"left",grid:{color:"rgba(15,23,42,0.06)"},ticks:{color:"#64748B",font:{family:"IBM Plex Mono",size:10}},beginAtZero:true},
-        y1:{position:"right",grid:{display:false},ticks:{color:"#64748B",font:{family:"IBM Plex Mono",size:10}},beginAtZero:true}
-      }})
-    });
-  }
 }
 document.getElementById("statsSportFilter").addEventListener("change", renderStats);
 document.getElementById("statsCycleFilter").addEventListener("change", renderStats);
@@ -1601,6 +1817,7 @@ function renderAll(){
   renderGoalBanner();
   renderWeekPanel();
   renderSportCounters();
+  renderIntensityWeek();
   renderPlanification();
   renderRealisees();
   renderParametres();
