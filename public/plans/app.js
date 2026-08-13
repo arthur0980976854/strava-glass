@@ -588,7 +588,120 @@ function renderSportFields(sport, existing){
     container.appendChild(div);
   });
 }
-document.getElementById("sessSport").addEventListener("change", function(){ renderSportFields(this.value, null); });
+/* ---------- Détail par intensité & calculateurs d'allure ---------- */
+var INTENSITIES = {
+  endurance:{label:"Endurance", color:"#10B981"},
+  seuil:{label:"Seuil", color:"#F97316"},
+  vma:{label:"VMA", color:"#EF4444"}
+};
+var DEFAULT_SEGMENTS = [
+  {name:"Échauffement", km:"", intensity:"endurance"},
+  {name:"Bloc de séance", km:"", intensity:"seuil"},
+  {name:"Retour au calme", km:"", intensity:"endurance"}
+];
+var sessSegments = [];
+function isRunSport(name){ return /course|trail|run/i.test(name||""); }
+function isBike(name){ return /vélo|velo|bike|ride/i.test(name||""); }
+
+function segTotalKm(){ return sessSegments.reduce(function(a,s){ return a+(+s.km||0); },0); }
+function renderSegments(){
+  var wrap=document.getElementById("sessSegments"); if(!wrap) return;
+  wrap.innerHTML="";
+  sessSegments.forEach(function(seg, i){
+    var row=document.createElement("div"); row.className="seg-row";
+    row.innerHTML =
+      '<input type="text" class="seg-name" value="'+escapeHtml(seg.name||"")+'" placeholder="Nom du bloc">'+
+      '<div class="seg-km"><input type="number" step="0.1" min="0" value="'+(seg.km===""||seg.km==null?"":seg.km)+'" placeholder="0"><span>km</span></div>'+
+      '<div class="seg-int">'+Object.keys(INTENSITIES).map(function(k){
+        return '<button type="button" class="seg-pill'+(seg.intensity===k?" active":"")+'" data-int="'+k+'" style="--c:'+INTENSITIES[k].color+'">'+INTENSITIES[k].label+'</button>';
+      }).join("")+'</div>'+
+      '<button type="button" class="seg-del" aria-label="Retirer">✕</button>';
+    row.querySelector(".seg-name").addEventListener("input", function(){ seg.name=this.value; });
+    row.querySelector(".seg-km input").addEventListener("input", function(){ seg.km=this.value; updateSegHint(); });
+    row.querySelectorAll(".seg-pill").forEach(function(b){
+      b.addEventListener("click", function(){ seg.intensity=b.dataset.int; renderSegments(); });
+    });
+    row.querySelector(".seg-del").addEventListener("click", function(){ sessSegments.splice(i,1); renderSegments(); updateSegHint(); });
+    wrap.appendChild(row);
+  });
+  var add=document.createElement("button"); add.type="button"; add.className="btn small seg-add"; add.textContent="＋ Ajouter un bloc";
+  add.addEventListener("click", function(){ sessSegments.push({name:"Bloc",km:"",intensity:"endurance"}); renderSegments(); });
+  wrap.appendChild(add);
+  updateSegHint();
+}
+function updateSegHint(){
+  var hint=document.getElementById("segTotalHint"); if(!hint) return;
+  var tot=segTotalKm();
+  var by={endurance:0,seuil:0,vma:0};
+  sessSegments.forEach(function(s){ by[s.intensity]=(by[s.intensity]||0)+(+s.km||0); });
+  hint.textContent = tot ? ("Total "+round1(tot)+" km · End. "+round1(by.endurance)+" · Seuil "+round1(by.seuil)+" · VMA "+round1(by.vma)) : "";
+  // reporte le total dans le champ distance si détaillé
+  var distInput=document.querySelector('#sportSpecificFields [data-metric-key="distance"]');
+  if(distInput && tot) { distInput.value=round1(tot); updatePaceCalc(); }
+}
+function updateSessIntensityUI(sport, session){
+  var wrap=document.getElementById("sessIntensityWrap");
+  if(!wrap) return;
+  var on = isRunSport(sport);
+  wrap.style.display = on ? "block" : "none";
+  var box=document.getElementById("sessSegments");
+  var btn=document.getElementById("btnToggleSegments");
+  var existing = session && session.actual && session.actual.segments;
+  sessSegments = existing && existing.length ? existing.map(function(s){return {name:s.name,km:s.km,intensity:s.intensity};}) : DEFAULT_SEGMENTS.map(function(s){return Object.assign({},s);});
+  var open = !!(existing && existing.length);
+  if(box) box.style.display = open ? "block" : "none";
+  if(btn) btn.textContent = open ? "− Masquer le détail" : "＋ Détailler la séance";
+  if(on) renderSegments();
+}
+(function initSegments(){
+  var btn=document.getElementById("btnToggleSegments"); if(!btn) return;
+  btn.addEventListener("click", function(){
+    var box=document.getElementById("sessSegments");
+    var open = box.style.display!=="none";
+    box.style.display = open ? "none" : "block";
+    btn.textContent = open ? "＋ Détailler la séance" : "− Masquer le détail";
+    if(!open) renderSegments();
+  });
+})();
+
+function fmtPace(minPerUnit){
+  var m=Math.floor(minPerUnit), s=Math.round((minPerUnit-m)*60);
+  if(s===60){ m++; s=0; }
+  return m+"'"+String(s).padStart(2,"0")+"\"";
+}
+function updatePaceCalc(){
+  var box=document.getElementById("sessPaceBox"); if(!box) return;
+  var sport=(document.getElementById("sessSport")||{value:""}).value;
+  var dur=+(sessForm.duration?sessForm.duration.value:0)||0;
+  var distInput=document.querySelector('#sportSpecificFields [data-metric-key="distance"]');
+  var dist=distInput?+distInput.value||0:0;
+  var label=document.getElementById("sessPaceLabel"), val=document.getElementById("sessPaceValue");
+  if(!dur || !dist){ box.style.display="none"; return; }
+  box.style.display="flex";
+  var target=null;
+  if(isSwim(sport)){
+    label.textContent="Allure moyenne";
+    val.textContent = fmtPace(dur/(dist/100))+" /100m";
+    target='paceAvg';
+  } else if(isBike(sport)){
+    label.textContent="Vitesse moyenne";
+    val.textContent = round1(dist/(dur/60))+" km/h";
+    target='speedAvg';
+  } else {
+    label.textContent="Allure moyenne";
+    val.textContent = fmtPace(dur/dist)+" /km";
+    target='paceAvg';
+  }
+  var t=document.querySelector('#sportSpecificFields [data-metric-key="'+target+'"]');
+  if(t) t.value = target==='speedAvg' ? round1(dist/(dur/60)) : val.textContent.replace(/ \/.*$/,"");
+}
+if(sessForm.duration) sessForm.duration.addEventListener("input", updatePaceCalc);
+document.getElementById("sportSpecificFields").addEventListener("input", function(e){
+  if(e.target.dataset && e.target.dataset.metricKey==="distance") updatePaceCalc();
+});
+
+document.getElementById("sessSport").addEventListener("change", function(){ renderSportFields(this.value, null); updateSessIntensityUI(this.value, null); updatePaceCalc(); });
+
 
 function populateTemplateSelect(){
   var sel=document.getElementById("templateLoadSelect");
