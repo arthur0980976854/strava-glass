@@ -794,7 +794,10 @@ function openSessionModal(session, presetDate){
   if(document.getElementById("rpeVal")) document.getElementById("rpeVal").textContent = rpeSlider?rpeSlider.value:"5";
   if(document.getElementById("plaisirVal")) document.getElementById("plaisirVal").textContent = plaisirSlider?plaisirSlider.value:"7";
   renderSportFields(session?session.sport:(document.getElementById("sessSport").value), session&&session.actual?session.actual:null);
+  updateSessIntensityUI(session?session.sport:(document.getElementById("sessSport").value), session);
+  updatePaceCalc();
   toggleSessGroups();
+
   updateBpmZoneHint();
   updateDeltaHint();
   sessOverlay.classList.add("open");
