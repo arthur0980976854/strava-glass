@@ -263,6 +263,77 @@ function renderSportCounters(){
   });
 }
 
+/* ---------- Répartition par intensité ---------- */
+function weekObjectiveKm(mondayISO){
+  var ss = state.subsubcycles.find(function(x){ return mondayISO>=x.start && mondayISO<=x.end && x.objectiveKm; });
+  if(ss) return +ss.objectiveKm;
+  var sub = state.subcycles.find(function(x){ return mondayISO>=x.start && mondayISO<=x.end && x.objectiveKm; });
+  if(sub) return +sub.objectiveKm;
+  var obj = weekObjectiveFor(mondayISO);
+  if(obj){ var m=String(obj.text).match(/(\d+(?:[.,]\d+)?)\s*km/i); if(m) return +m[1].replace(",","."); }
+  return state.profile.weeklyTargetKm ? +state.profile.weeklyTargetKm : 0;
+}
+function sessionIntensityKm(s){
+  var out={endurance:0,seuil:0,vma:0};
+  if(!s.actual) return out;
+  var segs=s.actual.segments;
+  if(segs && segs.length){
+    segs.forEach(function(g){ out[g.intensity||"endurance"] = (out[g.intensity||"endurance"]||0) + (+g.km||0); });
+    return out;
+  }
+  if(!isRunSport(s.sport)) return out;
+  var km=+(s.actual.distance||0); if(!km) return out;
+  var t=(s.sessionType||"")+" "+(s.name||"");
+  if(/vma|fractionn|interval/i.test(t)) out.vma=km;
+  else if(/seuil|tempo|allure sp/i.test(t)) out.seuil=km;
+  else out.endurance=km;
+  return out;
+}
+function intensityTotals(sessions){
+  var tot={endurance:0,seuil:0,vma:0};
+  sessions.forEach(function(s){
+    var k=sessionIntensityKm(s);
+    tot.endurance+=k.endurance; tot.seuil+=k.seuil; tot.vma+=k.vma;
+  });
+  return tot;
+}
+function renderIntensityWeek(){
+  var canvas=document.getElementById("chartIntensityWeek"); if(!canvas||!window.Chart) return;
+  var days=currentWeekDays(), d0=days[0], d1=days[6], monday=isoDate(d0);
+  var done=state.sessions.filter(function(s){return s.status==="done" && inRange(s.date,d0,d1);});
+  var tot=intensityTotals(done);
+  var sum=tot.endurance+tot.seuil+tot.vma;
+  var objKm=weekObjectiveKm(monday);
+  var badge=document.getElementById("intensityObjBadge");
+  if(badge) paintBadge(badge, objKm ? ("Objectif : "+round1(objKm)+" km") : "Objectif km non défini", objKm?"#2563EB":null);
+
+  drawChart("chartIntensityWeek",{
+    type:"doughnut",
+    data:{labels:["Endurance","Seuil","VMA"],
+      datasets:[{data:[round1(tot.endurance),round1(tot.seuil),round1(tot.vma)],
+        backgroundColor:[INTENSITIES.endurance.color,INTENSITIES.seuil.color,INTENSITIES.vma.color],borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:"62%",
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){
+        var pct=sum?Math.round(c.parsed/sum*100):0; return c.label+" : "+c.parsed+" km ("+pct+"%)";
+      }}}}}
+  });
+
+  var legend=document.getElementById("intensityLegend");
+  if(legend){
+    if(!sum){ legend.innerHTML=emptyHTML("Aucun km d'intensité","Détaillez vos séances de course à pied ou trail pour alimenter ce diagramme."); return; }
+    legend.innerHTML = Object.keys(INTENSITIES).map(function(k){
+      var v=tot[k], pct=sum?Math.round(v/sum*100):0;
+      var share = objKm ? (objKm*(k==="endurance"?0.8:k==="seuil"?0.15:0.05)) : 0;
+      var rest = objKm ? Math.max(0, objKm - sum) : 0;
+      return '<div class="int-row"><span class="int-dot" style="background:'+INTENSITIES[k].color+'"></span>'+
+        '<span class="int-name">'+INTENSITIES[k].label+'</span>'+
+        '<span class="int-pct">'+pct+' %</span>'+
+        '<span class="int-km">'+round1(v)+' km</span></div>';
+    }).join("") +
+    '<div class="int-total">Total '+round1(sum)+' km'+(objKm?(' / '+round1(objKm)+' km · reste '+round1(Math.max(0,objKm-sum))+' km'):'')+'</div>';
+  }
+}
+
 /* Modale groupes de sports */
 function renderGroupsModal(){
   var wrap=document.getElementById("groupsList"); if(!wrap) return;
