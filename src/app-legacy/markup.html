@@ -263,29 +263,30 @@
       </div>
 
       <div class="grid cols-2">
-        <div class="panel"><h3 class="block-title">Répartition du volume par sport</h3><div class="chart-box"><canvas id="chartBySport"></canvas></div></div>
         <div class="panel"><h3 class="block-title">Charge d'entraînement par semaine</h3><div class="chart-stats" id="statsLoadStats"></div><div class="chart-box"><canvas id="chartLoad"></canvas></div></div>
         <div class="panel"><h3 class="block-title" title="Ressenti de l'effort, moyenne par semaine">RPE moyen par semaine</h3><div class="chart-stats" id="statsRpeStats"></div><div class="chart-box"><canvas id="chartRpe"></canvas></div></div>
         <div class="panel"><h3 class="block-title">Plaisir ressenti par semaine (/10)</h3><div class="chart-stats" id="statsPlaisirStats"></div><div class="chart-box"><canvas id="chartPlaisir"></canvas></div></div>
-        <div class="panel" style="grid-column:span 2;"><h3 class="block-title" title="Minutes passées dans chaque zone de fréquence cardiaque">Répartition du temps par zone cardio</h3><div class="chart-box"><canvas id="chartZones"></canvas></div></div>
+        <div class="panel"><h3 class="block-title">Répartition du volume par sport</h3><div class="chart-box"><canvas id="chartBySport"></canvas></div></div>
       </div>
 
       <div class="panel">
-        <h3 class="block-title">Comparateur libre (échelles indépendantes gauche/droite)</h3>
-        <div class="filters">
-          <div class="custom-select-wrap">
-            <select id="cmpA" class="custom-select"></select>
-            <span class="custom-select-arrow"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" width="10" height="10"><polyline points="2 4 6 8 10 4"/></svg></span>
-          </div>
-          <span style="color:var(--text-faint);font-family:var(--font-mono);font-size:11px;">vs</span>
-          <div class="custom-select-wrap">
-            <select id="cmpB" class="custom-select"></select>
-            <span class="custom-select-arrow"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" width="10" height="10"><polyline points="2 4 6 8 10 4"/></svg></span>
+        <div class="week-panel-head">
+          <h3 class="block-title" style="margin:0;">Répartition par intensité</h3>
+          <div class="badges">
+            <div class="custom-select-wrap">
+              <select id="statsIntensityMode" class="custom-select">
+                <option value="stack">Km par semaine</option>
+                <option value="pct">Pourcentage par semaine</option>
+              </select>
+              <span class="custom-select-arrow"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" width="10" height="10"><polyline points="2 4 6 8 10 4"/></svg></span>
+            </div>
           </div>
         </div>
-        <div class="chart-box"><canvas id="chartCompare"></canvas></div>
+        <div class="chart-stats" id="statsIntensityStats">Cliquez une barre pour le détail de la semaine.</div>
+        <div class="chart-box"><canvas id="chartIntensityStats"></canvas></div>
       </div>
     </section>
+
 
     <!-- ================= SEANCES REALISEES ================= -->
     <section class="view" id="view-realisees">
