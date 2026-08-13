@@ -606,6 +606,21 @@
         <!-- Sport-specific fields -->
         <div class="sess-sep" data-group="done" id="sportFieldsLabel" style="display:none;"><span>Données sport</span></div>
         <div class="form-grid c3" data-group="done" id="sportSpecificFields"></div>
+        <div class="sess-pace-box" id="sessPaceBox" data-group="done" style="display:none;">
+          <span class="pace-label" id="sessPaceLabel">Allure calculée</span>
+          <span class="pace-value" id="sessPaceValue">—</span>
+        </div>
+
+        <!-- Détail par intensité (course à pied / trail) -->
+        <div id="sessIntensityWrap" style="display:none;">
+          <div class="sess-sep"><span>Détail par intensité</span></div>
+          <div class="sess-intensity-head">
+            <button type="button" class="btn small" id="btnToggleSegments">＋ Détailler la séance</button>
+            <span class="hint" id="segTotalHint"></span>
+          </div>
+          <div class="sess-segments" id="sessSegments" style="display:none;"></div>
+        </div>
+
 
         <!-- Bibliothèque save -->
         <div class="sess-sep"><span>Bibliothèque</span></div>
