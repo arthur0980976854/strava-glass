@@ -1636,36 +1636,45 @@ function renderStats(){
   drawChart("chartPlaisir",{type:"bar",data:{labels:weeks12.map(function(w){return w.label;}),datasets:[{label:"Plaisir /10",data:agg12.map(function(a){return a.plaisir;}),backgroundColor:"#10B981",borderRadius:4}]},options:baseOptions()});
   document.getElementById("statsPlaisirStats").textContent = statLine(agg12.map(function(a){return a.plaisir;}));
 
-  var zoneMins=[0,0,0,0,0];
-  filteredDone.forEach(function(s){ if(s.actual && s.actual.bpmAvg){ var z=bpmZone(s.actual.bpmAvg); if(z) zoneMins[z-1]+=s.actual.duration||0; } });
-  drawChart("chartZones",{type:"bar",data:{labels:["Zone 1","Zone 2","Zone 3","Zone 4","Zone 5"],datasets:[{label:"Minutes",data:zoneMins,backgroundColor:["#10B981","#2563EB","#F59E0B","#F97316","#EF4444"],borderRadius:4}]},options:baseOptions()});
+  /* ---- Répartition par intensité (interactif) ---- */
+  var modeSel=document.getElementById("statsIntensityMode");
+  if(modeSel && !modeSel._bound){ modeSel._bound=true; modeSel.addEventListener("change", renderStats); }
+  var mode = modeSel ? modeSel.value : "stack";
+  var intWeeks = weeksBack(12);
+  var intData = intWeeks.map(function(w){
+    var ws=filteredDone.filter(function(s){ return inRange(s.date,w.start,w.end); });
+    var t=intensityTotals(ws);
+    if(mode==="pct"){
+      var sum=t.endurance+t.seuil+t.vma;
+      return sum ? {endurance:Math.round(t.endurance/sum*100),seuil:Math.round(t.seuil/sum*100),vma:Math.round(t.vma/sum*100)} : {endurance:0,seuil:0,vma:0};
+    }
+    return {endurance:round1(t.endurance),seuil:round1(t.seuil),vma:round1(t.vma)};
+  });
+  var unit = mode==="pct" ? " %" : " km";
+  drawChart("chartIntensityStats",{ type:"bar",
+    data:{labels:intWeeks.map(function(w){return w.label;}),
+      datasets:Object.keys(INTENSITIES).map(function(k){
+        return {label:INTENSITIES[k].label, data:intData.map(function(d){return d[k];}),
+          backgroundColor:INTENSITIES[k].color, borderRadius:4, stack:"i"};
+      })},
+    options:Object.assign(baseOptions({legend:true}),{
+      onClick:function(evt,els){
+        if(!els.length) return;
+        var i=els[0].index, d=intData[i];
+        var box=document.getElementById("statsIntensityStats");
+        if(box) box.textContent = intWeeks[i].label+" — Endurance "+d.endurance+unit+" · Seuil "+d.seuil+unit+" · VMA "+d.vma+unit;
+      },
+      scales:{
+        x:{stacked:true,grid:{display:false},ticks:{color:"#94A3B8",font:{family:"IBM Plex Mono",size:9}}},
+        y:{stacked:true,beginAtZero:true,max: mode==="pct"?100:undefined,
+           grid:{color:"rgba(15,23,42,0.06)"},
+           ticks:{color:"#64748B",font:{family:"IBM Plex Mono",size:10},callback:function(v){return v+unit;}}}
+      },
+      plugins:{legend:{display:true,position:"bottom",labels:{color:"#64748B",font:{family:"Inter",size:11},boxWidth:10,padding:10}},
+        tooltip:{callbacks:{label:function(c){ return c.dataset.label+" : "+c.parsed.y+unit; }}}}
+    })
+  });
 
-  var selA=document.getElementById("cmpA"), selB=document.getElementById("cmpB");
-  if(!selA.options.length){
-    Object.keys(CMP_METRICS).forEach(function(k){
-      var oA=document.createElement("option");oA.value=k;oA.textContent=CMP_METRICS[k];selA.appendChild(oA);
-      var oB=document.createElement("option");oB.value=k;oB.textContent=CMP_METRICS[k];selB.appendChild(oB);
-    });
-    selA.value="km"; selB.value="deniv";
-    selA.addEventListener("change",renderCompareChart);
-    selB.addEventListener("change",renderCompareChart);
-  }
-  renderCompareChart();
-  function renderCompareChart(){
-    var a=selA.value,b=selB.value;
-    drawChart("chartCompare",{
-      data:{labels:weeks12.map(function(w){return w.label;}),
-        datasets:[
-          {type:"bar",label:CMP_METRICS[a],data:agg12.map(function(x){return x[a];}),backgroundColor:"#2563EB",borderRadius:4,yAxisID:"y"},
-          {type:"line",label:CMP_METRICS[b],data:agg12.map(function(x){return x[b];}),borderColor:"#8B5CF6",backgroundColor:"transparent",tension:.3,pointRadius:2,yAxisID:"y1"}
-        ]},
-      options:Object.assign(baseOptions({legend:true}),{scales:{
-        x:{grid:{display:false},ticks:{color:"#94A3B8",font:{family:"IBM Plex Mono",size:9}}},
-        y:{position:"left",grid:{color:"rgba(15,23,42,0.06)"},ticks:{color:"#64748B",font:{family:"IBM Plex Mono",size:10}},beginAtZero:true},
-        y1:{position:"right",grid:{display:false},ticks:{color:"#64748B",font:{family:"IBM Plex Mono",size:10}},beginAtZero:true}
-      }})
-    });
-  }
 }
 document.getElementById("statsSportFilter").addEventListener("change", renderStats);
 document.getElementById("statsCycleFilter").addEventListener("change", renderStats);
