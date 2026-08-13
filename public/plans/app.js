@@ -830,6 +830,13 @@ sessForm.addEventListener("submit", async function(e){
   var distanceKm = metrics["distance"] ? +metrics["distance"] : null;
   var elevation  = metrics["elevation"] ? +metrics["elevation"] : null;
 
+  // Segments d'intensité (course à pied / trail)
+  var segsOpen = document.getElementById("sessSegments") && document.getElementById("sessSegments").style.display!=="none";
+  var segments = (isRunSport(fd.get("sport")) && segsOpen)
+    ? sessSegments.filter(function(s){ return +s.km>0; }).map(function(s){ return {name:s.name||"Bloc", km:+s.km, intensity:s.intensity||"endurance"}; })
+    : [];
+  if(segments.length && !distanceKm){ distanceKm = segments.reduce(function(a,s){return a+s.km;},0); metrics["distance"]=distanceKm; }
+
   var payload={
     date:fd.get("date"), sport:fd.get("sport"), sessionType:fd.get("sessionType"),
     detail:fd.get("detail")||"", objective:fd.get("objective")||"",
@@ -840,9 +847,11 @@ sessForm.addEventListener("submit", async function(e){
       bpmAvg:fd.get("bpmAvg")?+fd.get("bpmAvg"):null,
       rpe:fd.get("rpe")?+fd.get("rpe"):null,
       charge:fd.get("charge")?+fd.get("charge"):0,
-      plaisir:fd.get("plaisir")?+fd.get("plaisir"):null
+      plaisir:fd.get("plaisir")?+fd.get("plaisir"):null,
+      segments: segments
     }, metrics) : null
   };
+
 
   // Save locally first
   if(id){ var s=state.sessions.find(function(x){return x.id===id;}); Object.assign(s,payload); }
