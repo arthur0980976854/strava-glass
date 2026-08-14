@@ -1536,7 +1536,8 @@ function weeksInRange(start,end){
 function weekAgg(weeks, doneSessions){
   return weeks.map(function(w){
     var inW=doneSessions.filter(function(s){var d=parseISO(s.date);return d>=w.start&&d<=w.end;});
-    var km=inW.reduce(function(a,s){return a+((s.actual&&s.actual.distance)||0);},0);
+    var km=inW.filter(function(s){return !isSwim(s.sport);}).reduce(function(a,s){return a+((s.actual&&s.actual.distance)||0);},0);
+    var metres=inW.filter(function(s){return isSwim(s.sport);}).reduce(function(a,s){return a+((s.actual&&s.actual.distance)||0);},0);
     var deniv=inW.reduce(function(a,s){return a+((s.actual&&s.actual.elevation)||0);},0);
     var duree=inW.reduce(function(a,s){return a+((s.actual&&s.actual.duration)||0);},0)/60;
     var charge=inW.reduce(function(a,s){return a+((s.actual&&s.actual.charge)||0);},0);
@@ -1544,9 +1545,17 @@ function weekAgg(weeks, doneSessions){
     var rpe=rpeVals.length? rpeVals.reduce(function(a,b){return a+b;},0)/rpeVals.length : 0;
     var plaisirVals=inW.map(function(s){return s.actual&&s.actual.plaisir;}).filter(function(v){return v;});
     var plaisir=plaisirVals.length? +(plaisirVals.reduce(function(a,b){return a+b;},0)/plaisirVals.length).toFixed(1) : 0;
-    return {km:+km.toFixed(1),deniv:Math.round(deniv),duree:+duree.toFixed(2),charge:Math.round(charge),rpe:+rpe.toFixed(1),plaisir:plaisir};
+    return {km:+km.toFixed(1),metres:Math.round(metres),deniv:Math.round(deniv),duree:+duree.toFixed(2),charge:Math.round(charge),rpe:+rpe.toFixed(1),plaisir:plaisir,count:inW.length};
   });
 }
+/* Décrit ce qui est réellement mesuré pour un sport donné */
+function statsMetricFor(sportName){
+  if(sportName==="all") return {key:"km",label:"Distance",unit:" km",elev:true};
+  if(isSwim(sportName)) return {key:"metres",label:"Distance",unit:" m",elev:false};
+  if(/muscu|renfo|gainage/i.test(sportName)) return {key:"count",label:"Séances",unit:"",elev:false};
+  return {key:"km",label:"Distance",unit:" km",elev:true};
+}
+
 function drawChart(canvasId,config){
   var ctx=document.getElementById(canvasId).getContext("2d");
   if(charts[canvasId]) charts[canvasId].destroy();
