@@ -1536,7 +1536,8 @@ function weeksInRange(start,end){
 function weekAgg(weeks, doneSessions){
   return weeks.map(function(w){
     var inW=doneSessions.filter(function(s){var d=parseISO(s.date);return d>=w.start&&d<=w.end;});
-    var km=inW.reduce(function(a,s){return a+((s.actual&&s.actual.distance)||0);},0);
+    var km=inW.filter(function(s){return !isSwim(s.sport);}).reduce(function(a,s){return a+((s.actual&&s.actual.distance)||0);},0);
+    var metres=inW.filter(function(s){return isSwim(s.sport);}).reduce(function(a,s){return a+((s.actual&&s.actual.distance)||0);},0);
     var deniv=inW.reduce(function(a,s){return a+((s.actual&&s.actual.elevation)||0);},0);
     var duree=inW.reduce(function(a,s){return a+((s.actual&&s.actual.duration)||0);},0)/60;
     var charge=inW.reduce(function(a,s){return a+((s.actual&&s.actual.charge)||0);},0);
@@ -1544,9 +1545,17 @@ function weekAgg(weeks, doneSessions){
     var rpe=rpeVals.length? rpeVals.reduce(function(a,b){return a+b;},0)/rpeVals.length : 0;
     var plaisirVals=inW.map(function(s){return s.actual&&s.actual.plaisir;}).filter(function(v){return v;});
     var plaisir=plaisirVals.length? +(plaisirVals.reduce(function(a,b){return a+b;},0)/plaisirVals.length).toFixed(1) : 0;
-    return {km:+km.toFixed(1),deniv:Math.round(deniv),duree:+duree.toFixed(2),charge:Math.round(charge),rpe:+rpe.toFixed(1),plaisir:plaisir};
+    return {km:+km.toFixed(1),metres:Math.round(metres),deniv:Math.round(deniv),duree:+duree.toFixed(2),charge:Math.round(charge),rpe:+rpe.toFixed(1),plaisir:plaisir,count:inW.length};
   });
 }
+/* Décrit ce qui est réellement mesuré pour un sport donné */
+function statsMetricFor(sportName){
+  if(sportName==="all") return {key:"km",label:"Distance",unit:" km",elev:true};
+  if(isSwim(sportName)) return {key:"metres",label:"Distance",unit:" m",elev:false};
+  if(/muscu|renfo|gainage/i.test(sportName)) return {key:"count",label:"Séances",unit:"",elev:false};
+  return {key:"km",label:"Distance",unit:" km",elev:true};
+}
+
 function drawChart(canvasId,config){
   var ctx=document.getElementById(canvasId).getContext("2d");
   if(charts[canvasId]) charts[canvasId].destroy();
@@ -1596,45 +1605,77 @@ function renderStats(){
     weeksForCycle = c ? weeksInRange(parseISO(c.start),parseISO(c.end)) : weeksBack(12);
   } else { weeksForCycle = weeksBack(12); }
   var aggCycle = weekAgg(weeksForCycle, filteredDone);
+  var metric = statsMetricFor(sportFilterVal);
+  var mainData = aggCycle.map(function(a){ return a[metric.key]; });
+  var dsMain = {type:"bar",label:metric.label+(metric.unit?" ("+metric.unit.trim()+")":""),data:mainData,backgroundColor:"#2563EB",borderRadius:4,yAxisID:"y"};
+  var dsList=[dsMain];
+  if(metric.elev) dsList.push({type:"line",label:"D+ (m)",data:aggCycle.map(function(a){return a.deniv;}),borderColor:"#F97316",backgroundColor:"transparent",tension:.3,pointRadius:2,yAxisID:"y1"});
+  var scalesMain={
+    x:{grid:{display:false},ticks:{color:"#94A3B8",font:{family:"IBM Plex Mono",size:9}}},
+    y:{position:"left",title:{display:true,text:metric.label+(metric.unit?" ("+metric.unit.trim()+")":""),color:"#64748B",font:{family:"Inter",size:10}},grid:{color:"rgba(15,23,42,0.06)"},ticks:{color:"#64748B",font:{family:"IBM Plex Mono",size:10},callback:function(v){return v+metric.unit;}},beginAtZero:true}
+  };
+  if(metric.elev) scalesMain.y1={position:"right",title:{display:true,text:"D+ (m)",color:"#64748B",font:{family:"Inter",size:10}},grid:{display:false},ticks:{color:"#64748B",font:{family:"IBM Plex Mono",size:10},callback:function(v){return v+" m";}},beginAtZero:true};
   drawChart("chartCycleKmDeniv",{
-    data:{ labels:weeksForCycle.map(function(w){return w.label;}),
-      datasets:[
-        {type:"bar",label:"Km",data:aggCycle.map(function(a){return a.km;}),backgroundColor:"#2563EB",borderRadius:4,yAxisID:"y"},
-        {type:"line",label:"D+ (m)",data:aggCycle.map(function(a){return a.deniv;}),borderColor:"#F97316",backgroundColor:"transparent",tension:.3,pointRadius:2,yAxisID:"y1"}
-      ]},
-    options:Object.assign(baseOptions({legend:true}),{scales:{
-      x:{grid:{display:false},ticks:{color:"#94A3B8",font:{family:"IBM Plex Mono",size:9}}},
-      y:{position:"left",grid:{color:"rgba(15,23,42,0.06)"},ticks:{color:"#64748B",font:{family:"IBM Plex Mono",size:10}},beginAtZero:true},
-      y1:{position:"right",grid:{display:false},ticks:{color:"#64748B",font:{family:"IBM Plex Mono",size:10}},beginAtZero:true}
-    }})
+    data:{ labels:weeksForCycle.map(function(w){return w.label;}), datasets:dsList },
+    options:Object.assign(baseOptions({legend:true}),{
+      scales:scalesMain,
+      plugins:{legend:{display:true,position:"bottom",labels:{color:"#64748B",font:{family:"Inter",size:11},boxWidth:10,padding:10}},
+        tooltip:{callbacks:{label:function(c){ return c.dataset.label+" : "+c.parsed.y+(c.dataset.yAxisID==="y1"?" m":metric.unit); }}}}
+    })
   });
-  document.getElementById("statsKmDenivStats").textContent = "Km — "+statLine(aggCycle.map(function(a){return a.km;}))+"   ·   D+ — "+statLine(aggCycle.map(function(a){return a.deniv;}));
+  document.getElementById("statsKmDenivStats").textContent = metric.label+" — "+statLine(mainData,metric.unit)+(metric.elev? "   ·   D+ — "+statLine(aggCycle.map(function(a){return a.deniv;})," m") : "");
+  var titleEl=document.getElementById("statsKmDenivTitle");
+  if(titleEl) titleEl.textContent = metric.key==="count" ? "Séances par semaine" : (metric.elev ? "Distance (km) & dénivelé par semaine" : "Distance (m) par semaine");
 
   var period=+document.getElementById("statsTimePeriod").value;
   var weeksTime=weeksBack(period);
   var aggTime=weekAgg(weeksTime,filteredDone);
   drawChart("chartTime",{ type:"bar",
-    data:{labels:weeksTime.map(function(w){return w.label;}),datasets:[{label:"Heures",data:aggTime.map(function(a){return a.duree;}),backgroundColor:"#2563EB",borderRadius:4}]},
-    options:baseOptions()
+    data:{labels:weeksTime.map(function(w){return w.label;}),datasets:[{label:"Durée",data:aggTime.map(function(a){return a.duree;}),backgroundColor:"#2563EB",borderRadius:4}]},
+    options:Object.assign(baseOptions(),{
+      scales:{
+        x:{grid:{display:false},ticks:{color:"#94A3B8",font:{family:"IBM Plex Mono",size:9}}},
+        y:{beginAtZero:true,title:{display:true,text:"Heures",color:"#64748B",font:{family:"Inter",size:10}},grid:{color:"rgba(15,23,42,0.06)"},ticks:{color:"#64748B",font:{family:"IBM Plex Mono",size:10},callback:function(v){return v+" h";}}}
+      },
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){ return "Durée : "+fmtMin(c.parsed.y*60); }}}}
+    })
   });
-  document.getElementById("statsTimeStats").textContent = statLine(aggTime.map(function(a){return a.duree;}),"h");
+  document.getElementById("statsTimeStats").textContent = statLine(aggTime.map(function(a){return a.duree;})," h");
 
+  /* Répartition du volume par sport — en heures (unité commune à tous les sports) */
   var bySport={};
-  doneSessions.forEach(function(s){ var sp=s.sport||"Autre"; bySport[sp]=(bySport[sp]||0)+((s.actual&&s.actual.distance)||0); });
-  var sportsK=Object.keys(bySport);
+  doneSessions.forEach(function(s){ var sp=s.sport||"Autre"; bySport[sp]=(bySport[sp]||0)+((s.actual&&s.actual.duration)||0); });
+  var sportsK=Object.keys(bySport).filter(function(k){return bySport[k]>0;});
+  var totalMin=sportsK.reduce(function(a,k){return a+bySport[k];},0);
   drawChart("chartBySport",{ type:"doughnut",
-    data:{labels:sportsK,datasets:[{data:sportsK.map(function(k){return +bySport[k].toFixed(1);}),backgroundColor:sportsK.map(sportColor),borderWidth:0}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'bottom',labels:{color:"#64748B",font:{family:"Inter",size:11},boxWidth:10,padding:10}}}}
+    data:{labels:sportsK,datasets:[{data:sportsK.map(function(k){return +(bySport[k]/60).toFixed(2);}),backgroundColor:sportsK.map(sportColor),borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{
+      legend:{display:true,position:'bottom',labels:{color:"#64748B",font:{family:"Inter",size:11},boxWidth:10,padding:10}},
+      tooltip:{callbacks:{label:function(c){ var min=c.parsed*60; var pct=totalMin?Math.round(min/totalMin*100):0; return c.label+" : "+fmtMin(min)+" ("+pct+"%)"; }}}
+    }}
   });
 
   var weeks12=weeksBack(12);
   var agg12=weekAgg(weeks12,filteredDone);
-  drawChart("chartLoad",{type:"bar",data:{labels:weeks12.map(function(w){return w.label;}),datasets:[{label:"Charge",data:agg12.map(function(a){return a.charge;}),backgroundColor:"#F59E0B",borderRadius:4}]},options:baseOptions()});
+  drawChart("chartLoad",{type:"bar",data:{labels:weeks12.map(function(w){return w.label;}),datasets:[{label:"Charge",data:agg12.map(function(a){return a.charge;}),backgroundColor:"#F59E0B",borderRadius:4}]},
+    options:Object.assign(baseOptions(),{scales:{
+      x:{grid:{display:false},ticks:{color:"#94A3B8",font:{family:"IBM Plex Mono",size:9}}},
+      y:{beginAtZero:true,title:{display:true,text:"Charge (UA)",color:"#64748B",font:{family:"Inter",size:10}},grid:{color:"rgba(15,23,42,0.06)"},ticks:{color:"#64748B",font:{family:"IBM Plex Mono",size:10}}}
+    }})});
   document.getElementById("statsLoadStats").textContent = statLine(agg12.map(function(a){return a.charge;}));
-  drawChart("chartRpe",{type:"bar",data:{labels:weeks12.map(function(w){return w.label;}),datasets:[{label:"RPE moyen",data:agg12.map(function(a){return a.rpe;}),backgroundColor:"#EC4899",borderRadius:4}]},options:baseOptions()});
-  document.getElementById("statsRpeStats").textContent = statLine(agg12.map(function(a){return a.rpe;}));
-  drawChart("chartPlaisir",{type:"bar",data:{labels:weeks12.map(function(w){return w.label;}),datasets:[{label:"Plaisir /10",data:agg12.map(function(a){return a.plaisir;}),backgroundColor:"#10B981",borderRadius:4}]},options:baseOptions()});
-  document.getElementById("statsPlaisirStats").textContent = statLine(agg12.map(function(a){return a.plaisir;}));
+  drawChart("chartRpe",{type:"bar",data:{labels:weeks12.map(function(w){return w.label;}),datasets:[{label:"RPE moyen",data:agg12.map(function(a){return a.rpe;}),backgroundColor:"#EC4899",borderRadius:4}]},
+    options:Object.assign(baseOptions(),{scales:{
+      x:{grid:{display:false},ticks:{color:"#94A3B8",font:{family:"IBM Plex Mono",size:9}}},
+      y:{beginAtZero:true,max:10,title:{display:true,text:"RPE / 10",color:"#64748B",font:{family:"Inter",size:10}},grid:{color:"rgba(15,23,42,0.06)"},ticks:{stepSize:2,color:"#64748B",font:{family:"IBM Plex Mono",size:10}}}
+    }})});
+  document.getElementById("statsRpeStats").textContent = statLine(agg12.map(function(a){return a.rpe;}),"/10");
+  drawChart("chartPlaisir",{type:"bar",data:{labels:weeks12.map(function(w){return w.label;}),datasets:[{label:"Plaisir /10",data:agg12.map(function(a){return a.plaisir;}),backgroundColor:"#10B981",borderRadius:4}]},
+    options:Object.assign(baseOptions(),{scales:{
+      x:{grid:{display:false},ticks:{color:"#94A3B8",font:{family:"IBM Plex Mono",size:9}}},
+      y:{beginAtZero:true,max:10,title:{display:true,text:"Plaisir / 10",color:"#64748B",font:{family:"Inter",size:10}},grid:{color:"rgba(15,23,42,0.06)"},ticks:{stepSize:2,color:"#64748B",font:{family:"IBM Plex Mono",size:10}}}
+    }})});
+  document.getElementById("statsPlaisirStats").textContent = statLine(agg12.map(function(a){return a.plaisir;}),"/10");
+
 
   /* ---- Répartition par intensité (interactif) ---- */
   var modeSel=document.getElementById("statsIntensityMode");
