@@ -604,6 +604,8 @@ h1, h2, h3, h4 { letter-spacing: -0.02em; }
 .add-hint { font-size: 11px; color: var(--text-faint); }
 
 .month-nav {
+  display: inline-flex;
+  align-items: center;
   gap: 6px;
   padding: 4px;
   border-radius: 999px;
@@ -611,6 +613,7 @@ h1, h2, h3, h4 { letter-spacing: -0.02em; }
   border: 1px solid var(--glass-stroke);
   backdrop-filter: blur(14px) saturate(160%);
 }
+.month-nav button { flex: 0 0 auto; }
 .month-nav button {
   width: 30px;
   height: 30px;
