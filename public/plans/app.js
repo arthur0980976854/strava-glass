@@ -1624,6 +1624,8 @@ function renderStats(){
     })
   });
   document.getElementById("statsKmDenivStats").textContent = metric.label+" — "+statLine(mainData,metric.unit)+(metric.elev? "   ·   D+ — "+statLine(aggCycle.map(function(a){return a.deniv;})," m") : "");
+  var titleEl=document.getElementById("statsKmDenivTitle");
+  if(titleEl) titleEl.textContent = metric.key==="count" ? "Séances par semaine" : (metric.elev ? "Distance (km) & dénivelé par semaine" : "Distance (m) par semaine");
 
   var period=+document.getElementById("statsTimePeriod").value;
   var weeksTime=weeksBack(period);
