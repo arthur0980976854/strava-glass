@@ -1,4 +1,4 @@
-/* intervals.icu live dashboard — SSE + DOM updates. */
+/* COROS live dashboard — SSE + DOM updates. */
 (function () {
   "use strict";
 
@@ -46,8 +46,7 @@
       '<div><h4>' + esc(a.name) + "</h4>" +
       '<div class="act-meta">' + esc(a.type) + " · " + esc(fmtDate(a.start_date)) + "</div></div></header>" +
       '<div class="metrics">' + metrics + "</div>" +
-      '<a class="act-link" href="https://intervals.icu/activities/' + encodeURIComponent(a.id) +
-      '" target="_blank" rel="noopener">Voir sur intervals.icu →</a>' +
+      '<a class="act-link" href="https://traininghub.coros.com/" target="_blank" rel="noopener">Voir sur COROS →</a>' +
       "</article>";
   }
 
@@ -75,7 +74,7 @@
     var box = el("stravaActivities");
     if (!box) return;
     if (!activities.length) {
-      box.innerHTML = '<div class="glass-card empty-state"><b>Aucune activité</b>Connecte ton compte intervals.icu pour voir tes sorties Strava apparaître ici, en direct.</div>';
+      box.innerHTML = '<div class="glass-card empty-state"><b>Aucune activité</b>Connecte ton compte COROS pour voir tes sorties apparaître ici, en direct.</div>';
       return;
     }
     box.innerHTML = activities.map(function (a) {
@@ -121,12 +120,40 @@
   }
 
   function setConnected(connected, athlete) {
-    var connectBtn = el("btnStravaConnect");
-    var disconnectBtn = el("btnStravaDisconnect");
+    var form = el("corosLoginForm");
+    var connectedBar = el("stravaConnectedBar");
     var account = el("stravaAccount");
-    if (connectBtn) connectBtn.style.display = connected ? "none" : "";
-    if (disconnectBtn) disconnectBtn.style.display = connected ? "" : "none";
+    if (form) form.style.display = connected ? "none" : "";
+    if (connectedBar) connectedBar.style.display = connected ? "flex" : "none";
     if (account) account.textContent = connected ? "Connecté" + (athlete ? " — " + athlete : "") : "Non connecté";
+  }
+
+  async function submitLogin(email, password) {
+    var btn = el("btnCorosLogin");
+    if (btn) { btn.disabled = true; btn.textContent = "Connexion…"; }
+    try {
+      var res = await fetch("/api/coros/login", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email: email, password: password })
+      });
+      var json = await res.json();
+      if (!res.ok || json.error) {
+        toast("COROS : " + (json.error || "échec de connexion"));
+        return false;
+      }
+      // Full reload: the session is now linked to the account, so the app
+      // re-reads the account's planning state + activities (same data on any
+      // device).
+      window.location.href = "/?coros=connected";
+      return true;
+    } catch (e) {
+      toast("Impossible de se connecter à COROS");
+      return false;
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = "Se connecter"; }
+    }
   }
 
   function setLive(on, label) {
@@ -148,25 +175,22 @@
 
   async function loadActivities() {
     try {
-      var res = await fetch("/api/intervals/activities", { credentials: "same-origin" });
+      var res = await fetch("/api/coros/activities", { credentials: "same-origin" });
       var json = await res.json();
       setConnected(json.connected, json.athlete);
       byId = {};
       mergeActivities(json.activities || [], false);
       if (json.error) {
-        // intervals.icu tokens are single-use with no refresh flow: once one is
-        // rejected (expired, revoked or re-established elsewhere) the user must
-        // simply reconnect. Make that the actionable message.
-        toast("intervals.icu : " + json.error + " — reconnecte-toi pour continuer");
+        toast("COROS : " + json.error + " — reconnecte-toi pour continuer");
       }
     } catch (e) {
-      toast("Impossible de charger les activités intervals.icu");
+      toast("Impossible de charger les activités COROS");
     }
   }
 
   function connectStream() {
     if (!window.EventSource) return;
-    var es = new EventSource("/api/intervals/stream", { withCredentials: true });
+    var es = new EventSource("/api/coros/stream", { withCredentials: true });
     es.addEventListener("ready", function (ev) {
       var data = JSON.parse(ev.data);
       setLive(true, data.connected ? "En direct" : "En attente de connexion");
@@ -183,22 +207,35 @@
   function init() {
     var refresh = el("btnStravaRefresh");
     if (refresh) refresh.addEventListener("click", loadActivities);
+    var form = el("corosLoginForm");
+    if (form) {
+      form.addEventListener("submit", function (ev) {
+        ev.preventDefault();
+        var email = el("corosEmail") ? el("corosEmail").value.trim() : "";
+        var password = el("corosPassword") ? el("corosPassword").value : "";
+        if (!email || !password) {
+          toast("Renseigne ton e-mail et ton mot de passe COROS");
+          return;
+        }
+        submitLogin(email, password);
+      });
+    }
     var disconnect = el("btnStravaDisconnect");
     if (disconnect) {
       disconnect.addEventListener("click", async function () {
-        await fetch("/api/intervals/activities", { method: "DELETE", credentials: "same-origin" });
+        await fetch("/api/coros/activities", { method: "DELETE", credentials: "same-origin" });
         byId = {};
         activities = [];
         setConnected(false);
         renderActivities([]);
-        toast("Compte intervals.icu déconnecté");
+        toast("Compte COROS déconnecté");
       });
     }
 
     var params = new URLSearchParams(window.location.search);
-    if (params.get("intervals") === "connected") toast("intervals.icu connecté 🎉");
-    if (params.get("intervals_error")) toast("intervals.icu : " + params.get("intervals_error"));
-    if (params.get("intervals") || params.get("intervals_error")) {
+    if (params.get("coros") === "connected") toast("COROS connecté 🎉");
+    if (params.get("coros_error")) toast("COROS : " + params.get("coros_error"));
+    if (params.get("coros") || params.get("coros_error")) {
       var nav = document.querySelector('#mainNav button[data-view="strava"]');
       if (nav) nav.click();
       window.history.replaceState({}, "", window.location.pathname);

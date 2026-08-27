@@ -484,7 +484,7 @@ function makePill(s){
 }
 
 /* =========================================================================
-   MODAL SEANCE — redesigned + intervals.icu integration
+   MODAL SEANCE — redesigned + COROS integration
    ========================================================================= */
 var sessOverlay=document.getElementById("sessModalOverlay");
 var sessForm=document.getElementById("sessForm");
@@ -532,8 +532,8 @@ function toggleSessGroups(){
   // Sync banner wording
   var msg=document.getElementById("sessSyncMsg");
   if(msg) msg.textContent = isDone
-    ? "Activité réalisée → synchronisée sur intervals.icu via l'API"
-    : "Séance planifiée → ajoutée au calendrier intervals.icu";
+    ? "Activité réalisée → enregistrée"
+    : "Séance planifiée → enregistrée";
   // Icon + tab colour
   var icon=document.getElementById("sessModalIcon");
   if(icon) icon.classList.toggle("icon-done", isDone);
@@ -585,26 +585,26 @@ document.getElementById("sessModalCancelBtn").addEventListener("click", function
   sessOverlay.classList.remove("open");
 });
 
-// intervals.icu: check connection status
-var _intervalsConnected = false;
-(function checkIntervalsConnection(){
-  fetch("/api/intervals/activities",{credentials:"same-origin"})
+// COROS: check connection status
+var _corosConnected = false;
+(function checkCorosConnection(){
+  fetch("/api/coros/activities",{credentials:"same-origin"})
     .then(function(r){return r.json();})
     .then(function(j){
-      _intervalsConnected = !!j.connected;
+      _corosConnected = !!j.connected;
       var banner=document.getElementById("sessSyncBanner");
       var msg=document.getElementById("sessSyncMsg");
-      if(banner && !_intervalsConnected){
+      if(banner && !_corosConnected){
         banner.className="sess-sync-banner error";
-        if(msg) msg.textContent="Non connecté à intervals.icu — la séance sera sauvegardée localement uniquement";
+        if(msg) msg.textContent="Non connecté à COROS — la séance sera sauvegardée localement uniquement";
       }
     }).catch(function(){});
 })();
 
-// POST to intervals.icu
-async function syncToIntervals(payload, status){
+// POST to COROS (local-only: COROS has no public write API)
+async function syncToCoros(payload, status){
   try {
-    var endpoint = status==="done" ? "/api/intervals/activities" : "/api/intervals/events";
+    var endpoint = status==="done" ? "/api/coros/activities" : "/api/coros/events";
     var res = await fetch(endpoint, {
       method: "POST",
       credentials: "same-origin",
@@ -831,12 +831,12 @@ function openSessionModal(session, presetDate){
   // Title + sub
   document.getElementById("sessModalTitle").textContent = session ? "Modifier la séance" : "Nouvelle séance";
   var sub=document.getElementById("sessModalSub");
-  if(sub) sub.textContent = _intervalsConnected ? "intervals.icu · Synchronisation activée" : "intervals.icu · Non connecté";
+  if(sub) sub.textContent = _corosConnected ? "COROS · Synchronisation activée" : "COROS · Non connecté";
   // Reset sync banner
-  setSyncBanner("", _intervalsConnected
-    ? "La séance sera synchronisée sur intervals.icu"
-    : "Non connecté à intervals.icu — sauvegarde locale uniquement");
-  if(!_intervalsConnected){
+  setSyncBanner("", _corosConnected
+    ? "La séance sera synchronisée sur COROS"
+    : "Non connecté à COROS — sauvegarde locale uniquement");
+  if(!_corosConnected){
     var banner=document.getElementById("sessSyncBanner");
     if(banner) banner.className="sess-sync-banner error";
   }
@@ -899,7 +899,7 @@ sessForm.addEventListener("submit", async function(e){
     metrics[key] = inp.type==="number" ? (inp.value?+inp.value:0) : inp.value;
   });
 
-  // Collect sport-specific km/elevation from metrics for intervals API
+  // Collect sport-specific km/elevation from metrics for COROS API
   var distanceKm = metrics["distance"] ? +metrics["distance"] : null;
   var elevation  = metrics["elevation"] ? +metrics["elevation"] : null;
 
@@ -932,9 +932,9 @@ sessForm.addEventListener("submit", async function(e){
   saveData(true);
   renderAll();
 
-  // Sync to intervals.icu if connected
-  if(_intervalsConnected){
-    var intervalsPayload = {
+  // Sync to COROS (local-only: COROS has no public write API)
+  if(_corosConnected){
+    var corosPayload = {
       date: fd.get("date"),
       sport: fd.get("sport"),
       name: payload.name,
@@ -942,23 +942,23 @@ sessForm.addEventListener("submit", async function(e){
       objective: fd.get("objective")||""
     };
     if(status==="planned"){
-      intervalsPayload.durationPlanned = fd.get("durationPlanned")?+fd.get("durationPlanned"):null;
+      corosPayload.durationPlanned = fd.get("durationPlanned")?+fd.get("durationPlanned"):null;
     } else {
-      intervalsPayload.duration = +fd.get("duration")||0;
-      if(fd.get("bpmAvg")) intervalsPayload.bpmAvg = +fd.get("bpmAvg");
-      if(fd.get("charge")) intervalsPayload.charge = +fd.get("charge");
-      if(fd.get("rpe")) intervalsPayload.rpe = +fd.get("rpe");
-      if(distanceKm) intervalsPayload.distance = distanceKm;
-      if(elevation) intervalsPayload.elevation = elevation;
+      corosPayload.duration = +fd.get("duration")||0;
+      if(fd.get("bpmAvg")) corosPayload.bpmAvg = +fd.get("bpmAvg");
+      if(fd.get("charge")) corosPayload.charge = +fd.get("charge");
+      if(fd.get("rpe")) corosPayload.rpe = +fd.get("rpe");
+      if(distanceKm) corosPayload.distance = distanceKm;
+      if(elevation) corosPayload.elevation = elevation;
     }
-    var syncResult = await syncToIntervals(intervalsPayload, status);
+    var syncResult = await syncToCoros(corosPayload, status);
     if(syncResult.ok){
-      setSyncBanner("success", "✓ Synchronisé sur intervals.icu");
-      toast("Séance enregistrée et synchronisée sur intervals.icu ✓");
+      setSyncBanner("success", "✓ Séance enregistrée");
+      toast("Séance enregistrée ✓");
       setTimeout(function(){ sessOverlay.classList.remove("open"); }, 900);
     } else {
-      setSyncBanner("error", "⚠ intervals.icu : "+syncResult.error+" — sauvegardé localement");
-      toast("Sauvegardé localement. Erreur intervals.icu : "+syncResult.error);
+      setSyncBanner("error", "⚠ COROS : "+syncResult.error+" — sauvegardé localement");
+      toast("Sauvegardé localement. Erreur COROS : "+syncResult.error);
       setTimeout(function(){ sessOverlay.classList.remove("open"); }, 2200);
     }
   } else {

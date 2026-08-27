@@ -61,60 +61,59 @@ Un fichier .env.example contenant les clés nécessaires (STRAVA_CLIENT_ID, STRA
 Une explication étape par étape pour configurer l'application chez Strava (Callback URL, Webhook Endpoint).
 
 > Note : le spec ci-dessus décrit le besoin d'origine. L'implémentation actuelle
-> passe par **intervals.icu** (lui-même relié à ton compte Strava) plutôt que par
-> l'API Strava directe : plus simple et plus fiable.
+> lit tes activités directement depuis ton compte **COROS** (Training Hub),
+> sans passer par Strava ni intervals.icu.
 
 ## Comment ça marche (architecture actuelle)
 
-1. L'utilisateur clique « Se connecter avec intervals.icu » → `/api/intervals/authorize`.
-2. Le serveur redirige vers le consentement OAuth intervals.icu, en passant un
-   paramètre `state` lié à la session courante.
-3. `intervals.icu` redirige vers `/api/intervals/callback` avec un `code`.
-4. Le serveur échange le code contre un `access_token`, associe ce token à la
-   session (cookie signé `plans_sid`) et importe les activités récentes.
-5. Le dashboard se connecte en **Server-Sent Events** à `/api/intervals/stream`,
-   qui re-poll intervals.icu toutes les ~30 s et pousse les nouvelles activités en direct.
-6. Planifier une séance ou marquer une séance réalisée synchronise automatiquement
-   sur le calendrier / historique intervals.icu (et donc Strava).
+1. Ouvrez l'onglet **COROS** : un formulaire demande l'**e-mail** et le **mot de
+   passe** de ton compte COROS.
+2. `POST /api/coros/login` teste ces identifiants sur le COROS Training Hub
+   (API non publique, login e-mail / mot de passe — pas d'OAuth tiers). Le mot
+   de passe n'est utilisé qu'une fois pour obtenir un token ; il n'est jamais
+   stocké.
+3. **Compte utilisateur** : le login crée (ou réutilise) un compte identifié par
+   l'e-mail COROS, et lie la session du navigateur à ce compte. Les données de
+   planning (`/api/state`) et les activités suivent le **compte**, pas l'appareil :
+   se connecter au même compte COROS depuis un autre téléphone ou ordinateur
+   retrouve automatiquement toutes ses données. Les données saisies avant la
+   première connexion sont migrées vers le compte.
+4. Le serveur liste les activités COROS (`/activity/query`), télécharge le fichier
+   **TCX** de chacune et en extrait les métriques (distance, durée, FC, D+, calories).
+5. Le dashboard se connecte en **Server-Sent Events** à `/api/coros/stream`,
+   qui re-poll COROS toutes les ~30 s et pousse les nouvelles activités en direct.
+6. Planifier une séance ou marquer une séance réalisée est sauvegardé dans la base
+   Turso, rattaché au compte — COROS n'expose pas d'API d'écriture publique.
 
-## Configurer l'application (intervals.icu + Strava)
+## Configurer (COROS)
 
-### 1. Créer une application intervals.icu
+### 1. Renseigner l'environnement
 
-Envoyez un e-mail à **david@intervals.icu** avec : nom de l'app, description, URL du
-site, logo carré (≥ 128×128), URL de politique de confidentialité et votre *redirect
-URI* : `https://plans3.lovable.app/api/intervals/callback` (codée en dur dans
-`src/lib/intervals.server.ts`).
-
-Une fois créée, allez sur <https://intervals.icu/settings> → « Manage App » pour
-récupérer votre **client_id** et votre **secret**.
-
-### 2. Renseigner l'environnement
-
-Copiez `.env.example` vers `.env` et remplissez :
+Copiez `.env.example` vers `.env` et remplissez au minimum :
 
 ```
-INTERVALS_CLIENT_ID=<numero>
-INTERVALS_API_KEY=<votre secret intervals.icu>
 TURSO_DATABASE_URL=libsql://...
 TURSO_AUTH_TOKEN=...
 SESSION_SECRET=<longue chaine aleatoire>
 ```
 
-### 3. Lancer
+`COROS_API_URL` est optionnel (défaut Europe `https://teameuapi.coros.com` ;
+Amérique `https://teamapi.coros.com` ; Chine `https://teamcnapi.coros.com`).
+
+### 2. Lancer
 
 ```sh
 npm i
 npm run dev
 ```
 
-Puis ouvrez l'onglet **intervals.icu** et cliquez « Se connecter avec intervals.icu ».
-Vous êtes redirigé vers intervals.icu (qui se connecte à votre compte Strava), puis
-ramené sur le tableau de bord avec vos activités synchronisées en direct.
+Puis ouvrez l'onglet **COROS** et connectez-vous avec l'e-mail / le mot de passe
+de votre compte COROS. Les activités du compte sont importées et mises à jour
+en direct.
 
-> Dépannage : si la connexion échoue avec « Accès intervals.icu refusé », c'est que le
-> token a été révoqué ou remplacé (intervals.icu n'a pas de *refresh token*).
-> Déconnectez-vous puis reconnectez-vous depuis l'onglet intervals.icu.
+> ⚠ Cette API COROS n'est pas publique : elle est maintenue par la communauté
+> et peut changer ou casser à tout moment. En cas d'échec de connexion, vérifie
+> que l'e-mail / mot de passe COROS sont corrects et à jour.
 
 ## Build with Lovable
 

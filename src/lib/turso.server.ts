@@ -34,23 +34,35 @@ export async function ensureSchema(): Promise<void> {
              data TEXT NOT NULL,
              updated_at INTEGER NOT NULL
            )`,
-          `CREATE TABLE IF NOT EXISTS intervals_tokens (
-             session_id TEXT PRIMARY KEY,
-             athlete_id TEXT NOT NULL,
+          `CREATE TABLE IF NOT EXISTS coros_accounts (
+             email TEXT PRIMARY KEY,
              athlete_name TEXT,
+             created_at INTEGER NOT NULL
+           )`,
+          `CREATE TABLE IF NOT EXISTS session_accounts (
+             session_id TEXT PRIMARY KEY,
+             email TEXT NOT NULL,
+             linked_at INTEGER NOT NULL
+           )`,
+          `CREATE TABLE IF NOT EXISTS user_state (
+             user_id TEXT PRIMARY KEY,
+             data TEXT NOT NULL,
+             updated_at INTEGER NOT NULL
+           )`,
+          `CREATE TABLE IF NOT EXISTS coros_account_tokens (
+             email TEXT PRIMARY KEY,
              access_token TEXT NOT NULL,
-             refresh_token TEXT,
              expires_at INTEGER NOT NULL
            )`,
-          `CREATE TABLE IF NOT EXISTS intervals_activities (
+          `CREATE TABLE IF NOT EXISTS coros_activities (
              id TEXT PRIMARY KEY,
              athlete_id TEXT NOT NULL,
              payload TEXT NOT NULL,
              start_date TEXT,
              received_at INTEGER NOT NULL
            )`,
-          `CREATE INDEX IF NOT EXISTS idx_intervals_activities_athlete
-             ON intervals_activities (athlete_id, received_at DESC)`,
+          `CREATE INDEX IF NOT EXISTS idx_coros_activities_athlete
+             ON coros_activities (athlete_id, received_at DESC)`,
         ],
         "write",
       );

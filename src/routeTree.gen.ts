@@ -11,11 +11,10 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiStateRouteImport } from './routes/api/state'
-import { Route as ApiIntervalsActivitiesRouteImport } from './routes/api/intervals/activities'
-import { Route as ApiIntervalsAuthorizeRouteImport } from './routes/api/intervals/authorize'
-import { Route as ApiIntervalsCallbackRouteImport } from './routes/api/intervals/callback'
-import { Route as ApiIntervalsEventsRouteImport } from './routes/api/intervals/events'
-import { Route as ApiIntervalsStreamRouteImport } from './routes/api/intervals/stream'
+import { Route as ApiCorosActivitiesRouteImport } from './routes/api/coros/activities'
+import { Route as ApiCorosEventsRouteImport } from './routes/api/coros/events'
+import { Route as ApiCorosLoginRouteImport } from './routes/api/coros/login'
+import { Route as ApiCorosStreamRouteImport } from './routes/api/coros/stream'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -27,98 +26,86 @@ const ApiStateRoute = ApiStateRouteImport.update({
   path: '/api/state',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiIntervalsActivitiesRoute = ApiIntervalsActivitiesRouteImport.update({
-  id: '/api/intervals/activities',
-  path: '/api/intervals/activities',
+const ApiCorosActivitiesRoute = ApiCorosActivitiesRouteImport.update({
+  id: '/api/coros/activities',
+  path: '/api/coros/activities',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiIntervalsAuthorizeRoute = ApiIntervalsAuthorizeRouteImport.update({
-  id: '/api/intervals/authorize',
-  path: '/api/intervals/authorize',
+const ApiCorosEventsRoute = ApiCorosEventsRouteImport.update({
+  id: '/api/coros/events',
+  path: '/api/coros/events',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiIntervalsCallbackRoute = ApiIntervalsCallbackRouteImport.update({
-  id: '/api/intervals/callback',
-  path: '/api/intervals/callback',
+const ApiCorosLoginRoute = ApiCorosLoginRouteImport.update({
+  id: '/api/coros/login',
+  path: '/api/coros/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiIntervalsEventsRoute = ApiIntervalsEventsRouteImport.update({
-  id: '/api/intervals/events',
-  path: '/api/intervals/events',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiIntervalsStreamRoute = ApiIntervalsStreamRouteImport.update({
-  id: '/api/intervals/stream',
-  path: '/api/intervals/stream',
+const ApiCorosStreamRoute = ApiCorosStreamRouteImport.update({
+  id: '/api/coros/stream',
+  path: '/api/coros/stream',
   getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/api/state': typeof ApiStateRoute
-  '/api/intervals/activities': typeof ApiIntervalsActivitiesRoute
-  '/api/intervals/authorize': typeof ApiIntervalsAuthorizeRoute
-  '/api/intervals/callback': typeof ApiIntervalsCallbackRoute
-  '/api/intervals/events': typeof ApiIntervalsEventsRoute
-  '/api/intervals/stream': typeof ApiIntervalsStreamRoute
+  '/api/coros/activities': typeof ApiCorosActivitiesRoute
+  '/api/coros/events': typeof ApiCorosEventsRoute
+  '/api/coros/login': typeof ApiCorosLoginRoute
+  '/api/coros/stream': typeof ApiCorosStreamRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/api/state': typeof ApiStateRoute
-  '/api/intervals/activities': typeof ApiIntervalsActivitiesRoute
-  '/api/intervals/authorize': typeof ApiIntervalsAuthorizeRoute
-  '/api/intervals/callback': typeof ApiIntervalsCallbackRoute
-  '/api/intervals/events': typeof ApiIntervalsEventsRoute
-  '/api/intervals/stream': typeof ApiIntervalsStreamRoute
+  '/api/coros/activities': typeof ApiCorosActivitiesRoute
+  '/api/coros/events': typeof ApiCorosEventsRoute
+  '/api/coros/login': typeof ApiCorosLoginRoute
+  '/api/coros/stream': typeof ApiCorosStreamRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/api/state': typeof ApiStateRoute
-  '/api/intervals/activities': typeof ApiIntervalsActivitiesRoute
-  '/api/intervals/authorize': typeof ApiIntervalsAuthorizeRoute
-  '/api/intervals/callback': typeof ApiIntervalsCallbackRoute
-  '/api/intervals/events': typeof ApiIntervalsEventsRoute
-  '/api/intervals/stream': typeof ApiIntervalsStreamRoute
+  '/api/coros/activities': typeof ApiCorosActivitiesRoute
+  '/api/coros/events': typeof ApiCorosEventsRoute
+  '/api/coros/login': typeof ApiCorosLoginRoute
+  '/api/coros/stream': typeof ApiCorosStreamRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/api/state'
-    | '/api/intervals/activities'
-    | '/api/intervals/authorize'
-    | '/api/intervals/callback'
-    | '/api/intervals/events'
-    | '/api/intervals/stream'
+    | '/api/coros/activities'
+    | '/api/coros/events'
+    | '/api/coros/login'
+    | '/api/coros/stream'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/api/state'
-    | '/api/intervals/activities'
-    | '/api/intervals/authorize'
-    | '/api/intervals/callback'
-    | '/api/intervals/events'
-    | '/api/intervals/stream'
+    | '/api/coros/activities'
+    | '/api/coros/events'
+    | '/api/coros/login'
+    | '/api/coros/stream'
   id:
     | '__root__'
     | '/'
     | '/api/state'
-    | '/api/intervals/activities'
-    | '/api/intervals/authorize'
-    | '/api/intervals/callback'
-    | '/api/intervals/events'
-    | '/api/intervals/stream'
+    | '/api/coros/activities'
+    | '/api/coros/events'
+    | '/api/coros/login'
+    | '/api/coros/stream'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ApiStateRoute: typeof ApiStateRoute
-  ApiIntervalsActivitiesRoute: typeof ApiIntervalsActivitiesRoute
-  ApiIntervalsAuthorizeRoute: typeof ApiIntervalsAuthorizeRoute
-  ApiIntervalsCallbackRoute: typeof ApiIntervalsCallbackRoute
-  ApiIntervalsEventsRoute: typeof ApiIntervalsEventsRoute
-  ApiIntervalsStreamRoute: typeof ApiIntervalsStreamRoute
+  ApiCorosActivitiesRoute: typeof ApiCorosActivitiesRoute
+  ApiCorosEventsRoute: typeof ApiCorosEventsRoute
+  ApiCorosLoginRoute: typeof ApiCorosLoginRoute
+  ApiCorosStreamRoute: typeof ApiCorosStreamRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -137,39 +124,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiStateRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/intervals/activities': {
-      id: '/api/intervals/activities'
-      path: '/api/intervals/activities'
-      fullPath: '/api/intervals/activities'
-      preLoaderRoute: typeof ApiIntervalsActivitiesRouteImport
+    '/api/coros/activities': {
+      id: '/api/coros/activities'
+      path: '/api/coros/activities'
+      fullPath: '/api/coros/activities'
+      preLoaderRoute: typeof ApiCorosActivitiesRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/intervals/authorize': {
-      id: '/api/intervals/authorize'
-      path: '/api/intervals/authorize'
-      fullPath: '/api/intervals/authorize'
-      preLoaderRoute: typeof ApiIntervalsAuthorizeRouteImport
+    '/api/coros/events': {
+      id: '/api/coros/events'
+      path: '/api/coros/events'
+      fullPath: '/api/coros/events'
+      preLoaderRoute: typeof ApiCorosEventsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/intervals/callback': {
-      id: '/api/intervals/callback'
-      path: '/api/intervals/callback'
-      fullPath: '/api/intervals/callback'
-      preLoaderRoute: typeof ApiIntervalsCallbackRouteImport
+    '/api/coros/login': {
+      id: '/api/coros/login'
+      path: '/api/coros/login'
+      fullPath: '/api/coros/login'
+      preLoaderRoute: typeof ApiCorosLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/intervals/events': {
-      id: '/api/intervals/events'
-      path: '/api/intervals/events'
-      fullPath: '/api/intervals/events'
-      preLoaderRoute: typeof ApiIntervalsEventsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/intervals/stream': {
-      id: '/api/intervals/stream'
-      path: '/api/intervals/stream'
-      fullPath: '/api/intervals/stream'
-      preLoaderRoute: typeof ApiIntervalsStreamRouteImport
+    '/api/coros/stream': {
+      id: '/api/coros/stream'
+      path: '/api/coros/stream'
+      fullPath: '/api/coros/stream'
+      preLoaderRoute: typeof ApiCorosStreamRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -178,11 +158,10 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ApiStateRoute: ApiStateRoute,
-  ApiIntervalsActivitiesRoute: ApiIntervalsActivitiesRoute,
-  ApiIntervalsAuthorizeRoute: ApiIntervalsAuthorizeRoute,
-  ApiIntervalsCallbackRoute: ApiIntervalsCallbackRoute,
-  ApiIntervalsEventsRoute: ApiIntervalsEventsRoute,
-  ApiIntervalsStreamRoute: ApiIntervalsStreamRoute,
+  ApiCorosActivitiesRoute: ApiCorosActivitiesRoute,
+  ApiCorosEventsRoute: ApiCorosEventsRoute,
+  ApiCorosLoginRoute: ApiCorosLoginRoute,
+  ApiCorosStreamRoute: ApiCorosStreamRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

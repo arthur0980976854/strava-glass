@@ -4,7 +4,7 @@
  * `dangerouslySetInnerHTML`.
  *
  * Every element ID and class is preserved exactly, because the (legacy,
- * imperative) `app.js`/`intervals.js` scripts still enhance this DOM after this
+ * imperative) `app.js`/`coros.js` scripts still enhance this DOM after this
  * component mounts. The shell itself has no reactive state, so React renders it
  * once and never re-renders over the script-injected content.
  */
@@ -42,7 +42,7 @@ export function PlannerShell() {
             <NavItem view="statistiques" icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>} label="Statistiques" />
             <NavItem view="realisees" icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>} label="Séances réalisées" />
             <NavItem view="parametres" icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0 .33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>} label="Paramètres" />
-            <NavItem view="strava" icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16"><polyline points="13 2 6 14 10 14 11 22 18 10 14 10 13 2"/></svg>} label="intervals.icu" />
+            <NavItem view="strava" icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16"><polyline points="13 2 6 14 10 14 11 22 18 10 14 10 13 2"/></svg>} label="COROS" />
           </nav>
 
           <div className="sidebar-install-wrap">
@@ -406,30 +406,50 @@ export function PlannerShell() {
             </details>
           </section>
 
-          {/* intervals.icu */}
+          {/* COROS */}
           <section className="view" id="view-strava">
             <div className="view-head">
-              <div><h1>intervals.icu</h1><div className="sub">Activités Strava synchronisées en temps réel</div></div>
+              <div><h1>COROS</h1><div className="sub">Activités COROS synchronisées en temps réel</div></div>
               <div className="badges">
                 <span className="live-dot" id="stravaLive" role="status" aria-live="polite"><i aria-hidden="true" /><span id="stravaLiveLabel">Hors ligne</span></span>
               </div>
             </div>
             <div className="panel strava-connect" id="stravaConnectPanel">
-              <div>
-                <h3 className="block-title" style={{ margin: 0 }}>Connexion à intervals.icu</h3>
-                <div className="sub" id="stravaAccount">Non connecté</div>
+              <div className="right" id="stravaConnectedBar" style={{ display: "none" }}>
+                <div>
+                  <h3 className="block-title" style={{ margin: 0 }}>Compte COROS</h3>
+                  <div className="sub" id="stravaAccount">Non connecté</div>
+                </div>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <button className="btn ghost" id="btnStravaDisconnect">Déconnecter</button>
+                  <button className="btn" id="btnStravaRefresh">Actualiser</button>
+                </div>
               </div>
-              <div className="right">
-                <a className="btn primary" id="btnStravaConnect" href="/api/intervals/authorize">Se connecter avec intervals.icu</a>
-                <button className="btn ghost" id="btnStravaDisconnect" style={{ display: "none" }}>Déconnecter</button>
-                <button className="btn" id="btnStravaRefresh">Actualiser</button>
-              </div>
+              <form className="coros-login" id="corosLoginForm">
+                <div className="coros-login-fields">
+                  <div className="coros-login-field">
+                    <label htmlFor="corosEmail">E-mail COROS</label>
+                    <input type="email" id="corosEmail" name="email" autoComplete="username" required placeholder="ton.email@exemple.com" />
+                  </div>
+                  <div className="coros-login-field">
+                    <label htmlFor="corosPassword">Mot de passe COROS</label>
+                    <input type="password" id="corosPassword" name="password" autoComplete="current-password" required placeholder="••••••••" />
+                  </div>
+                </div>
+                <div className="coros-login-actions">
+                  <button type="submit" className="btn primary" id="btnCorosLogin">Se connecter</button>
+                </div>
+                <div className="coros-login-note">
+                  Connecte-toi avec ton compte COROS (l'app COROS / Training Hub).
+                  Le mot de passe n'est utilisé qu'une fois pour obtenir un accès — il n'est jamais stocké.
+                </div>
+              </form>
             </div>
             <div className="panel" style={{ marginBottom: 16 }}>
               <h3 className="block-title" style={{ marginTop: 0 }}>Comment ça marche</h3>
               <div className="sub">
-                intervals.icu est relié à ton compte Strava&nbsp;: connecte-toi une fois, tes activités
-                sont importées automatiquement et mises à jour en direct, sans aucune autre manipulation.
+                COROS est connecté avec ton compte&nbsp;: les activités sont
+                importées automatiquement et mises à jour en direct, sans aucune autre manipulation.
               </div>
             </div>
             <div className="grid cols-4" id="stravaKpis" style={{ marginBottom: 16 }} />
@@ -448,7 +468,7 @@ export function PlannerShell() {
               </div>
               <div>
                 <div className="sess-modal-title" id="sessModalTitle">Nouvelle séance</div>
-                <div className="sess-modal-sub" id="sessModalSub">intervals.icu · Synchronisation activée</div>
+                <div className="sess-modal-sub" id="sessModalSub">COROS · Synchronisation activée</div>
               </div>
             </div>
             <button className="sess-modal-close" id="sessModalCancel" type="button" aria-label="Fermer">
@@ -579,7 +599,7 @@ export function PlannerShell() {
               </div>
               <div className="sess-sync-banner" id="sessSyncBanner">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="15" height="15"><polyline points="13 2 6 14 10 14 11 22 18 10 14 10 13 2" /></svg>
-                <span id="sessSyncMsg">La séance sera synchronisée sur intervals.icu</span>
+                <span id="sessSyncMsg">La séance sera synchronisée sur COROS</span>
               </div>
             </div>
             <div className="sess-modal-foot">

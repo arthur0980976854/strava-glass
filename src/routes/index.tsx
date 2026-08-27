@@ -50,7 +50,7 @@ function Index() {
       // Legacy imperative scripts enhance the React-rendered shell below by id.
       await loadScript("/plans/app.js");
       if (cancelled) return;
-      await loadScript("/plans/intervals.js");
+      await loadScript("/plans/coros.js");
     })()
       .catch((error) => console.error(error))
       .finally(() => {
