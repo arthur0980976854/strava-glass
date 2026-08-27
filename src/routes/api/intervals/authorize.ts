@@ -4,13 +4,13 @@ export const Route = createFileRoute("/api/intervals/authorize")({
   server: {
     handlers: {
       GET: async ({ request }) => {
-        const { authorizeUrl, redirectUriFor } = await import("@/lib/intervals.server");
+        const { authorizeUrl, INTERVALS_REDIRECT_URI } = await import("@/lib/intervals.server");
         const { resolveSession } = await import("@/lib/session.server");
         const { id, setCookie } = await resolveSession(request);
         const headers = new Headers();
         if (setCookie) headers.append("set-cookie", setCookie);
         try {
-          headers.set("location", authorizeUrl(redirectUriFor(request), id));
+          headers.set("location", authorizeUrl(INTERVALS_REDIRECT_URI, id));
         } catch (error) {
           headers.set(
             "location",

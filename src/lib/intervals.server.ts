@@ -43,22 +43,12 @@ function normalizeAthleteId(id: string): string {
 
 /**
  * The OAuth redirect URI used both when building the authorize URL and when
- * exchanging the code. Hardcoded to the production domain (no env var needed);
- * on localhost it stays local so you can still test the OAuth round-trip
- * without touching the deployed callback.
+ * exchanging the code. Hardcoded to the production domain (no env var needed).
  *
  * ⚠ This exact URL must also be registered on the intervals.icu app
  * (Manage App → Redirect URI's), otherwise OAuth refuses the redirect.
  */
-const PROD_REDIRECT_URI = "https://plans3.lovable.app/api/intervals/callback";
-
-export function redirectUriFor(request: Request): string {
-  const url = new URL(request.url);
-  if (url.hostname === "localhost" || url.hostname === "127.0.0.1") {
-    return `${url.origin}/api/intervals/callback`;
-  }
-  return PROD_REDIRECT_URI;
-}
+export const INTERVALS_REDIRECT_URI = "https://plans3.lovable.app/api/intervals/callback";
 
 export function authorizeUrl(redirectUri: string, state: string) {
   const { clientId } = intervalsConfig();

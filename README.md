@@ -82,8 +82,9 @@ Une explication étape par étape pour configurer l'application chez Strava (Cal
 ### 1. Créer une application intervals.icu
 
 Envoyez un e-mail à **david@intervals.icu** avec : nom de l'app, description, URL du
-site, logo carré (≥ 128×128), URL de politique de confidentialité et vos *redirect URIs*
-(`http://localhost:8080/api/intervals/callback` est autorisé en local).
+site, logo carré (≥ 128×128), URL de politique de confidentialité et votre *redirect
+URI* : `https://plans3.lovable.app/api/intervals/callback` (codée en dur dans
+`src/lib/intervals.server.ts`).
 
 Une fois créée, allez sur <https://intervals.icu/settings> → « Manage App » pour
 récupérer votre **client_id** et votre **secret**.
