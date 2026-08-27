@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <!-- Light glass tile + brand logo -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f9fbff"/>
+      <stop offset="1" stop-color="#e9f0fb"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <rect x="1" y="1" width="510" height="510" rx="111" fill="none" stroke="#ffffff" stroke-opacity="0.9" stroke-width="2"/>
+  <image href="../plans-logo.png" x="66" y="150" width="380" height="212"/>
+</svg>

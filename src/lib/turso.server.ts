@@ -25,6 +25,10 @@ export async function ensureSchema(): Promise<void> {
              salt TEXT NOT NULL,
              created_at INTEGER NOT NULL
            )`,
+          `CREATE TABLE IF NOT EXISTS server_secret (
+             key TEXT PRIMARY KEY,
+             value TEXT NOT NULL
+           )`,
           `CREATE TABLE IF NOT EXISTS app_state (
              session_id TEXT PRIMARY KEY,
              data TEXT NOT NULL,

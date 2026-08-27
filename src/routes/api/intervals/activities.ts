@@ -1,29 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-
-// Sport name (local app) → intervals.icu activity type
-const SPORT_TYPE_MAP: Record<string, string> = {
-  "Course à pied": "Run",
-  "Trail": "TrailRun",
-  "Vélo": "Ride",
-  "Vélo route": "Ride",
-  "Gravel": "GravelRide",
-  "VTT": "MountainBikeRide",
-  "Natation": "Swim",
-  "Triathlon": "Triathlon",
-  "Marche": "Walk",
-  "Randonnée": "Hike",
-  "Musculation": "WeightTraining",
-  "Yoga": "Yoga",
-  "Escalade": "RockClimbing",
-  "Aviron": "Rowing",
-  "Ski nordique": "NordicSki",
-  "Ski alpin": "AlpineSki",
-  "Autre": "Workout",
-};
-
-function toIntervalsType(sport: string): string {
-  return SPORT_TYPE_MAP[sport] ?? "Workout";
-}
+import { toIntervalsType } from "@/lib/sport-types";
 
 export const Route = createFileRoute("/api/intervals/activities")({
   server: {
@@ -34,7 +10,7 @@ export const Route = createFileRoute("/api/intervals/activities")({
         const { loadTokens, fetchActivities, storeActivity, toCard } = await import(
           "@/lib/intervals.server"
         );
-        const { id, setCookie } = resolveSession(request);
+        const { id, setCookie } = await resolveSession(request);
         const headers = new Headers({ "content-type": "application/json" });
         if (setCookie) headers.append("set-cookie", setCookie);
 
@@ -66,7 +42,7 @@ export const Route = createFileRoute("/api/intervals/activities")({
       POST: async ({ request }) => {
         const { resolveSession } = await import("@/lib/session.server");
         const { loadTokens } = await import("@/lib/intervals.server");
-        const { id, setCookie } = resolveSession(request);
+        const { id, setCookie } = await resolveSession(request);
         const headers = new Headers({ "content-type": "application/json" });
         if (setCookie) headers.append("set-cookie", setCookie);
 
@@ -141,12 +117,12 @@ export const Route = createFileRoute("/api/intervals/activities")({
         }
       },
 
-      // DELETE: disconnect
+      // DELETE: disconnect (revoke token on intervals.icu, then drop local copy)
       DELETE: async ({ request }) => {
         const { resolveSession } = await import("@/lib/session.server");
-        const { deleteTokens } = await import("@/lib/intervals.server");
-        const { id } = resolveSession(request);
-        await deleteTokens(id);
+        const { revokeIntervalsToken } = await import("@/lib/intervals.server");
+        const { id } = await resolveSession(request);
+        await revokeIntervalsToken(id);
         return Response.json({ ok: true });
       },
     },

@@ -11,10 +11,15 @@ export const Route = createFileRoute("/api/intervals/stream")({
         const { resolveSession } = await import("@/lib/session.server");
         const { loadTokens, fetchActivities, storeActivity, recentStoredActivities } =
           await import("@/lib/intervals.server");
-        const { id } = resolveSession(request);
+        let id = "";
+        try {
+          ({ id } = await resolveSession(request));
+        } catch {
+          /* database not configured yet */
+        }
         let tokens = null;
         try {
-          tokens = await loadTokens(id);
+          if (id) tokens = await loadTokens(id);
         } catch {
           /* database not configured yet */
         }

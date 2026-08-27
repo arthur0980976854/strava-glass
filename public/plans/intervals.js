@@ -153,7 +153,12 @@
       setConnected(json.connected, json.athlete);
       byId = {};
       mergeActivities(json.activities || [], false);
-      if (json.error) toast("intervals.icu : " + json.error);
+      if (json.error) {
+        // intervals.icu tokens are single-use with no refresh flow: once one is
+        // rejected (expired, revoked or re-established elsewhere) the user must
+        // simply reconnect. Make that the actionable message.
+        toast("intervals.icu : " + json.error + " — reconnecte-toi pour continuer");
+      }
     } catch (e) {
       toast("Impossible de charger les activités intervals.icu");
     }

@@ -7,6 +7,9 @@ import { ensureSchema, getDb } from "./turso.server";
  */
 
 const API = "https://intervals.icu/api/v1";
+// The OAuth token endpoint lives at the API *root* (not under /api/v1):
+//   https://intervals.icu/api/oauth/token
+const OAUTH_TOKEN_URL = "https://intervals.icu/api/oauth/token";
 
 export type IntervalsTokens = {
   session_id: string;
@@ -17,7 +20,11 @@ export type IntervalsTokens = {
   expires_at: number;
 };
 
-export const INTERVALS_SCOPES = "ACTIVITY:READ,ACTIVITY:WRITE,EVENT:READ,EVENT:WRITE,SETTINGS:READ";
+// Valid intervals.icu scopes are ACTIVITY, WELLNESS, CALENDAR, CHATS, LIBRARY and
+// SETTINGS. Planned workouts (events) are covered by the CALENDAR scope — there is
+// no "EVENT" scope, so requesting one makes the authorization grant fail.
+export const INTERVALS_SCOPES =
+  "ACTIVITY:READ,ACTIVITY:WRITE,CALENDAR:READ,CALENDAR:WRITE,SETTINGS:READ";
 
 export function intervalsConfig() {
   const clientId = process.env["INTERVALS_CLIENT_ID"];
@@ -32,6 +39,25 @@ export function intervalsConfig() {
 /** Strip leading "i" prefix so athlete IDs work in API paths as integers. */
 function normalizeAthleteId(id: string): string {
   return id.replace(/^i/i, "");
+}
+
+/**
+ * The OAuth redirect URI used both when building the authorize URL and when
+ * exchanging the code. Hardcoded to the production domain (no env var needed);
+ * on localhost it stays local so you can still test the OAuth round-trip
+ * without touching the deployed callback.
+ *
+ * ⚠ This exact URL must also be registered on the intervals.icu app
+ * (Manage App → Redirect URI's), otherwise OAuth refuses the redirect.
+ */
+const PROD_REDIRECT_URI = "https://plans3.lovable.app/api/intervals/callback";
+
+export function redirectUriFor(request: Request): string {
+  const url = new URL(request.url);
+  if (url.hostname === "localhost" || url.hostname === "127.0.0.1") {
+    return `${url.origin}/api/intervals/callback`;
+  }
+  return PROD_REDIRECT_URI;
 }
 
 export function authorizeUrl(redirectUri: string, state: string) {
@@ -54,7 +80,7 @@ export async function exchangeCode(code: string, redirectUri: string) {
     grant_type: "authorization_code",
     redirect_uri: redirectUri,
   });
-  const res = await fetch(`${API}/oauth/token`, {
+  const res = await fetch(OAUTH_TOKEN_URL, {
     method: "POST",
     headers: { "content-type": "application/x-www-form-urlencoded" },
     body,
@@ -106,6 +132,25 @@ export async function deleteTokens(sessionId: string) {
     sql: "DELETE FROM intervals_tokens WHERE session_id = ?",
     args: [sessionId],
   });
+}
+
+/**
+ * Revoke an access token on intervals.icu so webhooks stop and the grant is
+ * closed. Best-effort: if the remote call fails (already revoked, no network)
+ * we still drop the local token.
+ */
+export async function revokeIntervalsToken(sessionId: string) {
+  const tokens = await loadTokens(sessionId);
+  if (!tokens) return;
+  try {
+    await fetch("https://intervals.icu/api/v1/disconnect-app", {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${tokens.access_token}` },
+    });
+  } catch {
+    /* best-effort — token is dropped locally regardless */
+  }
+  await deleteTokens(sessionId);
 }
 
 export type ActivityCard = {
@@ -174,7 +219,14 @@ export async function fetchActivities(tokens: IntervalsTokens, days = 120) {
   const res = await fetch(url, {
     headers: { Authorization: `Bearer ${tokens.access_token}` },
   });
-  if (!res.ok) throw new Error(`intervals.icu activities request failed (${res.status})`);
+  if (!res.ok) {
+    // intervals.icu issues access tokens with no refresh flow. A 401/403 means
+    // the grant was revoked or replaced, so the only recovery is to reconnect.
+    if (res.status === 401 || res.status === 403) {
+      throw new Error("Accès intervals.icu refusé (token invalide ou expiré) — reconnecte-toi");
+    }
+    throw new Error(`intervals.icu activities request failed (${res.status})`);
+  }
   const json = (await res.json()) as RawActivity[];
   return Array.isArray(json) ? json : [];
 }

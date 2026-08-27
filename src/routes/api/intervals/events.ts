@@ -1,25 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-
-const SPORT_TYPE_MAP: Record<string, string> = {
-  "Course à pied": "Run",
-  "Trail": "TrailRun",
-  "Vélo": "Ride",
-  "Vélo route": "Ride",
-  "Gravel": "GravelRide",
-  "VTT": "MountainBikeRide",
-  "Natation": "Swim",
-  "Triathlon": "Triathlon",
-  "Marche": "Walk",
-  "Randonnée": "Hike",
-  "Musculation": "WeightTraining",
-  "Yoga": "Yoga",
-  "Escalade": "RockClimbing",
-  "Autre": "Workout",
-};
-
-function toIntervalsType(sport: string): string {
-  return SPORT_TYPE_MAP[sport] ?? "Workout";
-}
+import { toIntervalsType } from "@/lib/sport-types";
 
 export const Route = createFileRoute("/api/intervals/events")({
   server: {
@@ -28,7 +8,7 @@ export const Route = createFileRoute("/api/intervals/events")({
       POST: async ({ request }) => {
         const { resolveSession } = await import("@/lib/session.server");
         const { loadTokens } = await import("@/lib/intervals.server");
-        const { id, setCookie } = resolveSession(request);
+        const { id, setCookie } = await resolveSession(request);
         const headers = new Headers({ "content-type": "application/json" });
         if (setCookie) headers.append("set-cookie", setCookie);
 
@@ -99,7 +79,7 @@ export const Route = createFileRoute("/api/intervals/events")({
       DELETE: async ({ request }) => {
         const { resolveSession } = await import("@/lib/session.server");
         const { loadTokens } = await import("@/lib/intervals.server");
-        const { id } = resolveSession(request);
+        const { id } = await resolveSession(request);
         const headers = new Headers({ "content-type": "application/json" });
 
         try {

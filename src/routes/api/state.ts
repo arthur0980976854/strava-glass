@@ -6,7 +6,7 @@ export const Route = createFileRoute("/api/state")({
       GET: async ({ request }) => {
         const { ensureSchema, getDb } = await import("@/lib/turso.server");
         const { resolveSession } = await import("@/lib/session.server");
-        const { id, setCookie } = resolveSession(request);
+        const { id, setCookie } = await resolveSession(request);
         const headers = new Headers({ "content-type": "application/json" });
         if (setCookie) headers.append("set-cookie", setCookie);
         try {
@@ -29,7 +29,7 @@ export const Route = createFileRoute("/api/state")({
       PUT: async ({ request }) => {
         const { ensureSchema, getDb } = await import("@/lib/turso.server");
         const { resolveSession } = await import("@/lib/session.server");
-        const { id, setCookie } = resolveSession(request);
+        const { id, setCookie } = await resolveSession(request);
         const headers = new Headers({ "content-type": "application/json" });
         if (setCookie) headers.append("set-cookie", setCookie);
         const body = (await request.json()) as { value?: unknown };

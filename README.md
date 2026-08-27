@@ -60,7 +60,60 @@ Un fichier .env.example contenant les clés nécessaires (STRAVA_CLIENT_ID, STRA
 
 Une explication étape par étape pour configurer l'application chez Strava (Callback URL, Webhook Endpoint).
 
-This project was built with [Lovable](https://lovable.dev).
+> Note : le spec ci-dessus décrit le besoin d'origine. L'implémentation actuelle
+> passe par **intervals.icu** (lui-même relié à ton compte Strava) plutôt que par
+> l'API Strava directe : plus simple et plus fiable.
+
+## Comment ça marche (architecture actuelle)
+
+1. L'utilisateur clique « Se connecter avec intervals.icu » → `/api/intervals/authorize`.
+2. Le serveur redirige vers le consentement OAuth intervals.icu, en passant un
+   paramètre `state` lié à la session courante.
+3. `intervals.icu` redirige vers `/api/intervals/callback` avec un `code`.
+4. Le serveur échange le code contre un `access_token`, associe ce token à la
+   session (cookie signé `plans_sid`) et importe les activités récentes.
+5. Le dashboard se connecte en **Server-Sent Events** à `/api/intervals/stream`,
+   qui re-poll intervals.icu toutes les ~30 s et pousse les nouvelles activités en direct.
+6. Planifier une séance ou marquer une séance réalisée synchronise automatiquement
+   sur le calendrier / historique intervals.icu (et donc Strava).
+
+## Configurer l'application (intervals.icu + Strava)
+
+### 1. Créer une application intervals.icu
+
+Envoyez un e-mail à **david@intervals.icu** avec : nom de l'app, description, URL du
+site, logo carré (≥ 128×128), URL de politique de confidentialité et vos *redirect URIs*
+(`http://localhost:8080/api/intervals/callback` est autorisé en local).
+
+Une fois créée, allez sur <https://intervals.icu/settings> → « Manage App » pour
+récupérer votre **client_id** et votre **secret**.
+
+### 2. Renseigner l'environnement
+
+Copiez `.env.example` vers `.env` et remplissez :
+
+```
+INTERVALS_CLIENT_ID=<numero>
+INTERVALS_API_KEY=<votre secret intervals.icu>
+TURSO_DATABASE_URL=libsql://...
+TURSO_AUTH_TOKEN=...
+SESSION_SECRET=<longue chaine aleatoire>
+```
+
+### 3. Lancer
+
+```sh
+npm i
+npm run dev
+```
+
+Puis ouvrez l'onglet **intervals.icu** et cliquez « Se connecter avec intervals.icu ».
+Vous êtes redirigé vers intervals.icu (qui se connecte à votre compte Strava), puis
+ramené sur le tableau de bord avec vos activités synchronisées en direct.
+
+> Dépannage : si la connexion échoue avec « Accès intervals.icu refusé », c'est que le
+> token a été révoqué ou remplacé (intervals.icu n'a pas de *refresh token*).
+> Déconnectez-vous puis reconnectez-vous depuis l'onglet intervals.icu.
 
 ## Build with Lovable
 

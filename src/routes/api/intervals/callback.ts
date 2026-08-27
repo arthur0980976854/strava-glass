@@ -7,12 +7,15 @@ export const Route = createFileRoute("/api/intervals/callback")({
         const url = new URL(request.url);
         const code = url.searchParams.get("code");
         const error = url.searchParams.get("error");
-        const { readSessionId, newSessionId, sessionCookie } = await import(
-          "@/lib/session.server"
-        );
+        const { resolveSession } = await import("@/lib/session.server");
         const headers = new Headers();
-        const sessionId = url.searchParams.get("state") || readSessionId(request) || newSessionId();
-        headers.append("set-cookie", sessionCookie(sessionId));
+        // Prefer the session cookie that authorize.ts established on this browser
+        // (the server verifies its HMAC signature and returns the bare id). The
+        // OAuth `state` param must never supersede it — trusting an externally
+        // supplied `state` would let an attacker hijack the token association
+        // (and, with it, the linked intervals.icu account).
+        const { id: sessionId, setCookie } = await resolveSession(request);
+        if (setCookie) headers.append("set-cookie", setCookie);
 
         if (error || !code) {
           headers.set(
@@ -23,9 +26,15 @@ export const Route = createFileRoute("/api/intervals/callback")({
         }
 
         try {
-          const { exchangeCode, saveTokens, fetchAthlete, fetchActivities, storeActivity } =
-            await import("@/lib/intervals.server");
-          const token = await exchangeCode(code, `${url.origin}/api/intervals/callback`);
+          const {
+            exchangeCode,
+            redirectUriFor,
+            saveTokens,
+            fetchAthlete,
+            fetchActivities,
+            storeActivity,
+          } = await import("@/lib/intervals.server");
+          const token = await exchangeCode(code, redirectUriFor(request));
           // Strip leading "i" — intervals.icu returns athlete IDs as integers but
           // some tokens prefix them with "i". The API paths require plain integers.
           const rawAthleteId = String(token.athlete_id ?? token.athlete?.id ?? "");
