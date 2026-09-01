@@ -1457,7 +1457,7 @@ function renderMonthGrid(gridEl, cursor, labelEl, cycleBadgeEl){
     var isMonday=(d.getDay()===1);
     if(isMonday){
       var obj=weekObjectiveFor(dISO);
-      var kmObj=weekObjectiveKmFor(dISO);
+      var kmObj=weekObjectiveKm(dISO);
       if(obj||kmObj){
         var ob=document.createElement("div"); ob.className="day-obj";
         ob.innerHTML='<span class="oi">🎯</span><span class="ot">'+escapeHtml(obj?obj.text:"")+(kmObj?(obj?' · ':'')+kmObj+' km':'')+'</span>';
