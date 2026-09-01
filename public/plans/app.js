@@ -164,6 +164,7 @@ document.getElementById("mainNav").addEventListener("click", function(e){
   btn.classList.add("active");
   document.getElementById("view-"+btn.dataset.view).classList.add("active");
   if(btn.dataset.view==="statistiques") renderStats();
+  if(btn.dataset.view==="allures") renderAllures();
 });
 
 document.getElementById("btnToggleConfig").addEventListener("click", function(){
@@ -422,19 +423,19 @@ function renderWeekPanel(){
   var cyc = activeCycleForDate(refDate);
   var badge = document.getElementById("currentCycleBadge");
   var box = document.getElementById("weekPanelBox");
-  if(cyc){ paintBadge(badge, "Cycle : "+cycleLabel(cyc), cycleColor(cyc)); box.style.borderTop="3px solid "+cycleColor(cyc); }
+  if(cyc){ paintBadge(badge, "Macrocycle : "+cycleLabel(cyc), cycleColor(cyc)); box.style.borderTop="3px solid "+cycleColor(cyc); }
   else { paintBadge(badge, "Aucun cycle défini", null); box.style.borderTop="3px solid transparent"; }
   renderCycleWeeksProgress(cyc);
 
   var sub = activeSubForDate(refDate);
   var subBadge = document.getElementById("currentSubBadge");
-  if(sub) paintBadge(subBadge, "Sous-cycle : "+sub.name, "#F59E0B");
+  if(sub) paintBadge(subBadge, "Mésocycle : "+sub.name, "#F59E0B");
   else subBadge.style.display="none";
 
   var obj = weekObjectiveFor(monday);
   var big=document.getElementById("weekObjectiveBig");
   var hint=document.getElementById("weekObjectiveHint");
-  if(big) big.textContent = obj ? obj.text : "Aucun objectif — définissez-le dans le sous-sous-cycle";
+  if(big) big.textContent = obj ? obj.text : "Aucun objectif — définissez-le dans le mésocycle / microcycle";
   if(big) big.classList.toggle("empty", !obj);
   if(hint) hint.textContent = obj && obj.source ? "Défini par : "+obj.source : "";
 
@@ -449,7 +450,7 @@ function renderWeekPanel(){
     head.innerHTML="<span>"+DAY_LABELS[i]+"</span><b>"+d.getDate()+"</b>";
     cell.appendChild(head);
     state.sessions.filter(function(s){return s.date===dISO;}).forEach(function(s){
-      cell.appendChild(makePill(s));
+      body.appendChild(makePill(s));
     });
     var hintEl=document.createElement("div"); hintEl.className="add-hint"; hintEl.textContent="+ ajouter une séance";
     cell.appendChild(hintEl);
@@ -785,7 +786,7 @@ document.getElementById("templateLoadSelect").addEventListener("change", functio
   var t=state.sessionTemplates.find(function(x){return x.id===this.value;}.bind(this));
   if(!t) return;
   fillSelect(document.getElementById("sessSport"), state.sports.map(function(s){return s.name;}), t.sport);
-  fillSelect(document.getElementById("sessType"), state.sessionTypes, t.sessionType);
+  fillTypeCombo(t.sessionType);
   sessForm.detail.value=t.detail||"";
   sessForm.objective.value=t.objective||"";
   sessForm.durationPlanned.value=t.durationPlanned||"";
@@ -817,10 +818,21 @@ function renderTemplatesList(){
   });
 }
 
+function fillTypeCombo(value){
+  var input=document.getElementById("sessType");
+  var list=document.getElementById("sessTypeList");
+  if(list){
+    list.innerHTML="";
+    (state.sessionTypes||[]).forEach(function(t){
+      var o=document.createElement("option"); o.value=t; list.appendChild(o);
+    });
+  }
+  if(input) input.value = value || "";
+}
 function openSessionModal(session, presetDate){
   sessForm.reset();
   fillSelect(document.getElementById("sessSport"), state.sports.map(function(s){return s.name;}), session?session.sport:null);
-  fillSelect(document.getElementById("sessType"), state.sessionTypes, session?session.sessionType:null);
+  fillTypeCombo(session?session.sessionType:null);
   populateTemplateSelect();
   // Lib row: show only when creating
   var libRow=document.getElementById("templateLoadRow");
@@ -987,7 +999,7 @@ function resetCycleForm(){
   document.getElementById("cycleLabel").value="";
   document.getElementById("cycleStart").value="";
   document.getElementById("cycleEnd").value="";
-  document.getElementById("btnAddCycle").textContent="Ajouter le cycle";
+  document.getElementById("btnAddCycle").textContent="Ajouter le macrocycle";
   document.getElementById("cycleEditHint").style.display="none";
 }
 document.getElementById("cancelCycleEdit").addEventListener("click", function(e){ e.preventDefault(); resetCycleForm(); });
@@ -1016,7 +1028,7 @@ function resetSubForm(){
   if(document.getElementById("subObjective")) document.getElementById("subObjective").value="";
   if(document.getElementById("subObjectiveKm")) document.getElementById("subObjectiveKm").value="";
   document.getElementById("subWeeks").value="4";
-  document.getElementById("btnAddSub").textContent="Ajouter le sous-cycle";
+  document.getElementById("btnAddSub").textContent="Ajouter le mésocycle";
   document.getElementById("subEditHint").style.display="none";
   autofillSubStart();
 }
@@ -1039,7 +1051,7 @@ document.getElementById("btnAddSub").addEventListener("click", function(){
   var objective=(document.getElementById("subObjective")||{value:""}).value.trim();
   var objectiveKm=(document.getElementById("subObjectiveKm")||{value:""}).value;
   if(!parent){ toast("Ajoutez d'abord un cycle"); return; }
-  if(!name||!weeks||!start){ toast("Champs sous-cycle incomplets"); return; }
+  if(!name||!weeks||!start){ toast("Champs mésocycle incomplets"); return; }
   var sd=parseISO(start); var ed=new Date(sd); ed.setDate(ed.getDate()+weeks*7-1);
   if(editSubId){
     var sc=state.subcycles.find(function(x){return x.id===editSubId;});
@@ -1082,7 +1094,7 @@ document.getElementById("btnAddSubSub").addEventListener("click", function(){
   var start=document.getElementById("subsubStart").value;
   var objective=(document.getElementById("subsubObjective")||{value:""}).value.trim();
   var objectiveKm=(document.getElementById("subsubObjectiveKm")||{value:""}).value;
-  if(!parent){ toast("Ajoutez d'abord un sous-cycle"); return; }
+  if(!parent){ toast("Ajoutez d'abord un mésocycle"); return; }
   if(!name||!weeks||!start){ toast("Champs incomplets"); return; }
   var sd=parseISO(start); var ed=new Date(sd); ed.setDate(ed.getDate()+weeks*7-1);
   if(editSubSubId){
@@ -1339,7 +1351,7 @@ function renderCycleList(){
 
 function renderSubList(){
   var wrap=document.getElementById("subList"); wrap.innerHTML="";
-  if(!state.subcycles.length){ wrap.innerHTML=emptyHTML("Aucun sous-cycle","Ajoutez-en un ci-dessus."); }
+  if(!state.subcycles.length){ wrap.innerHTML=emptyHTML("Aucun mésocycle","Ajoutez-en un ci-dessus."); }
   state.subcycles.slice().sort(sortAscBy('start')).forEach(function(sc){
     var parent=state.cycles.find(function(c){return c.id===sc.cycleId;});
     var row=document.createElement("div"); row.className="cycle-row";
@@ -1381,7 +1393,7 @@ function renderSubList(){
 
 function renderSubSubList(){
   var wrap=document.getElementById("subSubList"); wrap.innerHTML="";
-  if(!state.subsubcycles.length){ wrap.innerHTML=emptyHTML("Aucune division","Divisez un sous-cycle ci-dessus."); }
+  if(!state.subsubcycles.length){ wrap.innerHTML=emptyHTML("Aucune division","Divisez un mésocycle ci-dessus."); }
   state.subsubcycles.slice().sort(sortAscBy('start')).forEach(function(ss){
     var parent=state.subcycles.find(function(c){return c.id===ss.subId;});
     var row=document.createElement("div"); row.className="cycle-row";
@@ -1427,7 +1439,7 @@ function renderMonthGrid(gridEl, cursor, labelEl, cycleBadgeEl){
   labelEl.textContent = MONTHS_FULL[cursor.getMonth()]+" "+cursor.getFullYear();
   if(cycleBadgeEl){
     var cyc=activeCycleForDate(todayISO());
-    if(cyc) paintBadge(cycleBadgeEl,"Cycle en cours : "+cycleLabel(cyc),cycleColor(cyc));
+    if(cyc) paintBadge(cycleBadgeEl,"Macrocycle en cours : "+cycleLabel(cyc),cycleColor(cyc));
     else paintBadge(cycleBadgeEl,"Aucun cycle en cours",null);
   }
   gridEl.innerHTML="";
@@ -1443,6 +1455,19 @@ function renderMonthGrid(gridEl, cursor, labelEl, cycleBadgeEl){
     var head=document.createElement("div"); head.className="dh";
     head.innerHTML="<span>"+DAY_LABELS[d.getDay()===0?6:d.getDay()-1]+"</span><b>"+d.getDate()+"</b>";
     cell.appendChild(head);
+    var isMonday=(d.getDay()===1);
+    if(isMonday){
+      var obj=weekObjectiveFor(dISO);
+      var kmObj=weekObjectiveKm(dISO);
+      if(obj||kmObj){
+        var ob=document.createElement("div"); ob.className="day-obj";
+        ob.innerHTML='<span class="oi">🎯</span><span class="ot">'+escapeHtml(obj?obj.text:"")+(kmObj?(obj?' · ':'')+kmObj+' km':'')+'</span>';
+        ob.title=(obj?obj.text:"")+(kmObj?" — "+kmObj+" km":"");
+        cell.appendChild(ob);
+      }
+    }
+    var body=document.createElement("div"); body.className="day-body";
+    cell.appendChild(body);
     state.sessions.filter(function(s){return s.date===dISO;}).forEach(function(s){
       cell.appendChild(makePill(s));
     });
@@ -1853,7 +1878,85 @@ function renderParametres(){
   renderProfile(); renderZones(); renderSportsList(); renderSessionTypesList(); renderCycleNamesList(); renderTemplatesList();
 }
 
+
+/* =========================================================================
+   TABLEAU D'ALLURE (VMA)
+   ========================================================================= */
+var ALLURE_ZONES = [
+  {name:"Z1 — Récupération", lo:50, hi:60, use:"Footing très léger, récup active"},
+  {name:"Z2 — Endurance fondamentale", lo:60, hi:75, use:"Base aérobie, sorties longues"},
+  {name:"Z3 — Endurance active / Marathon", lo:75, hi:85, use:"Allure marathon, tempo léger"},
+  {name:"Z4 — Seuil (SV2)", lo:85, hi:92, use:"Seuil, allure 10 km / semi"},
+  {name:"Z5 — VMA", lo:95, hi:110, use:"Fractionné court, PMA"}
+];
+var ALLURE_RACES = [
+  {name:"5 km", pct:92, dist:5, hold:"20 – 25 min"},
+  {name:"10 km", pct:87, dist:10, hold:"40 – 55 min"},
+  {name:"Semi-marathon", pct:83, dist:21.097, hold:"1h20 – 2h"},
+  {name:"Marathon", pct:76, dist:42.195, hold:"2h45 – 4h30"}
+];
+function paceFromSpeed(kmh){
+  if(!kmh) return "—";
+  var minPerKm=60/kmh, m=Math.floor(minPerKm), s=Math.round((minPerKm-m)*60);
+  if(s===60){m++;s=0;}
+  return m+"'"+String(s).padStart(2,"0")+"\"/km";
+}
+function fmtDuration(minutes){
+  var total=Math.round(minutes*60);
+  var h=Math.floor(total/3600), m=Math.floor((total%3600)/60), s=total%60;
+  return (h>0? h+"h"+String(m).padStart(2,"0") : m+"'"+String(s).padStart(2,"0")+"\"");
+}
+function currentAllureVma(){
+  var input=document.getElementById("allureVma");
+  var v = input && input.value ? +input.value : (state.profile.vma||null);
+  return v||null;
+}
+function renderAllures(){
+  var input=document.getElementById("allureVma");
+  if(!input) return;
+  if(!input.value && state.profile.vma) input.value=state.profile.vma;
+  var vma=currentAllureVma();
+  var badge=document.getElementById("vmaSourceBadge");
+  if(badge) paintBadge(badge, vma? ("VMA "+vma+" km/h") : "VMA non renseignée", vma? "#2563EB" : null);
+  var hint=document.getElementById("allureVmaHint");
+  if(hint) hint.textContent = vma ? ("Vitesse maximale aérobie : "+vma+" km/h · allure VMA "+paceFromSpeed(vma)) : "Saisis ta VMA pour générer le tableau.";
+
+  var zb=document.getElementById("allureZonesBody");
+  zb.innerHTML = ALLURE_ZONES.map(function(z){
+    var lo=vma? round1(vma*z.lo/100):null, hi=vma? round1(vma*z.hi/100):null;
+    return '<tr><td><b>'+z.name+'</b></td><td>'+z.lo+'–'+z.hi+' %</td><td>'+(vma? lo+' – '+hi+' km/h':'—')+'</td><td>'+(vma? paceFromSpeed(hi)+' – '+paceFromSpeed(lo):'—')+'</td><td class="muted">'+z.use+'</td></tr>';
+  }).join("");
+
+  var th=document.getElementById("allureThresholds");
+  var sv1 = vma? round1(vma*0.75):null, sv2 = vma? round1(vma*0.87):null;
+  th.innerHTML =
+    '<div class="info-item"><span class="k">SV1 (seuil aérobie ≈ 75 % VMA)</span><span class="v">'+(vma? sv1+' km/h · '+paceFromSpeed(sv1):'—')+'</span></div>'+
+    '<div class="info-item"><span class="k">SV2 (seuil anaérobie ≈ 87 % VMA)</span><span class="v">'+(vma? sv2+' km/h · '+paceFromSpeed(sv2):'—')+'</span></div>'+
+    '<div class="info-item"><span class="k">Allure VMA (100 %)</span><span class="v">'+(vma? vma+' km/h · '+paceFromSpeed(vma):'—')+'</span></div>'+
+    '<div class="info-item"><span class="k">Temps de soutien VMA</span><span class="v">'+(vma? '4 – 6 min':'—')+'</span></div>';
+
+  var rb=document.getElementById("allureRacesBody");
+  rb.innerHTML = ALLURE_RACES.map(function(r){
+    var sp = vma? round1(vma*r.pct/100):null;
+    var time = sp? fmtDuration(r.dist/sp*60):"—";
+    return '<tr><td><b>'+r.name+'</b></td><td>'+r.pct+' %</td><td>'+(sp? paceFromSpeed(sp):'—')+'</td><td>'+(sp? sp+' km/h':'—')+'</td><td>'+time+'</td><td class="muted">'+r.hold+'</td></tr>';
+  }).join("");
+}
+(function initAllures(){
+  var input=document.getElementById("allureVma");
+  if(!input) return;
+  input.addEventListener("input", renderAllures);
+  var btn=document.getElementById("btnAllureSaveVma");
+  if(btn) btn.addEventListener("click", function(){
+    var v=input.value? +input.value : null;
+    state.profile.vma=v;
+    var pv=document.getElementById("profVma"); if(pv) pv.value=v||"";
+    saveData(true); renderAllures();
+  });
+})();
+
 function renderAll(){
+  renderAllures();
   renderKPIs();
   renderGoalBanner();
   renderWeekPanel();
