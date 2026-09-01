@@ -30,24 +30,27 @@
 
     <!-- ================= TABLEAU DE BORD ================= -->
     <section class="view active" id="view-dashboard">
-      <div class="view-head">
-        <div><h1>Tableau de bord</h1><div class="sub" id="dashDateRange"></div></div>
-        <div class="month-nav">
-          <button id="dashWeekPrev">‹</button>
-          <button class="btn small" id="dashWeekToday">Aujourd'hui</button>
-          <button id="dashWeekNext">›</button>
+      <div class="view-head dash-head">
+        <div class="dash-head-title"><h1>Tableau de bord</h1><div class="sub" id="dashDateRange"></div></div>
+        <div class="dash-head-cards">
+          <div class="panel goal-banner" id="goalBanner"></div>
+          <div class="panel week-objective-panel" id="weekObjectivePanel">
+            <div class="wo-label">Objectif de la semaine</div>
+            <div class="wo-value" id="weekObjectiveBig">—</div>
+            <div class="wo-hint" id="weekObjectiveHint"></div>
+          </div>
         </div>
       </div>
 
-      <div class="panel goal-banner" id="goalBanner"></div>
-
-      <div class="panel week-objective-panel" id="weekObjectivePanel">
-        <div class="wo-label">Objectif de la semaine</div>
-        <div class="wo-value" id="weekObjectiveBig">—</div>
-        <div class="wo-hint" id="weekObjectiveHint"></div>
-      </div>
-
       <div class="grid cols-4" id="kpiGrid" style="margin-bottom:16px;"></div>
+
+      <div class="panel">
+        <div class="week-panel-head">
+          <h3 class="block-title" style="margin:0;">Distance &amp; D+ par sport — semaine</h3>
+          <div class="badges"><button class="btn small" id="btnSportGroups">⛓ Groupes de sports</button></div>
+        </div>
+        <div class="sport-counter-grid" id="sportCounters"></div>
+      </div>
 
       <div class="panel" id="weekPanelBox">
         <div class="week-panel-head">
@@ -55,6 +58,11 @@
           <div class="badges">
             <span class="cycle-badge" id="currentCycleBadge">—</span>
             <span class="cycle-badge" id="currentSubBadge" style="display:none;">—</span>
+            <div class="month-nav">
+              <button id="dashWeekPrev">‹</button>
+              <button class="btn small" id="dashWeekToday">Aujourd'hui</button>
+              <button id="dashWeekNext">›</button>
+            </div>
           </div>
         </div>
         <div class="cw-row" id="cycleWeeksRow"></div>
@@ -68,14 +76,6 @@
 
       <div class="panel">
         <div class="week-panel-head">
-          <h3 class="block-title" style="margin:0;">Distance &amp; D+ par sport — semaine</h3>
-          <div class="badges"><button class="btn small" id="btnSportGroups">⛓ Groupes de sports</button></div>
-        </div>
-        <div class="sport-counter-grid" id="sportCounters"></div>
-      </div>
-
-      <div class="panel">
-        <div class="week-panel-head">
           <h3 class="block-title" style="margin:0;">Répartition par intensité — semaine</h3>
           <div class="badges"><span class="cycle-badge" id="intensityObjBadge">—</span></div>
         </div>
@@ -85,6 +85,7 @@
         </div>
       </div>
     </section>
+
 
 
 
