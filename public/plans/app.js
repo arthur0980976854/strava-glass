@@ -422,19 +422,19 @@ function renderWeekPanel(){
   var cyc = activeCycleForDate(refDate);
   var badge = document.getElementById("currentCycleBadge");
   var box = document.getElementById("weekPanelBox");
-  if(cyc){ paintBadge(badge, "Cycle : "+cycleLabel(cyc), cycleColor(cyc)); box.style.borderTop="3px solid "+cycleColor(cyc); }
+  if(cyc){ paintBadge(badge, "Macrocycle : "+cycleLabel(cyc), cycleColor(cyc)); box.style.borderTop="3px solid "+cycleColor(cyc); }
   else { paintBadge(badge, "Aucun cycle défini", null); box.style.borderTop="3px solid transparent"; }
   renderCycleWeeksProgress(cyc);
 
   var sub = activeSubForDate(refDate);
   var subBadge = document.getElementById("currentSubBadge");
-  if(sub) paintBadge(subBadge, "Sous-cycle : "+sub.name, "#F59E0B");
+  if(sub) paintBadge(subBadge, "Mésocycle : "+sub.name, "#F59E0B");
   else subBadge.style.display="none";
 
   var obj = weekObjectiveFor(monday);
   var big=document.getElementById("weekObjectiveBig");
   var hint=document.getElementById("weekObjectiveHint");
-  if(big) big.textContent = obj ? obj.text : "Aucun objectif — définissez-le dans le sous-sous-cycle";
+  if(big) big.textContent = obj ? obj.text : "Aucun objectif — définissez-le dans le mésocycle / microcycle";
   if(big) big.classList.toggle("empty", !obj);
   if(hint) hint.textContent = obj && obj.source ? "Défini par : "+obj.source : "";
 
@@ -987,7 +987,7 @@ function resetCycleForm(){
   document.getElementById("cycleLabel").value="";
   document.getElementById("cycleStart").value="";
   document.getElementById("cycleEnd").value="";
-  document.getElementById("btnAddCycle").textContent="Ajouter le cycle";
+  document.getElementById("btnAddCycle").textContent="Ajouter le macrocycle";
   document.getElementById("cycleEditHint").style.display="none";
 }
 document.getElementById("cancelCycleEdit").addEventListener("click", function(e){ e.preventDefault(); resetCycleForm(); });
@@ -1016,7 +1016,7 @@ function resetSubForm(){
   if(document.getElementById("subObjective")) document.getElementById("subObjective").value="";
   if(document.getElementById("subObjectiveKm")) document.getElementById("subObjectiveKm").value="";
   document.getElementById("subWeeks").value="4";
-  document.getElementById("btnAddSub").textContent="Ajouter le sous-cycle";
+  document.getElementById("btnAddSub").textContent="Ajouter le mésocycle";
   document.getElementById("subEditHint").style.display="none";
   autofillSubStart();
 }
@@ -1039,7 +1039,7 @@ document.getElementById("btnAddSub").addEventListener("click", function(){
   var objective=(document.getElementById("subObjective")||{value:""}).value.trim();
   var objectiveKm=(document.getElementById("subObjectiveKm")||{value:""}).value;
   if(!parent){ toast("Ajoutez d'abord un cycle"); return; }
-  if(!name||!weeks||!start){ toast("Champs sous-cycle incomplets"); return; }
+  if(!name||!weeks||!start){ toast("Champs mésocycle incomplets"); return; }
   var sd=parseISO(start); var ed=new Date(sd); ed.setDate(ed.getDate()+weeks*7-1);
   if(editSubId){
     var sc=state.subcycles.find(function(x){return x.id===editSubId;});
@@ -1082,7 +1082,7 @@ document.getElementById("btnAddSubSub").addEventListener("click", function(){
   var start=document.getElementById("subsubStart").value;
   var objective=(document.getElementById("subsubObjective")||{value:""}).value.trim();
   var objectiveKm=(document.getElementById("subsubObjectiveKm")||{value:""}).value;
-  if(!parent){ toast("Ajoutez d'abord un sous-cycle"); return; }
+  if(!parent){ toast("Ajoutez d'abord un mésocycle"); return; }
   if(!name||!weeks||!start){ toast("Champs incomplets"); return; }
   var sd=parseISO(start); var ed=new Date(sd); ed.setDate(ed.getDate()+weeks*7-1);
   if(editSubSubId){
@@ -1339,7 +1339,7 @@ function renderCycleList(){
 
 function renderSubList(){
   var wrap=document.getElementById("subList"); wrap.innerHTML="";
-  if(!state.subcycles.length){ wrap.innerHTML=emptyHTML("Aucun sous-cycle","Ajoutez-en un ci-dessus."); }
+  if(!state.subcycles.length){ wrap.innerHTML=emptyHTML("Aucun mésocycle","Ajoutez-en un ci-dessus."); }
   state.subcycles.slice().sort(sortAscBy('start')).forEach(function(sc){
     var parent=state.cycles.find(function(c){return c.id===sc.cycleId;});
     var row=document.createElement("div"); row.className="cycle-row";
@@ -1381,7 +1381,7 @@ function renderSubList(){
 
 function renderSubSubList(){
   var wrap=document.getElementById("subSubList"); wrap.innerHTML="";
-  if(!state.subsubcycles.length){ wrap.innerHTML=emptyHTML("Aucune division","Divisez un sous-cycle ci-dessus."); }
+  if(!state.subsubcycles.length){ wrap.innerHTML=emptyHTML("Aucune division","Divisez un mésocycle ci-dessus."); }
   state.subsubcycles.slice().sort(sortAscBy('start')).forEach(function(ss){
     var parent=state.subcycles.find(function(c){return c.id===ss.subId;});
     var row=document.createElement("div"); row.className="cycle-row";
@@ -1427,7 +1427,7 @@ function renderMonthGrid(gridEl, cursor, labelEl, cycleBadgeEl){
   labelEl.textContent = MONTHS_FULL[cursor.getMonth()]+" "+cursor.getFullYear();
   if(cycleBadgeEl){
     var cyc=activeCycleForDate(todayISO());
-    if(cyc) paintBadge(cycleBadgeEl,"Cycle en cours : "+cycleLabel(cyc),cycleColor(cyc));
+    if(cyc) paintBadge(cycleBadgeEl,"Macrocycle en cours : "+cycleLabel(cyc),cycleColor(cyc));
     else paintBadge(cycleBadgeEl,"Aucun cycle en cours",null);
   }
   gridEl.innerHTML="";

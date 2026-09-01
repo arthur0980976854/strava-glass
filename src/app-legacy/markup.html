@@ -98,11 +98,11 @@
         <div class="timeline-wrap">
           <div class="timeline" id="timeline">
             <div class="tl-months" id="tlMonths"></div>
-            <div class="tl-level-label">Cycles</div>
+            <div class="tl-level-label">Macrocycles</div>
             <div class="tl-lanes" id="tlLanesCycles"></div>
-            <div class="tl-level-label">Sous-cycles</div>
+            <div class="tl-level-label">Mésocycles</div>
             <div class="tl-lanes" id="tlLanesSub"></div>
-            <div class="tl-level-label">Sous-sous-cycles</div>
+            <div class="tl-level-label">Microcycles</div>
             <div class="tl-lanes" id="tlLanesSubSub"></div>
           </div>
         </div>
@@ -155,10 +155,10 @@
         </div>
 
         <div class="panel">
-          <h3 class="block-title">Ajouter / modifier un cycle</h3>
+          <h3 class="block-title">Ajouter / modifier un macrocycle</h3>
           <div class="edit-mode-hint" id="cycleEditHint">Modification en cours — <a href="#" id="cancelCycleEdit" style="color:#92650a;">annuler</a></div>
           <div class="form-grid c3">
-            <div class="field"><label>Type de cycle</label>
+            <div class="field"><label>Type de macrocycle</label>
               <div class="custom-select-wrap">
                 <select id="cycleType" class="custom-select">
                   <option value="base">Base</option>
@@ -171,42 +171,42 @@
                 <span class="custom-select-arrow"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" width="10" height="10"><polyline points="2 4 6 8 10 4"/></svg></span>
               </div>
             </div>
-            <div class="field" id="cycleLabelField" style="display:none;"><label>Nom du cycle</label><input type="text" id="cycleLabel" list="customCycleNamesList" placeholder="Ex : Stage altitude"></div>
+            <div class="field" id="cycleLabelField" style="display:none;"><label>Nom du macrocycle</label><input type="text" id="cycleLabel" list="customCycleNamesList" placeholder="Ex : Stage altitude"></div>
             <div class="field"><label>Début</label><input type="date" id="cycleStart"></div>
             <div class="field"><label>Fin</label><input type="date" id="cycleEnd"></div>
           </div>
-          <div class="form-actions"><span></span><div class="right"><button class="btn primary" id="btnAddCycle">Ajouter le cycle</button></div></div>
+          <div class="form-actions"><span></span><div class="right"><button class="btn primary" id="btnAddCycle">Ajouter le macrocycle</button></div></div>
           <div class="cycle-list" id="cycleList"></div>
           <datalist id="customCycleNamesList"></datalist>
         </div>
 
         <div class="panel">
-          <h3 class="block-title">Ajouter / modifier un sous-cycle</h3>
+          <h3 class="block-title">Ajouter / modifier un mésocycle</h3>
           <div class="edit-mode-hint" id="subEditHint">Modification en cours — <a href="#" id="cancelSubEdit" style="color:#92650a;">annuler</a></div>
           <div class="form-grid c3">
-            <div class="field"><label>Cycle parent</label>
+            <div class="field"><label>Macrocycle parent</label>
               <div class="custom-select-wrap">
                 <select id="subParentCycle" class="custom-select"></select>
                 <span class="custom-select-arrow"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" width="10" height="10"><polyline points="2 4 6 8 10 4"/></svg></span>
               </div>
             </div>
-            <div class="field"><label>Nom du sous-cycle</label><input type="text" id="subName" placeholder="Ex : Bloc 4 semaines"></div>
+            <div class="field"><label>Nom du mésocycle</label><input type="text" id="subName" placeholder="Ex : Bloc 4 semaines"></div>
             <div class="field"><label>Durée (semaines)</label><input type="number" id="subWeeks" min="1" value="4"></div>
             <div class="field"><label>Début</label><input type="date" id="subStart"></div>
             <div class="field" style="grid-column:span 2;"><label>Objectif de la semaine</label><input type="text" id="subObjective" placeholder="Ex : 60 km · 2 séances qualité"></div>
             <div class="field"><label>Objectif hebdo (km)</label><input type="number" id="subObjectiveKm" min="0" step="1" placeholder="60"></div>
           </div>
-          <div class="form-actions"><span></span><div class="right"><button class="btn primary" id="btnAddSub">Ajouter le sous-cycle</button></div></div>
+          <div class="form-actions"><span></span><div class="right"><button class="btn primary" id="btnAddSub">Ajouter le mésocycle</button></div></div>
 
 
           <div class="subcycle-list" id="subList"></div>
         </div>
 
         <div class="panel">
-          <h3 class="block-title">Diviser un sous-cycle (sous-sous-cycles)</h3>
+          <h3 class="block-title">Diviser un mésocycle (microcycles)</h3>
           <div class="edit-mode-hint" id="subsubEditHint">Modification en cours — <a href="#" id="cancelSubSubEdit" style="color:#92650a;">annuler</a></div>
           <div class="form-grid c3">
-            <div class="field"><label>Sous-cycle parent</label>
+            <div class="field"><label>Mésocycle parent</label>
               <div class="custom-select-wrap">
                 <select id="subsubParentSub" class="custom-select"></select>
                 <span class="custom-select-arrow"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" width="10" height="10"><polyline points="2 4 6 8 10 4"/></svg></span>
@@ -397,7 +397,7 @@
       </details>
 
       <details class="panel">
-        <summary>Noms de cycles personnalisés</summary>
+        <summary>Noms de macrocycles personnalisés</summary>
         <div class="details-body">
           <div class="list" id="cycleNamesList" style="margin-bottom:12px;"></div>
           <div class="form-grid" style="grid-template-columns:1fr auto;">
