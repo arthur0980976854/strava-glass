@@ -785,7 +785,7 @@ document.getElementById("templateLoadSelect").addEventListener("change", functio
   var t=state.sessionTemplates.find(function(x){return x.id===this.value;}.bind(this));
   if(!t) return;
   fillSelect(document.getElementById("sessSport"), state.sports.map(function(s){return s.name;}), t.sport);
-  fillSelect(document.getElementById("sessType"), state.sessionTypes, t.sessionType);
+  fillTypeCombo(t.sessionType);
   sessForm.detail.value=t.detail||"";
   sessForm.objective.value=t.objective||"";
   sessForm.durationPlanned.value=t.durationPlanned||"";
@@ -817,10 +817,21 @@ function renderTemplatesList(){
   });
 }
 
+function fillTypeCombo(value){
+  var input=document.getElementById("sessType");
+  var list=document.getElementById("sessTypeList");
+  if(list){
+    list.innerHTML="";
+    (state.sessionTypes||[]).forEach(function(t){
+      var o=document.createElement("option"); o.value=t; list.appendChild(o);
+    });
+  }
+  if(input) input.value = value || "";
+}
 function openSessionModal(session, presetDate){
   sessForm.reset();
   fillSelect(document.getElementById("sessSport"), state.sports.map(function(s){return s.name;}), session?session.sport:null);
-  fillSelect(document.getElementById("sessType"), state.sessionTypes, session?session.sessionType:null);
+  fillTypeCombo(session?session.sessionType:null);
   populateTemplateSelect();
   // Lib row: show only when creating
   var libRow=document.getElementById("templateLoadRow");
