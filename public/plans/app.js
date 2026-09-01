@@ -449,7 +449,7 @@ function renderWeekPanel(){
     head.innerHTML="<span>"+DAY_LABELS[i]+"</span><b>"+d.getDate()+"</b>";
     cell.appendChild(head);
     state.sessions.filter(function(s){return s.date===dISO;}).forEach(function(s){
-      cell.appendChild(makePill(s));
+      body.appendChild(makePill(s));
     });
     var hintEl=document.createElement("div"); hintEl.className="add-hint"; hintEl.textContent="+ ajouter une séance";
     cell.appendChild(hintEl);
@@ -1454,6 +1454,19 @@ function renderMonthGrid(gridEl, cursor, labelEl, cycleBadgeEl){
     var head=document.createElement("div"); head.className="dh";
     head.innerHTML="<span>"+DAY_LABELS[d.getDay()===0?6:d.getDay()-1]+"</span><b>"+d.getDate()+"</b>";
     cell.appendChild(head);
+    var isMonday=(d.getDay()===1);
+    if(isMonday){
+      var obj=weekObjectiveFor(dISO);
+      var kmObj=weekObjectiveKmFor(dISO);
+      if(obj||kmObj){
+        var ob=document.createElement("div"); ob.className="day-obj";
+        ob.innerHTML='<span class="oi">🎯</span><span class="ot">'+escapeHtml(obj?obj.text:"")+(kmObj?(obj?' · ':'')+kmObj+' km':'')+'</span>';
+        ob.title=(obj?obj.text:"")+(kmObj?" — "+kmObj+" km":"");
+        cell.appendChild(ob);
+      }
+    }
+    var body=document.createElement("div"); body.className="day-body";
+    cell.appendChild(body);
     state.sessions.filter(function(s){return s.date===dISO;}).forEach(function(s){
       cell.appendChild(makePill(s));
     });
