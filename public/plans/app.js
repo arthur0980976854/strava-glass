@@ -164,6 +164,7 @@ document.getElementById("mainNav").addEventListener("click", function(e){
   btn.classList.add("active");
   document.getElementById("view-"+btn.dataset.view).classList.add("active");
   if(btn.dataset.view==="statistiques") renderStats();
+  if(btn.dataset.view==="allures") renderAllures();
 });
 
 document.getElementById("btnToggleConfig").addEventListener("click", function(){
@@ -1877,7 +1878,85 @@ function renderParametres(){
   renderProfile(); renderZones(); renderSportsList(); renderSessionTypesList(); renderCycleNamesList(); renderTemplatesList();
 }
 
+
+/* =========================================================================
+   TABLEAU D'ALLURE (VMA)
+   ========================================================================= */
+var ALLURE_ZONES = [
+  {name:"Z1 — Récupération", lo:50, hi:60, use:"Footing très léger, récup active"},
+  {name:"Z2 — Endurance fondamentale", lo:60, hi:75, use:"Base aérobie, sorties longues"},
+  {name:"Z3 — Endurance active / Marathon", lo:75, hi:85, use:"Allure marathon, tempo léger"},
+  {name:"Z4 — Seuil (SV2)", lo:85, hi:92, use:"Seuil, allure 10 km / semi"},
+  {name:"Z5 — VMA", lo:95, hi:110, use:"Fractionné court, PMA"}
+];
+var ALLURE_RACES = [
+  {name:"5 km", pct:92, dist:5, hold:"20 – 25 min"},
+  {name:"10 km", pct:87, dist:10, hold:"40 – 55 min"},
+  {name:"Semi-marathon", pct:83, dist:21.097, hold:"1h20 – 2h"},
+  {name:"Marathon", pct:76, dist:42.195, hold:"2h45 – 4h30"}
+];
+function paceFromSpeed(kmh){
+  if(!kmh) return "—";
+  var minPerKm=60/kmh, m=Math.floor(minPerKm), s=Math.round((minPerKm-m)*60);
+  if(s===60){m++;s=0;}
+  return m+"'"+String(s).padStart(2,"0")+"\"/km";
+}
+function fmtDuration(minutes){
+  var total=Math.round(minutes*60);
+  var h=Math.floor(total/3600), m=Math.floor((total%3600)/60), s=total%60;
+  return (h>0? h+"h"+String(m).padStart(2,"0") : m+"'"+String(s).padStart(2,"0")+"\"");
+}
+function currentAllureVma(){
+  var input=document.getElementById("allureVma");
+  var v = input && input.value ? +input.value : (state.profile.vma||null);
+  return v||null;
+}
+function renderAllures(){
+  var input=document.getElementById("allureVma");
+  if(!input) return;
+  if(!input.value && state.profile.vma) input.value=state.profile.vma;
+  var vma=currentAllureVma();
+  var badge=document.getElementById("vmaSourceBadge");
+  if(badge) paintBadge(badge, vma? ("VMA "+vma+" km/h") : "VMA non renseignée", vma? "#2563EB" : null);
+  var hint=document.getElementById("allureVmaHint");
+  if(hint) hint.textContent = vma ? ("Vitesse maximale aérobie : "+vma+" km/h · allure VMA "+paceFromSpeed(vma)) : "Saisis ta VMA pour générer le tableau.";
+
+  var zb=document.getElementById("allureZonesBody");
+  zb.innerHTML = ALLURE_ZONES.map(function(z){
+    var lo=vma? round1(vma*z.lo/100):null, hi=vma? round1(vma*z.hi/100):null;
+    return '<tr><td><b>'+z.name+'</b></td><td>'+z.lo+'–'+z.hi+' %</td><td>'+(vma? lo+' – '+hi+' km/h':'—')+'</td><td>'+(vma? paceFromSpeed(hi)+' – '+paceFromSpeed(lo):'—')+'</td><td class="muted">'+z.use+'</td></tr>';
+  }).join("");
+
+  var th=document.getElementById("allureThresholds");
+  var sv1 = vma? round1(vma*0.75):null, sv2 = vma? round1(vma*0.87):null;
+  th.innerHTML =
+    '<div class="info-item"><span class="k">SV1 (seuil aérobie ≈ 75 % VMA)</span><span class="v">'+(vma? sv1+' km/h · '+paceFromSpeed(sv1):'—')+'</span></div>'+
+    '<div class="info-item"><span class="k">SV2 (seuil anaérobie ≈ 87 % VMA)</span><span class="v">'+(vma? sv2+' km/h · '+paceFromSpeed(sv2):'—')+'</span></div>'+
+    '<div class="info-item"><span class="k">Allure VMA (100 %)</span><span class="v">'+(vma? vma+' km/h · '+paceFromSpeed(vma):'—')+'</span></div>'+
+    '<div class="info-item"><span class="k">Temps de soutien VMA</span><span class="v">'+(vma? '4 – 6 min':'—')+'</span></div>';
+
+  var rb=document.getElementById("allureRacesBody");
+  rb.innerHTML = ALLURE_RACES.map(function(r){
+    var sp = vma? round1(vma*r.pct/100):null;
+    var time = sp? fmtDuration(r.dist/sp*60):"—";
+    return '<tr><td><b>'+r.name+'</b></td><td>'+r.pct+' %</td><td>'+(sp? paceFromSpeed(sp):'—')+'</td><td>'+(sp? sp+' km/h':'—')+'</td><td>'+time+'</td><td class="muted">'+r.hold+'</td></tr>';
+  }).join("");
+}
+(function initAllures(){
+  var input=document.getElementById("allureVma");
+  if(!input) return;
+  input.addEventListener("input", renderAllures);
+  var btn=document.getElementById("btnAllureSaveVma");
+  if(btn) btn.addEventListener("click", function(){
+    var v=input.value? +input.value : null;
+    state.profile.vma=v;
+    var pv=document.getElementById("profVma"); if(pv) pv.value=v||"";
+    saveData(true); renderAllures();
+  });
+})();
+
 function renderAll(){
+  renderAllures();
   renderKPIs();
   renderGoalBanner();
   renderWeekPanel();
