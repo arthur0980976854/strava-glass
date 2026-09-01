@@ -519,11 +519,10 @@
           </div>
           <div class="field">
             <label>Type de séance</label>
-            <div class="custom-select-wrap">
-              <select name="sessionType" id="sessType" class="custom-select"></select>
-              <span class="custom-select-arrow"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" width="10" height="10"><polyline points="2 4 6 8 10 4"/></svg></span>
-            </div>
+            <input type="text" name="sessionType" id="sessType" list="sessTypeList" autocomplete="off" placeholder="Endurance, VMA… ou texte libre">
+            <datalist id="sessTypeList"></datalist>
           </div>
+
           <div class="field" style="grid-column:span 2;">
             <label>Objectif</label>
             <input type="text" name="objective" placeholder="Ex : Travail VMA, endurance fondamentale…">
