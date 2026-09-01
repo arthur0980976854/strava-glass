@@ -10,6 +10,7 @@
       <button data-view="planification"><span class="n"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>Planification</button>
       <button data-view="statistiques"><span class="n"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg></span>Statistiques</button>
       <button data-view="realisees"><span class="n"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span>Séances réalisées</button>
+      <button data-view="allures"><span class="n"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg></span>Tableau d'allure</button>
       <button data-view="parametres"><span class="n"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>Paramètres</button>
       <button data-view="strava"><span class="n"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><polyline points="13 2 6 14 10 14 11 22 18 10 14 10 13 2"/></svg></span>intervals.icu</button>
     </nav>
@@ -332,6 +333,48 @@
           </div>
         </div>
         <div class="list" id="realiseesList"></div>
+      </div>
+    </section>
+
+    <!-- ================= TABLEAU D'ALLURE ================= -->
+    <section class="view" id="view-allures">
+      <div class="view-head"><div><h1>Tableau d'allure</h1><div class="sub">Zones et allures cibles calculées depuis la VMA</div></div></div>
+
+      <div class="panel">
+        <div class="week-panel-head">
+          <h3 class="block-title" style="margin:0;">Ta VMA</h3>
+          <div class="badges"><span class="cycle-badge" id="vmaSourceBadge">—</span></div>
+        </div>
+        <div class="vma-input-row">
+          <div class="field"><label>VMA (km/h)</label><input type="number" id="allureVma" min="5" max="30" step="0.1" placeholder="16.5"></div>
+          <button class="btn" id="btnAllureSaveVma">Enregistrer dans le profil</button>
+        </div>
+        <div class="sub" id="allureVmaHint">Saisis ta VMA pour générer le tableau.</div>
+      </div>
+
+      <div class="panel">
+        <h3 class="block-title">Zones d'intensité</h3>
+        <div class="table-scroll">
+          <table class="zones-table allure-table">
+            <thead><tr><th>Zone</th><th>% VMA</th><th>Vitesse</th><th>Allure</th><th>Usage</th></tr></thead>
+            <tbody id="allureZonesBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3 class="block-title">Seuils ventilatoires</h3>
+        <div class="info-grid" id="allureThresholds"></div>
+      </div>
+
+      <div class="panel">
+        <h3 class="block-title">Allures cibles de compétition</h3>
+        <div class="table-scroll">
+          <table class="zones-table allure-table">
+            <thead><tr><th>Distance</th><th>% VMA</th><th>Allure</th><th>Vitesse</th><th>Temps estimé</th><th>Temps de soutien</th></tr></thead>
+            <tbody id="allureRacesBody"></tbody>
+          </table>
+        </div>
       </div>
     </section>
 
