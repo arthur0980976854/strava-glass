@@ -125,11 +125,11 @@ export function PlannerShell() {
               <div className="timeline-wrap">
                 <div className="timeline" id="timeline">
                   <div className="tl-months" id="tlMonths" />
-                  <div className="tl-level-label">Cycles</div>
+                  <div className="tl-level-label">Macrocycles</div>
                   <div className="tl-lanes" id="tlLanesCycles" />
-                  <div className="tl-level-label">Sous-cycles</div>
+                  <div className="tl-level-label">Mésocycles</div>
                   <div className="tl-lanes" id="tlLanesSub" />
-                  <div className="tl-level-label">Sous-sous-cycles</div>
+                  <div className="tl-level-label">Microcycles</div>
                   <div className="tl-lanes" id="tlLanesSubSub" />
                 </div>
               </div>
@@ -177,10 +177,10 @@ export function PlannerShell() {
                 <div className="list" id="goalsList" style={{ marginTop: 12 }} />
               </div>
               <div className="panel">
-                <h3 className="block-title">Ajouter / modifier un cycle</h3>
+                <h3 className="block-title">Ajouter / modifier un macrocycle</h3>
                 <div className="edit-mode-hint" id="cycleEditHint">Modification en cours — <a href="#" id="cancelCycleEdit" style={{ color: "#92650a" }}>annuler</a></div>
                 <div className="form-grid c3">
-                  <div className="field"><label>Type de cycle</label>
+                  <div className="field"><label>Type de macrocycle</label>
                     <div className="custom-select-wrap">
                       <select id="cycleType" className="custom-select">
                         <option value="base">Base</option>
@@ -193,35 +193,35 @@ export function PlannerShell() {
                       <span className="custom-select-arrow"><ChevronDown /></span>
                     </div>
                   </div>
-                  <div className="field" id="cycleLabelField" style={{ display: "none" }}><label>Nom du cycle</label><input type="text" id="cycleLabel" list="customCycleNamesList" placeholder="Ex : Stage altitude" /></div>
+                  <div className="field" id="cycleLabelField" style={{ display: "none" }}><label>Nom du macrocycle</label><input type="text" id="cycleLabel" list="customCycleNamesList" placeholder="Ex : Stage altitude" /></div>
                   <div className="field"><label>Début</label><input type="date" id="cycleStart" /></div>
                   <div className="field"><label>Fin</label><input type="date" id="cycleEnd" /></div>
                 </div>
-                <div className="form-actions"><span /><div className="right"><button className="btn primary" id="btnAddCycle">Ajouter le cycle</button></div></div>
+                <div className="form-actions"><span /><div className="right"><button className="btn primary" id="btnAddCycle">Ajouter le macrocycle</button></div></div>
                 <div className="cycle-list" id="cycleList" />
                 <datalist id="customCycleNamesList" />
               </div>
               <div className="panel">
-                <h3 className="block-title">Ajouter / modifier un sous-cycle</h3>
+                <h3 className="block-title">Ajouter / modifier un mésocycle</h3>
                 <div className="edit-mode-hint" id="subEditHint">Modification en cours — <a href="#" id="cancelSubEdit" style={{ color: "#92650a" }}>annuler</a></div>
                 <div className="form-grid c3">
-                  <div className="field"><label>Cycle parent</label>
+                  <div className="field"><label>Macrocycle parent</label>
                     <div className="custom-select-wrap"><select id="subParentCycle" className="custom-select" /><span className="custom-select-arrow"><ChevronDown /></span></div>
                   </div>
-                  <div className="field"><label>Nom du sous-cycle</label><input type="text" id="subName" placeholder="Ex : Bloc 4 semaines" /></div>
+                  <div className="field"><label>Nom du mésocycle</label><input type="text" id="subName" placeholder="Ex : Bloc 4 semaines" /></div>
                   <div className="field"><label>Durée (semaines)</label><input type="number" id="subWeeks" min={1} defaultValue={4} /></div>
                   <div className="field"><label>Début</label><input type="date" id="subStart" /></div>
                   <div className="field" style={{ gridColumn: "span 2" }}><label>Objectif de la semaine</label><input type="text" id="subObjective" placeholder="Ex : 60 km · 2 séances qualité" /></div>
                   <div className="field"><label>Objectif hebdo (km)</label><input type="number" id="subObjectiveKm" min={0} step={1} placeholder="60" /></div>
                 </div>
-                <div className="form-actions"><span /><div className="right"><button className="btn primary" id="btnAddSub">Ajouter le sous-cycle</button></div></div>
+                <div className="form-actions"><span /><div className="right"><button className="btn primary" id="btnAddSub">Ajouter le mésocycle</button></div></div>
                 <div className="subcycle-list" id="subList" />
               </div>
               <div className="panel">
-                <h3 className="block-title">Diviser un sous-cycle (sous-sous-cycles)</h3>
+                <h3 className="block-title">Diviser un mésocycle (microcycles)</h3>
                 <div className="edit-mode-hint" id="subsubEditHint">Modification en cours — <a href="#" id="cancelSubSubEdit" style={{ color: "#92650a" }}>annuler</a></div>
                 <div className="form-grid c3">
-                  <div className="field"><label>Sous-cycle parent</label>
+                  <div className="field"><label>Mésocycle parent</label>
                     <div className="custom-select-wrap"><select id="subsubParentSub" className="custom-select" /><span className="custom-select-arrow"><ChevronDown /></span></div>
                   </div>
                   <div className="field"><label>Nom</label><input type="text" id="subsubName" placeholder="Ex : Semaine de charge" /></div>
@@ -335,6 +335,45 @@ export function PlannerShell() {
                 </div>
               </div>
               <div className="list" id="realiseesList" />
+            </div>
+          </section>
+
+
+          {/* Tableau d'allure */}
+          <section className="view" id="view-allures">
+            <div className="view-head"><div><h1>Tableau d'allure</h1><div className="sub">Zones et allures cibles calculées depuis la VMA</div></div></div>
+            <div className="panel">
+              <div className="week-panel-head">
+                <h3 className="block-title" style={{ margin: 0 }}>Ta VMA</h3>
+                <div className="badges"><span className="cycle-badge" id="vmaSourceBadge">—</span></div>
+              </div>
+              <div className="vma-input-row">
+                <div className="field"><label>VMA (km/h)</label><input type="number" id="allureVma" min={5} max={30} step={0.1} placeholder="16.5" /></div>
+                <button className="btn" id="btnAllureSaveVma">Enregistrer dans le profil</button>
+              </div>
+              <div className="sub" id="allureVmaHint">Saisis ta VMA pour générer le tableau.</div>
+            </div>
+            <div className="panel">
+              <h3 className="block-title">Zones d'intensité</h3>
+              <div className="table-scroll">
+                <table className="zones-table allure-table">
+                  <thead><tr><th>Zone</th><th>% VMA</th><th>Vitesse</th><th>Allure</th><th>Usage</th></tr></thead>
+                  <tbody id="allureZonesBody" />
+                </table>
+              </div>
+            </div>
+            <div className="panel">
+              <h3 className="block-title">Seuils ventilatoires</h3>
+              <div className="info-grid" id="allureThresholds" />
+            </div>
+            <div className="panel">
+              <h3 className="block-title">Allures cibles de compétition</h3>
+              <div className="table-scroll">
+                <table className="zones-table allure-table">
+                  <thead><tr><th>Distance</th><th>% VMA</th><th>Allure</th><th>Vitesse</th><th>Temps estimé</th><th>Temps de soutien</th></tr></thead>
+                  <tbody id="allureRacesBody" />
+                </table>
+              </div>
             </div>
           </section>
 
@@ -508,7 +547,7 @@ export function PlannerShell() {
                   <div className="custom-select-wrap"><select name="sport" id="sessSport" className="custom-select" required /><span className="custom-select-arrow"><ChevronDown /></span></div>
                 </div>
                 <div className="field"><label>Type de séance</label>
-                  <div className="custom-select-wrap"><select name="sessionType" id="sessType" className="custom-select" /><span className="custom-select-arrow"><ChevronDown /></span></div>
+                  <input type="text" name="sessionType" id="sessType" list="sessTypeList" autoComplete="off" placeholder="Ex : Sortie longue" /><datalist id="sessTypeList" />
                 </div>
                 <div className="field" style={{ gridColumn: "span 2" }}><label>Objectif</label><input type="text" name="objective" placeholder="Ex : Travail VMA, endurance fondamentale…" /></div>
                 <div className="field" style={{ gridColumn: "span 2" }}><label>Description / détail</label><textarea name="detail" placeholder="Ex : 10×400m R2', 3 séries de 10 squats, sortie Z2 60min…" style={{ minHeight: 72 }} /></div>
