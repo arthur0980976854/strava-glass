@@ -1432,3 +1432,76 @@ h1, h2, h3, h4 { letter-spacing: -0.02em; }
   .seg-row .seg-int{ grid-area:int; }
   .seg-del{ grid-area:del; }
 }
+
+/* ---------- Calendrier : cases à dimensions strictes ---------- */
+#view-planification .month-grid .day-cell,
+#view-realisees .month-grid .day-cell,
+#view-dashboard .week-grid .day-cell {
+  height: 146px;
+  min-height: 146px;
+  max-height: 146px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+#view-planification .month-grid .day-cell > .dh,
+#view-realisees .month-grid .day-cell > .dh,
+#view-dashboard .week-grid .day-cell > .dh { flex: 0 0 auto; }
+#view-planification .month-grid .day-cell .day-body,
+#view-realisees .month-grid .day-cell .day-body,
+#view-dashboard .week-grid .day-cell .day-body { flex: 0 0 auto; }
+#view-planification .month-grid .day-cell > .pill,
+#view-realisees .month-grid .day-cell > .pill,
+#view-dashboard .week-grid .day-cell > .pill { flex: 0 0 auto; }
+#view-planification .month-grid .day-cell,
+#view-realisees .month-grid .day-cell,
+#view-dashboard .week-grid .day-cell { overflow-y: auto; scrollbar-width: thin; }
+
+/* Objectif de semaine dans la case du lundi */
+.day-obj {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 2px 0 4px;
+  padding: 3px 6px;
+  border-radius: 8px;
+  font-size: 10.5px;
+  line-height: 1.2;
+  font-weight: 600;
+  color: #0b3b6f;
+  background: linear-gradient(135deg, rgba(10, 132, 255, 0.16), rgba(94, 92, 230, 0.14));
+  border: 1px solid rgba(10, 132, 255, 0.22);
+}
+.day-obj .ot {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- Tableau d'allure ---------- */
+.allure-table { width: 100%; }
+.allure-table th,
+.allure-table td {
+  padding: 8px 10px;
+  font-size: 13px;
+  text-align: left;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+}
+.allure-table th {
+  font-family: var(--font-display);
+  font-weight: 600;
+  color: var(--text-muted, #64748b);
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.allure-table tbody tr:last-child td { border-bottom: none; }
+.allure-table td b { font-family: var(--font-mono, var(--font-display)); }
+.allure-zone-dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: middle;
+}

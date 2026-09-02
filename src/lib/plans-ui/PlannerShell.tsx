@@ -41,6 +41,7 @@ export function PlannerShell() {
             <NavItem view="planification" icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>} label="Planification" />
             <NavItem view="statistiques" icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>} label="Statistiques" />
             <NavItem view="realisees" icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>} label="Séances réalisées" />
+            <NavItem view="allures" icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>} label="Tableau d'allure" />
             <NavItem view="parametres" icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0 .33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>} label="Paramètres" />
             <NavItem view="strava" icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16"><polyline points="13 2 6 14 10 14 11 22 18 10 14 10 13 2"/></svg>} label="COROS" />
           </nav>
@@ -63,27 +64,36 @@ export function PlannerShell() {
         <main id="content">
           {/* Dashboard */}
           <section className="view active" id="view-dashboard">
-            <div className="view-head">
-              <div><h1>Tableau de bord</h1><div className="sub" id="dashDateRange" /></div>
-              <div className="month-nav">
-                <button id="dashWeekPrev">‹</button>
-                <button className="btn small" id="dashWeekToday">Aujourd'hui</button>
-                <button id="dashWeekNext">›</button>
+            <div className="view-head dash-head">
+              <div className="dash-head-title"><h1>Tableau de bord</h1><div className="sub" id="dashDateRange" /></div>
+              <div className="dash-head-cards">
+                <div className="panel goal-banner" id="goalBanner" />
+                <div className="panel week-objective-panel" id="weekObjectivePanel">
+                  <div className="wo-label">Objectif de la semaine</div>
+                  <div className="wo-value" id="weekObjectiveBig">—</div>
+                  <div className="wo-hint" id="weekObjectiveHint" />
+                </div>
               </div>
             </div>
-            <div className="panel goal-banner" id="goalBanner" />
-            <div className="panel week-objective-panel" id="weekObjectivePanel">
-              <div className="wo-label">Objectif de la semaine</div>
-              <div className="wo-value" id="weekObjectiveBig">—</div>
-              <div className="wo-hint" id="weekObjectiveHint" />
-            </div>
             <div className="grid cols-4" id="kpiGrid" style={{ marginBottom: 16 }} />
+            <div className="panel">
+              <div className="week-panel-head">
+                <h3 className="block-title" style={{ margin: 0 }}>Distance &amp; D+ par sport — semaine</h3>
+                <div className="badges"><button className="btn small" id="btnSportGroups">⛓ Groupes de sports</button></div>
+              </div>
+              <div className="sport-counter-grid" id="sportCounters" />
+            </div>
             <div className="panel" id="weekPanelBox">
               <div className="week-panel-head">
                 <h3 className="block-title" style={{ margin: 0 }}>Semaine en cours</h3>
                 <div className="badges">
                   <span className="cycle-badge" id="currentCycleBadge">—</span>
                   <span className="cycle-badge" id="currentSubBadge" style={{ display: "none" }}>—</span>
+                  <div className="month-nav">
+                    <button id="dashWeekPrev">‹</button>
+                    <button className="btn small" id="dashWeekToday">Aujourd'hui</button>
+                    <button id="dashWeekNext">›</button>
+                  </div>
                 </div>
               </div>
               <div className="cw-row" id="cycleWeeksRow" />
@@ -93,13 +103,6 @@ export function PlannerShell() {
                 <span><i className="legend-sw planned" />Séance planifiée</span>
                 <span><i className="legend-sw cycle" />Barre du haut = cycle en cours ce jour-là</span>
               </div>
-            </div>
-            <div className="panel">
-              <div className="week-panel-head">
-                <h3 className="block-title" style={{ margin: 0 }}>Distance &amp; D+ par sport — semaine</h3>
-                <div className="badges"><button className="btn small" id="btnSportGroups">⛓ Groupes de sports</button></div>
-              </div>
-              <div className="sport-counter-grid" id="sportCounters" />
             </div>
             <div className="panel">
               <div className="week-panel-head">
@@ -113,6 +116,7 @@ export function PlannerShell() {
             </div>
           </section>
 
+
           {/* Planification */}
           <section className="view" id="view-planification">
             <div className="view-head"><div><h1>Planification</h1><div className="sub">Timeline de saison &amp; calendrier</div></div></div>
@@ -121,11 +125,11 @@ export function PlannerShell() {
               <div className="timeline-wrap">
                 <div className="timeline" id="timeline">
                   <div className="tl-months" id="tlMonths" />
-                  <div className="tl-level-label">Cycles</div>
+                  <div className="tl-level-label">Macrocycles</div>
                   <div className="tl-lanes" id="tlLanesCycles" />
-                  <div className="tl-level-label">Sous-cycles</div>
+                  <div className="tl-level-label">Mésocycles</div>
                   <div className="tl-lanes" id="tlLanesSub" />
-                  <div className="tl-level-label">Sous-sous-cycles</div>
+                  <div className="tl-level-label">Microcycles</div>
                   <div className="tl-lanes" id="tlLanesSubSub" />
                 </div>
               </div>
@@ -173,10 +177,10 @@ export function PlannerShell() {
                 <div className="list" id="goalsList" style={{ marginTop: 12 }} />
               </div>
               <div className="panel">
-                <h3 className="block-title">Ajouter / modifier un cycle</h3>
+                <h3 className="block-title">Ajouter / modifier un macrocycle</h3>
                 <div className="edit-mode-hint" id="cycleEditHint">Modification en cours — <a href="#" id="cancelCycleEdit" style={{ color: "#92650a" }}>annuler</a></div>
                 <div className="form-grid c3">
-                  <div className="field"><label>Type de cycle</label>
+                  <div className="field"><label>Type de macrocycle</label>
                     <div className="custom-select-wrap">
                       <select id="cycleType" className="custom-select">
                         <option value="base">Base</option>
@@ -189,35 +193,35 @@ export function PlannerShell() {
                       <span className="custom-select-arrow"><ChevronDown /></span>
                     </div>
                   </div>
-                  <div className="field" id="cycleLabelField" style={{ display: "none" }}><label>Nom du cycle</label><input type="text" id="cycleLabel" list="customCycleNamesList" placeholder="Ex : Stage altitude" /></div>
+                  <div className="field" id="cycleLabelField" style={{ display: "none" }}><label>Nom du macrocycle</label><input type="text" id="cycleLabel" list="customCycleNamesList" placeholder="Ex : Stage altitude" /></div>
                   <div className="field"><label>Début</label><input type="date" id="cycleStart" /></div>
                   <div className="field"><label>Fin</label><input type="date" id="cycleEnd" /></div>
                 </div>
-                <div className="form-actions"><span /><div className="right"><button className="btn primary" id="btnAddCycle">Ajouter le cycle</button></div></div>
+                <div className="form-actions"><span /><div className="right"><button className="btn primary" id="btnAddCycle">Ajouter le macrocycle</button></div></div>
                 <div className="cycle-list" id="cycleList" />
                 <datalist id="customCycleNamesList" />
               </div>
               <div className="panel">
-                <h3 className="block-title">Ajouter / modifier un sous-cycle</h3>
+                <h3 className="block-title">Ajouter / modifier un mésocycle</h3>
                 <div className="edit-mode-hint" id="subEditHint">Modification en cours — <a href="#" id="cancelSubEdit" style={{ color: "#92650a" }}>annuler</a></div>
                 <div className="form-grid c3">
-                  <div className="field"><label>Cycle parent</label>
+                  <div className="field"><label>Macrocycle parent</label>
                     <div className="custom-select-wrap"><select id="subParentCycle" className="custom-select" /><span className="custom-select-arrow"><ChevronDown /></span></div>
                   </div>
-                  <div className="field"><label>Nom du sous-cycle</label><input type="text" id="subName" placeholder="Ex : Bloc 4 semaines" /></div>
+                  <div className="field"><label>Nom du mésocycle</label><input type="text" id="subName" placeholder="Ex : Bloc 4 semaines" /></div>
                   <div className="field"><label>Durée (semaines)</label><input type="number" id="subWeeks" min={1} defaultValue={4} /></div>
                   <div className="field"><label>Début</label><input type="date" id="subStart" /></div>
                   <div className="field" style={{ gridColumn: "span 2" }}><label>Objectif de la semaine</label><input type="text" id="subObjective" placeholder="Ex : 60 km · 2 séances qualité" /></div>
                   <div className="field"><label>Objectif hebdo (km)</label><input type="number" id="subObjectiveKm" min={0} step={1} placeholder="60" /></div>
                 </div>
-                <div className="form-actions"><span /><div className="right"><button className="btn primary" id="btnAddSub">Ajouter le sous-cycle</button></div></div>
+                <div className="form-actions"><span /><div className="right"><button className="btn primary" id="btnAddSub">Ajouter le mésocycle</button></div></div>
                 <div className="subcycle-list" id="subList" />
               </div>
               <div className="panel">
-                <h3 className="block-title">Diviser un sous-cycle (sous-sous-cycles)</h3>
+                <h3 className="block-title">Diviser un mésocycle (microcycles)</h3>
                 <div className="edit-mode-hint" id="subsubEditHint">Modification en cours — <a href="#" id="cancelSubSubEdit" style={{ color: "#92650a" }}>annuler</a></div>
                 <div className="form-grid c3">
-                  <div className="field"><label>Sous-cycle parent</label>
+                  <div className="field"><label>Mésocycle parent</label>
                     <div className="custom-select-wrap"><select id="subsubParentSub" className="custom-select" /><span className="custom-select-arrow"><ChevronDown /></span></div>
                   </div>
                   <div className="field"><label>Nom</label><input type="text" id="subsubName" placeholder="Ex : Semaine de charge" /></div>
@@ -331,6 +335,45 @@ export function PlannerShell() {
                 </div>
               </div>
               <div className="list" id="realiseesList" />
+            </div>
+          </section>
+
+
+          {/* Tableau d'allure */}
+          <section className="view" id="view-allures">
+            <div className="view-head"><div><h1>Tableau d'allure</h1><div className="sub">Zones et allures cibles calculées depuis la VMA</div></div></div>
+            <div className="panel">
+              <div className="week-panel-head">
+                <h3 className="block-title" style={{ margin: 0 }}>Ta VMA</h3>
+                <div className="badges"><span className="cycle-badge" id="vmaSourceBadge">—</span></div>
+              </div>
+              <div className="vma-input-row">
+                <div className="field"><label>VMA (km/h)</label><input type="number" id="allureVma" min={5} max={30} step={0.1} placeholder="16.5" /></div>
+                <button className="btn" id="btnAllureSaveVma">Enregistrer dans le profil</button>
+              </div>
+              <div className="sub" id="allureVmaHint">Saisis ta VMA pour générer le tableau.</div>
+            </div>
+            <div className="panel">
+              <h3 className="block-title">Zones d'intensité</h3>
+              <div className="table-scroll">
+                <table className="zones-table allure-table">
+                  <thead><tr><th>Zone</th><th>% VMA</th><th>Vitesse</th><th>Allure</th><th>Usage</th></tr></thead>
+                  <tbody id="allureZonesBody" />
+                </table>
+              </div>
+            </div>
+            <div className="panel">
+              <h3 className="block-title">Seuils ventilatoires</h3>
+              <div className="info-grid" id="allureThresholds" />
+            </div>
+            <div className="panel">
+              <h3 className="block-title">Allures cibles de compétition</h3>
+              <div className="table-scroll">
+                <table className="zones-table allure-table">
+                  <thead><tr><th>Distance</th><th>% VMA</th><th>Allure</th><th>Vitesse</th><th>Temps estimé</th><th>Temps de soutien</th></tr></thead>
+                  <tbody id="allureRacesBody" />
+                </table>
+              </div>
             </div>
           </section>
 
@@ -504,7 +547,7 @@ export function PlannerShell() {
                   <div className="custom-select-wrap"><select name="sport" id="sessSport" className="custom-select" required /><span className="custom-select-arrow"><ChevronDown /></span></div>
                 </div>
                 <div className="field"><label>Type de séance</label>
-                  <div className="custom-select-wrap"><select name="sessionType" id="sessType" className="custom-select" /><span className="custom-select-arrow"><ChevronDown /></span></div>
+                  <input type="text" name="sessionType" id="sessType" list="sessTypeList" autoComplete="off" placeholder="Ex : Sortie longue" /><datalist id="sessTypeList" />
                 </div>
                 <div className="field" style={{ gridColumn: "span 2" }}><label>Objectif</label><input type="text" name="objective" placeholder="Ex : Travail VMA, endurance fondamentale…" /></div>
                 <div className="field" style={{ gridColumn: "span 2" }}><label>Description / détail</label><textarea name="detail" placeholder="Ex : 10×400m R2', 3 séries de 10 squats, sortie Z2 60min…" style={{ minHeight: 72 }} /></div>
