@@ -63,27 +63,36 @@ export function PlannerShell() {
         <main id="content">
           {/* Dashboard */}
           <section className="view active" id="view-dashboard">
-            <div className="view-head">
-              <div><h1>Tableau de bord</h1><div className="sub" id="dashDateRange" /></div>
-              <div className="month-nav">
-                <button id="dashWeekPrev">‹</button>
-                <button className="btn small" id="dashWeekToday">Aujourd'hui</button>
-                <button id="dashWeekNext">›</button>
+            <div className="view-head dash-head">
+              <div className="dash-head-title"><h1>Tableau de bord</h1><div className="sub" id="dashDateRange" /></div>
+              <div className="dash-head-cards">
+                <div className="panel goal-banner" id="goalBanner" />
+                <div className="panel week-objective-panel" id="weekObjectivePanel">
+                  <div className="wo-label">Objectif de la semaine</div>
+                  <div className="wo-value" id="weekObjectiveBig">—</div>
+                  <div className="wo-hint" id="weekObjectiveHint" />
+                </div>
               </div>
             </div>
-            <div className="panel goal-banner" id="goalBanner" />
-            <div className="panel week-objective-panel" id="weekObjectivePanel">
-              <div className="wo-label">Objectif de la semaine</div>
-              <div className="wo-value" id="weekObjectiveBig">—</div>
-              <div className="wo-hint" id="weekObjectiveHint" />
-            </div>
             <div className="grid cols-4" id="kpiGrid" style={{ marginBottom: 16 }} />
+            <div className="panel">
+              <div className="week-panel-head">
+                <h3 className="block-title" style={{ margin: 0 }}>Distance &amp; D+ par sport — semaine</h3>
+                <div className="badges"><button className="btn small" id="btnSportGroups">⛓ Groupes de sports</button></div>
+              </div>
+              <div className="sport-counter-grid" id="sportCounters" />
+            </div>
             <div className="panel" id="weekPanelBox">
               <div className="week-panel-head">
                 <h3 className="block-title" style={{ margin: 0 }}>Semaine en cours</h3>
                 <div className="badges">
                   <span className="cycle-badge" id="currentCycleBadge">—</span>
                   <span className="cycle-badge" id="currentSubBadge" style={{ display: "none" }}>—</span>
+                  <div className="month-nav">
+                    <button id="dashWeekPrev">‹</button>
+                    <button className="btn small" id="dashWeekToday">Aujourd'hui</button>
+                    <button id="dashWeekNext">›</button>
+                  </div>
                 </div>
               </div>
               <div className="cw-row" id="cycleWeeksRow" />
@@ -96,13 +105,6 @@ export function PlannerShell() {
             </div>
             <div className="panel">
               <div className="week-panel-head">
-                <h3 className="block-title" style={{ margin: 0 }}>Distance &amp; D+ par sport — semaine</h3>
-                <div className="badges"><button className="btn small" id="btnSportGroups">⛓ Groupes de sports</button></div>
-              </div>
-              <div className="sport-counter-grid" id="sportCounters" />
-            </div>
-            <div className="panel">
-              <div className="week-panel-head">
                 <h3 className="block-title" style={{ margin: 0 }}>Répartition par intensité — semaine</h3>
                 <div className="badges"><span className="cycle-badge" id="intensityObjBadge">—</span></div>
               </div>
@@ -112,6 +114,7 @@ export function PlannerShell() {
               </div>
             </div>
           </section>
+
 
           {/* Planification */}
           <section className="view" id="view-planification">
