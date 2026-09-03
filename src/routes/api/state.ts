@@ -86,3 +86,15 @@ export const Route = createFileRoute("/api/state")({
     },
   },
 });
+
+/** True when a saved state carries no user content worth keeping. */
+function isEmptyState(value: string | null): boolean {
+  if (!value) return true;
+  try {
+    const d = JSON.parse(value) as Record<string, unknown>;
+    const lists = ["sessions", "cycles", "subcycles", "subsubcycles", "seasonGoals", "sessionTemplates"];
+    return !lists.some((k) => Array.isArray(d[k]) && (d[k] as unknown[]).length > 0);
+  } catch {
+    return true;
+  }
+}
