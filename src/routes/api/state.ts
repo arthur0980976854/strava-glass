@@ -26,6 +26,28 @@ export const Route = createFileRoute("/api/state")({
             });
             value = rs.rows[0] ? (rs.rows[0]["data"] as string) : null;
           }
+
+          // Recovery: a brand-new session (new browser/cookie) would otherwise
+          // start empty even though the athlete already entered a full plan.
+          // When the current state holds nothing, adopt the most recent
+          // non-empty saved state and keep it under this session. Never
+          // overwrites an existing non-empty state.
+          if (isEmptyState(value)) {
+            const rs = await getDb().execute(
+              "SELECT session_id, data FROM app_state ORDER BY updated_at DESC",
+            );
+            const found = rs.rows.find((r) => !isEmptyState(r["data"] as string));
+            if (found) {
+              value = found["data"] as string;
+              if (!email) {
+                await getDb().execute({
+                  sql: `INSERT INTO app_state (session_id, data, updated_at) VALUES (?, ?, ?)
+                        ON CONFLICT(session_id) DO UPDATE SET data=excluded.data, updated_at=excluded.updated_at`,
+                  args: [id, value, Date.now()],
+                });
+              }
+            }
+          }
           return new Response(JSON.stringify({ value }), { headers });
         } catch (error) {
           return new Response(
@@ -64,3 +86,15 @@ export const Route = createFileRoute("/api/state")({
     },
   },
 });
+
+/** True when a saved state carries no user content worth keeping. */
+function isEmptyState(value: string | null): boolean {
+  if (!value) return true;
+  try {
+    const d = JSON.parse(value) as Record<string, unknown>;
+    const lists = ["sessions", "cycles", "subcycles", "subsubcycles", "seasonGoals", "sessionTemplates"];
+    return !lists.some((k) => Array.isArray(d[k]) && (d[k] as unknown[]).length > 0);
+  } catch {
+    return true;
+  }
+}
