@@ -449,6 +449,8 @@ function renderWeekPanel(){
     var head=document.createElement("div"); head.className="dh";
     head.innerHTML="<span>"+DAY_LABELS[i]+"</span><b>"+d.getDate()+"</b>";
     cell.appendChild(head);
+    var body=document.createElement("div"); body.className="day-body";
+    cell.appendChild(body);
     state.sessions.filter(function(s){return s.date===dISO;}).forEach(function(s){
       body.appendChild(makePill(s));
     });
@@ -1469,7 +1471,7 @@ function renderMonthGrid(gridEl, cursor, labelEl, cycleBadgeEl){
     var body=document.createElement("div"); body.className="day-body";
     cell.appendChild(body);
     state.sessions.filter(function(s){return s.date===dISO;}).forEach(function(s){
-      cell.appendChild(makePill(s));
+      body.appendChild(makePill(s));
     });
     cell.addEventListener("click", function(){ openSessionModal(null, dISO); });
     gridEl.appendChild(cell);
