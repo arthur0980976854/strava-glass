@@ -1625,6 +1625,24 @@ function weekAgg(weeks, doneSessions){
     return {km:+km.toFixed(1),metres:Math.round(metres),deniv:Math.round(deniv),duree:+duree.toFixed(2),charge:Math.round(charge),rpe:+rpe.toFixed(1),plaisir:plaisir,count:inW.length};
   });
 }
+
+/** Per-week aggregation split by sport: returns array of {sportName -> {km, metres, deniv, count}}. */
+function weekSportAgg(weeks, doneSessions){
+  return weeks.map(function(w){
+    var inW=doneSessions.filter(function(s){var d=parseISO(s.date);return d>=w.start&&d<=w.end;});
+    var bySport={};
+    inW.forEach(function(s){
+      var sp=s.sport||"Autre";
+      if(!bySport[sp]) bySport[sp]={km:0,metres:0,deniv:0,count:0};
+      bySport[sp].count++;
+      if(isSwim(sp)) bySport[sp].metres += (s.actual&&s.actual.distance)||0;
+      else bySport[sp].km += (s.actual&&s.actual.distance)||0;
+      bySport[sp].deniv += (s.actual&&s.actual.elevation)||0;
+    });
+    return bySport;
+  });
+}
+
 /* Décrit ce qui est réellement mesuré pour un sport donné */
 function statsMetricFor(sportName){
   if(sportName==="all") return {key:"km",label:"Distance",unit:" km",elev:true};
