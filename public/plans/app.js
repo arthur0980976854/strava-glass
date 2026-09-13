@@ -505,9 +505,42 @@ document.querySelectorAll(".sess-spin-btn").forEach(function(btn){
     v=Math.min(max, Math.max(min, Math.round((v+delta)/step)*step));
     inp.value=v;
     if(name==="bpmAvg") updateBpmZoneHint();
-    if(name==="duration") updateDeltaHint();
+    if(name==="duration"){ updateDeltaHint(); recalcSessionRPE(); }
+    if(name==="charge"){ chargeManuallyEdited=true; updateChargeCalcHint(); }
   });
 });
+
+/* --- Charge via méthode session-RPE (Foster) : durée (min) × RPE (0-10) --- */
+
+var chargeManuallyEdited = false;
+function sessionRPELoad(durationMin, rpe){
+  var d = +durationMin || 0, r = +rpe || 0;
+  return (d > 0 && r > 0) ? Math.round(d * r) : 0;
+}
+function updateChargeCalcHint(){
+  var hint = document.getElementById("chargeCalcHint");
+  if(!hint) return;
+  var duration = sessForm.duration ? +sessForm.duration.value || 0 : 0;
+  var rpeSliderEl = document.getElementById("rpeSlider");
+  var rpe = rpeSliderEl ? +rpeSliderEl.value || 0 : 0;
+  var computed = sessionRPELoad(duration, rpe);
+  var link = document.getElementById("chargeRecalcBtn");
+  if(chargeManuallyEdited){
+    if(link) link.textContent = "↺ recalculer (session-RPE : " + (computed || "–") + " UA)";
+  } else {
+    if(link) link.textContent = "= " + duration + " min × RPE " + rpe + " (session-RPE)";
+  }
+}
+function recalcSessionRPE(force){
+  if(chargeManuallyEdited && !force) { updateChargeCalcHint(); return; }
+  var duration = sessForm.duration ? +sessForm.duration.value || 0 : 0;
+  var rpeSliderEl = document.getElementById("rpeSlider");
+  var rpe = rpeSliderEl ? +rpeSliderEl.value || 0 : 0;
+  var chargeInput = document.getElementById("chargeInput");
+  if(chargeInput) chargeInput.value = sessionRPELoad(duration, rpe) || "";
+  chargeManuallyEdited = false;
+  updateChargeCalcHint();
+}
 
 // Sliders init & sync
 function initSlider(sliderId, valId){

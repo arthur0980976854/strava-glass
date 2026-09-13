@@ -614,13 +614,16 @@
             <span class="hint" id="bpmZoneHint"></span>
           </div>
           <div class="field">
-            <label>Charge (TSS)</label>
+            <label title="Méthode session-RPE (Foster) : durée × RPE. Se recalcule automatiquement, modifiable à la main.">Charge (session-RPE)</label>
             <div class="sess-spinner-wrap">
               <button type="button" class="sess-spin-btn" data-target="charge" data-delta="-5">−</button>
-              <input type="number" name="charge" class="sess-spin-input" min="0" max="500" step="5">
-              <span class="sess-spin-unit">tss</span>
+              <input type="number" name="charge" id="chargeInput" class="sess-spin-input" min="0" max="5000" step="5">
+              <span class="sess-spin-unit">UA</span>
               <button type="button" class="sess-spin-btn" data-target="charge" data-delta="5">+</button>
             </div>
+            <span class="hint" id="chargeCalcHint">
+              <a href="#" id="chargeRecalcBtn">↺ recalculer (durée × RPE)</a>
+            </span>
           </div>
         </div>
 
