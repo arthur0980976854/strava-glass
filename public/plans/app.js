@@ -505,9 +505,42 @@ document.querySelectorAll(".sess-spin-btn").forEach(function(btn){
     v=Math.min(max, Math.max(min, Math.round((v+delta)/step)*step));
     inp.value=v;
     if(name==="bpmAvg") updateBpmZoneHint();
-    if(name==="duration") updateDeltaHint();
+    if(name==="duration"){ updateDeltaHint(); recalcSessionRPE(); }
+    if(name==="charge"){ chargeManuallyEdited=true; updateChargeCalcHint(); }
   });
 });
+
+/* --- Charge via méthode session-RPE (Foster) : durée (min) × RPE (0-10) --- */
+
+var chargeManuallyEdited = false;
+function sessionRPELoad(durationMin, rpe){
+  var d = +durationMin || 0, r = +rpe || 0;
+  return (d > 0 && r > 0) ? Math.round(d * r) : 0;
+}
+function updateChargeCalcHint(){
+  var hint = document.getElementById("chargeCalcHint");
+  if(!hint) return;
+  var duration = sessForm.duration ? +sessForm.duration.value || 0 : 0;
+  var rpeSliderEl = document.getElementById("rpeSlider");
+  var rpe = rpeSliderEl ? +rpeSliderEl.value || 0 : 0;
+  var computed = sessionRPELoad(duration, rpe);
+  var link = document.getElementById("chargeRecalcBtn");
+  if(chargeManuallyEdited){
+    if(link) link.textContent = "↺ recalculer (session-RPE : " + (computed || "–") + " UA)";
+  } else {
+    if(link) link.textContent = "= " + duration + " min × RPE " + rpe + " (session-RPE)";
+  }
+}
+function recalcSessionRPE(force){
+  if(chargeManuallyEdited && !force) { updateChargeCalcHint(); return; }
+  var duration = sessForm.duration ? +sessForm.duration.value || 0 : 0;
+  var rpeSliderEl = document.getElementById("rpeSlider");
+  var rpe = rpeSliderEl ? +rpeSliderEl.value || 0 : 0;
+  var chargeInput = document.getElementById("chargeInput");
+  if(chargeInput) chargeInput.value = sessionRPELoad(duration, rpe) || "";
+  chargeManuallyEdited = false;
+  updateChargeCalcHint();
+}
 
 // Sliders init & sync
 function initSlider(sliderId, valId){
@@ -520,6 +553,16 @@ function initSlider(sliderId, valId){
 }
 initSlider("rpeSlider","rpeVal");
 initSlider("plaisirSlider","plaisirVal");
+
+(function(){
+  var rpeSliderEl=document.getElementById("rpeSlider");
+  if(rpeSliderEl) rpeSliderEl.addEventListener("input", function(){ recalcSessionRPE(); });
+  if(sessForm && sessForm.duration) sessForm.duration.addEventListener("input", function(){ recalcSessionRPE(); });
+  var chargeInputEl=document.getElementById("chargeInput");
+  if(chargeInputEl) chargeInputEl.addEventListener("input", function(){ chargeManuallyEdited=true; updateChargeCalcHint(); });
+  var chargeRecalcBtnEl=document.getElementById("chargeRecalcBtn");
+  if(chargeRecalcBtnEl) chargeRecalcBtnEl.addEventListener("click", function(e){ e.preventDefault(); recalcSessionRPE(true); });
+})();
 
 function fillSelect(sel, values, currentVal){
   sel.innerHTML="";
@@ -880,6 +923,13 @@ function openSessionModal(session, presetDate){
   }
   if(document.getElementById("rpeVal")) document.getElementById("rpeVal").textContent = rpeSlider?rpeSlider.value:"5";
   if(document.getElementById("plaisirVal")) document.getElementById("plaisirVal").textContent = plaisirSlider?plaisirSlider.value:"7";
+  if(session && session.actual && session.actual.charge){
+    var computedExisting = sessionRPELoad(session.actual.duration, session.actual.rpe);
+    chargeManuallyEdited = (session.actual.charge !== computedExisting);
+  } else {
+    chargeManuallyEdited = false;
+  }
+  updateChargeCalcHint();
   renderSportFields(session?session.sport:(document.getElementById("sessSport").value), session&&session.actual?session.actual:null);
   updateSessIntensityUI(session?session.sport:(document.getElementById("sessSport").value), session);
   updatePaceCalc();
