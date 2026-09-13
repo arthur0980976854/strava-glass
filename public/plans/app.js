@@ -554,6 +554,16 @@ function initSlider(sliderId, valId){
 initSlider("rpeSlider","rpeVal");
 initSlider("plaisirSlider","plaisirVal");
 
+(function(){
+  var rpeSliderEl=document.getElementById("rpeSlider");
+  if(rpeSliderEl) rpeSliderEl.addEventListener("input", function(){ recalcSessionRPE(); });
+  if(sessForm && sessForm.duration) sessForm.duration.addEventListener("input", function(){ recalcSessionRPE(); });
+  var chargeInputEl=document.getElementById("chargeInput");
+  if(chargeInputEl) chargeInputEl.addEventListener("input", function(){ chargeManuallyEdited=true; updateChargeCalcHint(); });
+  var chargeRecalcBtnEl=document.getElementById("chargeRecalcBtn");
+  if(chargeRecalcBtnEl) chargeRecalcBtnEl.addEventListener("click", function(e){ e.preventDefault(); recalcSessionRPE(true); });
+})();
+
 function fillSelect(sel, values, currentVal){
   sel.innerHTML="";
   values.forEach(function(v){var o=document.createElement("option");o.value=v;o.textContent=v;sel.appendChild(o);});
@@ -913,6 +923,13 @@ function openSessionModal(session, presetDate){
   }
   if(document.getElementById("rpeVal")) document.getElementById("rpeVal").textContent = rpeSlider?rpeSlider.value:"5";
   if(document.getElementById("plaisirVal")) document.getElementById("plaisirVal").textContent = plaisirSlider?plaisirSlider.value:"7";
+  if(session && session.actual && session.actual.charge){
+    var computedExisting = sessionRPELoad(session.actual.duration, session.actual.rpe);
+    chargeManuallyEdited = (session.actual.charge !== computedExisting);
+  } else {
+    chargeManuallyEdited = false;
+  }
+  updateChargeCalcHint();
   renderSportFields(session?session.sport:(document.getElementById("sessSport").value), session&&session.actual?session.actual:null);
   updateSessIntensityUI(session?session.sport:(document.getElementById("sessSport").value), session);
   updatePaceCalc();
