@@ -1667,13 +1667,16 @@ function baseOptions(extra){
 function renderSportThumbs(){
   var doneSessions=state.sessions.filter(function(s){return s.status==="done";});
   var wrap=document.getElementById("sportThumbs"); wrap.innerHTML="";
-  state.sports.forEach(function(sp){
+  var sportSel=document.getElementById("statsSportFilter");
+  [{name:"Tous les sports",color:"#0A84FF",value:"all"}].concat(state.sports.map(function(sp){return {name:sp.name,color:sp.color,value:sp.name};})).forEach(function(sp){
     var list=doneSessions.filter(function(s){return s.sport===sp.name;});
-    var km=list.reduce(function(a,s){return a+((s.actual&&s.actual.distance)||0);},0);
-    var h=list.reduce(function(a,s){return a+((s.actual&&s.actual.duration)||0);},0)/60;
-    var card=document.createElement("div"); card.className="sport-thumb";
-    card.style.borderTopColor=sp.color;
-    card.innerHTML='<div class="st-name" style="color:'+sp.color+'">'+escapeHtml(sp.name)+'</div><div class="st-stats">'+list.length+' séances · '+h.toFixed(1)+'h'+(km?' · '+km.toFixed(0)+'km':'')+'</div>';
+    var card=document.createElement("button");
+    card.type="button";
+    card.className="sport-thumb stats-sport-tab"+(sportSel.value===sp.value?" active":"");
+    card.style.setProperty("--sport-color",sp.color);
+    card.setAttribute("aria-pressed",sportSel.value===sp.value?"true":"false");
+    card.innerHTML='<span class="stats-sport-dot"></span><span class="st-name">'+escapeHtml(sp.name)+'</span>';
+    card.addEventListener("click",function(){ sportSel.value=sp.value; renderStats(); });
     wrap.appendChild(card);
   });
 }
@@ -1704,7 +1707,7 @@ function renderStats(){
   var dsList=[], scalesMain, chartTitle, statsText;
 
   if(sportFilterVal==="all"){
-    /* Mode "Tous les sports" : empile les distances et les D+ par sport */
+    /* Mode "Tous les sports" : une courbe colorée par sport */
     var aggBySport = weekSportAgg(weeksForCycle, filteredDone);
     var sportsPresent = state.sports.map(function(sp){return sp.name;}).filter(function(name){
       return aggBySport.some(function(w){ return !!w[name]; });
@@ -1718,12 +1721,18 @@ function renderStats(){
       var key = isSw ? "metres" : (isMusc ? "count" : "km");
       var unit = isSw ? " m" : (isMusc ? "" : " km");
       dsList.push({
-        type:"bar",
+        type:"line",
         label: spName + (unit?" ("+unit.trim()+")":""),
         data: aggBySport.map(function(w){ return (w[spName] && w[spName][key]) || 0; }),
-        backgroundColor: color,
-        borderRadius: 3,
-        stack: "dist",
+        borderColor: color,
+        backgroundColor: color+"20",
+        fill:false,
+        tension:.32,
+        pointRadius:4,
+        pointHoverRadius:7,
+        pointBackgroundColor:"#FFFFFF",
+        pointBorderColor:color,
+        pointBorderWidth:2,
         yAxisID: "y"
       });
       if(anyElev && !isSw && !isMusc){
@@ -1733,11 +1742,12 @@ function renderStats(){
           data: aggBySport.map(function(w){ return (w[spName] && w[spName].deniv) || 0; }),
           borderColor: color,
           backgroundColor: color,
-          borderDash:[4,4],
-          tension:.2,
-          pointRadius:2,
-          pointBackgroundColor:color,
-          stack:"deniv",
+          borderDash:[5,5],
+          tension:.32,
+          pointRadius:3,
+          pointHoverRadius:6,
+          pointBackgroundColor:"#FFFFFF",
+          pointBorderColor:color,
           yAxisID:"y1"
         });
       }
@@ -1745,11 +1755,11 @@ function renderStats(){
 
     scalesMain = {
       x:{grid:{display:false},ticks:{color:"#94A3B8",font:{family:"IBM Plex Mono",size:9}}},
-      y:{position:"left",stacked:true,title:{display:true,text:"Distance",color:"#64748B",font:{family:"Inter",size:10}},grid:{color:"rgba(15,23,42,0.06)"},ticks:{color:"#64748B",font:{family:"IBM Plex Mono",size:10},callback:function(v){return v;}},beginAtZero:true}
+      y:{position:"left",title:{display:false},grid:{color:"rgba(15,23,42,0.07)"},ticks:{color:"#64748B",font:{family:"IBM Plex Mono",size:10},callback:function(v){return v;}},beginAtZero:true}
     };
-    if(anyElev) scalesMain.y1={position:"right",stacked:true,title:{display:true,text:"D+ (m)",color:"#64748B",font:{family:"Inter",size:10}},grid:{display:false},ticks:{color:"#64748B",font:{family:"IBM Plex Mono",size:10},callback:function(v){return v+" m";}},beginAtZero:true};
+    if(anyElev) scalesMain.y1={position:"right",title:{display:false},grid:{display:false},ticks:{color:"#64748B",font:{family:"IBM Plex Mono",size:10},callback:function(v){return v+" m";}},beginAtZero:true};
 
-    chartTitle = "Distance & D+ par sport — semaine";
+    chartTitle = "Tous les sports";
 
     /* Texte de synthèse par sport */
     var totalsBySport={};
@@ -1766,15 +1776,16 @@ function renderStats(){
   } else {
     /* Mode sport unique : comportement original */
     var mainData = aggCycle.map(function(a){ return a[metric.key]; });
-    var dsMain = {type:"bar",label:metric.label+(metric.unit?" ("+metric.unit.trim()+")":""),data:mainData,backgroundColor:"#2563EB",borderRadius:4,yAxisID:"y"};
+    var activeColor=sportColor(sportFilterVal);
+    var dsMain = {type:"line",label:metric.label+(metric.unit?" ("+metric.unit.trim()+")":""),data:mainData,borderColor:activeColor,backgroundColor:activeColor+"20",fill:true,tension:.32,pointRadius:4,pointHoverRadius:7,pointBackgroundColor:"#FFFFFF",pointBorderColor:activeColor,pointBorderWidth:2,yAxisID:"y"};
     dsList=[dsMain];
-    if(metric.elev) dsList.push({type:"line",label:"D+ (m)",data:aggCycle.map(function(a){return a.deniv;}),borderColor:"#F97316",backgroundColor:"transparent",tension:.3,pointRadius:2,yAxisID:"y1"});
+    if(metric.elev) dsList.push({type:"line",label:"D+ (m)",data:aggCycle.map(function(a){return a.deniv;}),borderColor:"#FF9F0A",backgroundColor:"transparent",borderDash:[5,5],tension:.32,pointRadius:3,pointHoverRadius:6,pointBackgroundColor:"#FFFFFF",pointBorderColor:"#FF9F0A",yAxisID:"y1"});
     scalesMain={
       x:{grid:{display:false},ticks:{color:"#94A3B8",font:{family:"IBM Plex Mono",size:9}}},
       y:{position:"left",title:{display:true,text:metric.label+(metric.unit?" ("+metric.unit.trim()+")":""),color:"#64748B",font:{family:"Inter",size:10}},grid:{color:"rgba(15,23,42,0.06)"},ticks:{color:"#64748B",font:{family:"IBM Plex Mono",size:10},callback:function(v){return v+metric.unit;}},beginAtZero:true}
     };
     if(metric.elev) scalesMain.y1={position:"right",title:{display:true,text:"D+ (m)",color:"#64748B",font:{family:"Inter",size:10}},grid:{display:false},ticks:{color:"#64748B",font:{family:"IBM Plex Mono",size:10},callback:function(v){return v+" m";}},beginAtZero:true};
-    chartTitle = metric.key==="count" ? "Séances par semaine" : (metric.elev ? "Distance (km) & dénivelé par semaine" : "Distance (m) par semaine");
+    chartTitle = sportFilterVal;
     statsText = metric.label+" — "+statLine(mainData,metric.unit)+(metric.elev? "   ·   D+ — "+statLine(aggCycle.map(function(a){return a.deniv;})," m") : "");
   }
 
@@ -1782,14 +1793,27 @@ function renderStats(){
     data:{ labels:weeksForCycle.map(function(w){return w.label;}), datasets:dsList },
     options:Object.assign(baseOptions({legend:true}),{
       scales:scalesMain,
-      plugins:{legend:{display:true,position:"bottom",labels:{color:"#64748B",font:{family:"Inter",size:11},boxWidth:10,padding:10}},
+      interaction:{mode:"index",intersect:false},
+      plugins:{legend:{display:true,position:"bottom",labels:{usePointStyle:true,pointStyle:"circle",color:"#64748B",font:{family:"Inter",size:11},boxWidth:8,padding:14}},
         tooltip:{callbacks:{label:function(c){
           var unit = c.dataset.yAxisID==="y1" ? " m" : (c.dataset.label.includes("(m)") ? " m" : (c.dataset.label.includes("km") ? " km" : ""));
           return c.dataset.label+" : "+c.parsed.y+unit;
         }}}}
     })
   });
-  document.getElementById("statsKmDenivStats").textContent = statsText;
+  var rangeStart=weeksForCycle[0]&&weeksForCycle[0].start;
+  var rangeEnd=weeksForCycle.length&&weeksForCycle[weeksForCycle.length-1].end;
+  var periodSessions=filteredDone.filter(function(s){var d=parseISO(s.date);return rangeStart&&rangeEnd&&d>=rangeStart&&d<=rangeEnd;});
+  var totalDuration=periodSessions.reduce(function(a,s){return a+((s.actual&&s.actual.duration)||0);},0);
+  var totalElevation=periodSessions.reduce(function(a,s){return a+((s.actual&&s.actual.elevation)||0);},0);
+  var totalDistance=periodSessions.reduce(function(a,s){return a+((s.actual&&s.actual.distance)||0);},0);
+  var distanceUnit=isSwim(sportFilterVal)?" m":(/muscu|renfo|gainage/i.test(sportFilterVal)?" séances":" km");
+  if(sportFilterVal==="all") totalDistance=periodSessions.filter(function(s){return !isSwim(s.sport)&&!/muscu|renfo|gainage/i.test(s.sport);}).reduce(function(a,s){return a+((s.actual&&s.actual.distance)||0);},0);
+  if(/muscu|renfo|gainage/i.test(sportFilterVal)) totalDistance=periodSessions.length;
+  document.getElementById("statsKmDenivStats").textContent = weeksForCycle.length+" semaines affichées";
+  document.getElementById("statsDistanceTotal").textContent = (distanceUnit===" séances"?totalDistance:totalDistance.toLocaleString("fr-FR",{maximumFractionDigits:1}))+distanceUnit;
+  document.getElementById("statsDurationTotal").textContent = fmtMin(totalDuration);
+  document.getElementById("statsElevationTotal").textContent = metric.elev||sportFilterVal==="all" ? Math.round(totalElevation).toLocaleString("fr-FR")+" m" : "—";
   var titleEl=document.getElementById("statsKmDenivTitle");
   if(titleEl) titleEl.textContent = chartTitle;
   var period=+document.getElementById("statsTimePeriod").value;

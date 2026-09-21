@@ -237,8 +237,7 @@ export function PlannerShell() {
           {/* Statistiques */}
           <section className="view" id="view-statistiques">
             <div className="view-head"><div><h1>Statistiques</h1><div className="sub">Graphiques &amp; analyse</div></div></div>
-            <div className="sport-thumbs" id="sportThumbs" />
-            <div className="panel">
+            <div className="panel stats-performance-card">
               <div className="filters">
                 <div className="custom-select-wrap">
                   <select id="statsSportFilter" className="custom-select"><option value="all">Tous les sports</option></select>
@@ -249,9 +248,28 @@ export function PlannerShell() {
                   <span className="custom-select-arrow"><ChevronDown /></span>
                 </div>
               </div>
-              <h3 className="block-title" id="statsKmDenivTitle">Distance &amp; dénivelé par semaine</h3>
-              <div className="chart-stats" id="statsKmDenivStats" />
-              <div className="chart-box"><canvas id="chartCycleKmDeniv" /></div>
+              <div className="sport-thumbs stats-sport-tabs" id="sportThumbs" />
+              <div className="stats-performance-head">
+                <div>
+                  <h3 className="stats-performance-title" id="statsKmDenivTitle">Activité par semaine</h3>
+                  <div className="stats-performance-period" id="statsKmDenivStats" />
+                </div>
+                <div className="stats-performance-metrics" aria-label="Résumé de la période">
+                  <div className="stats-performance-metric">
+                    <span>Distance</span>
+                    <strong id="statsDistanceTotal">—</strong>
+                  </div>
+                  <div className="stats-performance-metric">
+                    <span>Temps</span>
+                    <strong id="statsDurationTotal">—</strong>
+                  </div>
+                  <div className="stats-performance-metric">
+                    <span>Dénivelé positif</span>
+                    <strong id="statsElevationTotal">—</strong>
+                  </div>
+                </div>
+              </div>
+              <div className="chart-box stats-performance-chart"><canvas id="chartCycleKmDeniv" /></div>
             </div>
             <div className="panel">
               <div className="filters">
