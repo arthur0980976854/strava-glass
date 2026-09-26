@@ -1646,9 +1646,18 @@ function weekSportAgg(weeks, doneSessions){
 /* Décrit ce qui est réellement mesuré pour un sport donné */
 function statsMetricFor(sportName){
   if(sportName==="all") return {key:"km",label:"Distance",unit:" km",elev:true};
+  if(sportName==="run_outings") return {key:"km",label:"Distance",unit:" km",elev:true};
   if(isSwim(sportName)) return {key:"metres",label:"Distance",unit:" m",elev:false};
   if(/muscu|renfo|gainage/i.test(sportName)) return {key:"count",label:"Séances",unit:"",elev:false};
   return {key:"km",label:"Distance",unit:" km",elev:true};
+}
+
+function isStrengthSport(sportName){ return /muscu|renfo|gainage/i.test(sportName||""); }
+function isRunOutingSport(sportName){ return /course.*pied|trail/i.test(sportName||""); }
+function sessionsForStatsSport(doneSessions,sportName){
+  if(sportName==="all") return doneSessions;
+  if(sportName==="run_outings") return doneSessions.filter(function(s){return isRunOutingSport(s.sport);});
+  return doneSessions.filter(function(s){return s.sport===sportName;});
 }
 
 function drawChart(canvasId,config){
@@ -1668,8 +1677,7 @@ function renderSportThumbs(){
   var doneSessions=state.sessions.filter(function(s){return s.status==="done";});
   var wrap=document.getElementById("sportThumbs"); wrap.innerHTML="";
   var sportSel=document.getElementById("statsSportFilter");
-  [{name:"Tous les sports",color:"#0A84FF",value:"all"}].concat(state.sports.map(function(sp){return {name:sp.name,color:sp.color,value:sp.name};})).forEach(function(sp){
-    var list=doneSessions.filter(function(s){return s.sport===sp.name;});
+  [{name:"Tous les sports",color:"#0A84FF",value:"all"},{name:"Toutes les sorties course à pied",color:"#FF7A00",value:"run_outings"}].concat(state.sports.map(function(sp){return {name:sp.name,color:sp.color,value:sp.name};})).forEach(function(sp){
     var card=document.createElement("button");
     card.type="button";
     card.className="sport-thumb stats-sport-tab"+(sportSel.value===sp.value?" active":"");
@@ -1686,9 +1694,12 @@ function renderStats(){
   var doneSessions=state.sessions.filter(function(s){return s.status==="done";});
 
   var sportSel=document.getElementById("statsSportFilter");
-  if(sportSel.options.length<=1){ state.sports.forEach(function(sp){ var o=document.createElement("option"); o.value=sp.name; o.textContent=sp.name; sportSel.appendChild(o); }); }
+  if(sportSel.options.length<=1){
+    var runOption=document.createElement("option"); runOption.value="run_outings"; runOption.textContent="Toutes les sorties course à pied"; sportSel.appendChild(runOption);
+    state.sports.forEach(function(sp){ var o=document.createElement("option"); o.value=sp.name; o.textContent=sp.name; sportSel.appendChild(o); });
+  }
   var sportFilterVal=sportSel.value;
-  var filteredDone = sportFilterVal==="all" ? doneSessions : doneSessions.filter(function(s){return s.sport===sportFilterVal;});
+  var filteredDone = sessionsForStatsSport(doneSessions,sportFilterVal);
 
   var cycSel=document.getElementById("statsCycleFilter");
   var curVal=cycSel.value;
@@ -1707,86 +1718,26 @@ function renderStats(){
   var dsList=[], scalesMain, chartTitle, statsText;
 
   if(sportFilterVal==="all"){
-    /* Mode "Tous les sports" : une courbe colorée par sport */
-    var aggBySport = weekSportAgg(weeksForCycle, filteredDone);
-    var sportsPresent = state.sports.map(function(sp){return sp.name;}).filter(function(name){
-      return aggBySport.some(function(w){ return !!w[name]; });
-    });
-    var anyElev = sportsPresent.some(function(sp){ return !isSwim(sp) && !/muscu|renfo|gainage/i.test(sp); });
-
-    sportsPresent.forEach(function(spName){
-      var color = sportColor(spName);
-      var isSw = isSwim(spName);
-      var isMusc = /muscu|renfo|gainage/i.test(spName);
-      var key = isSw ? "metres" : (isMusc ? "count" : "km");
-      var unit = isSw ? " m" : (isMusc ? "" : " km");
-      dsList.push({
-        type:"line",
-        label: spName + (unit?" ("+unit.trim()+")":""),
-        data: aggBySport.map(function(w){ return (w[spName] && w[spName][key]) || 0; }),
-        borderColor: color,
-        backgroundColor: color+"20",
-        fill:false,
-        tension:.32,
-        pointRadius:4,
-        pointHoverRadius:7,
-        pointBackgroundColor:"#FFFFFF",
-        pointBorderColor:color,
-        pointBorderWidth:2,
-        yAxisID: "y"
-      });
-      if(anyElev && !isSw && !isMusc){
-        dsList.push({
-          type:"line",
-          label: spName + " D+ (m)",
-          data: aggBySport.map(function(w){ return (w[spName] && w[spName].deniv) || 0; }),
-          borderColor: color,
-          backgroundColor: color,
-          borderDash:[5,5],
-          tension:.32,
-          pointRadius:3,
-          pointHoverRadius:6,
-          pointBackgroundColor:"#FFFFFF",
-          pointBorderColor:color,
-          yAxisID:"y1"
-        });
-      }
-    });
-
+    /* Une seule courbe hebdomadaire, hors natation et sports de force. */
+    var distanceSessions=filteredDone.filter(function(s){return !isSwim(s.sport)&&!isStrengthSport(s.sport);});
+    var distanceAgg=weekAgg(weeksForCycle,distanceSessions);
+    dsList=[{type:"line",label:"Distance (km)",data:distanceAgg.map(function(a){return a.km;}),borderColor:"#0A84FF",backgroundColor:"#0A84FF20",fill:true,tension:.32,pointRadius:4,pointHoverRadius:7,pointBackgroundColor:"#FFFFFF",pointBorderColor:"#0A84FF",pointBorderWidth:2,yAxisID:"y"}];
     scalesMain = {
       x:{grid:{display:false},ticks:{color:"#94A3B8",font:{family:"IBM Plex Mono",size:9}}},
-      y:{position:"left",title:{display:false},grid:{color:"rgba(15,23,42,0.07)"},ticks:{color:"#64748B",font:{family:"IBM Plex Mono",size:10},callback:function(v){return v;}},beginAtZero:true}
+      y:{position:"left",title:{display:true,text:"Distance (km)",color:"#64748B",font:{family:"Inter",size:10}},grid:{color:"rgba(15,23,42,0.07)"},ticks:{color:"#64748B",font:{family:"IBM Plex Mono",size:10},callback:function(v){return v+" km";}},beginAtZero:true}
     };
-    if(anyElev) scalesMain.y1={position:"right",title:{display:false},grid:{display:false},ticks:{color:"#64748B",font:{family:"IBM Plex Mono",size:10},callback:function(v){return v+" m";}},beginAtZero:true};
-
     chartTitle = "Tous les sports";
-
-    /* Texte de synthèse par sport */
-    var totalsBySport={};
-    aggBySport.forEach(function(w){ Object.keys(w).forEach(function(sp){ if(!totalsBySport[sp]) totalsBySport[sp]={km:0,metres:0,deniv:0,count:0}; totalsBySport[sp].km+=w[sp].km; totalsBySport[sp].metres+=w[sp].metres; totalsBySport[sp].deniv+=w[sp].deniv; totalsBySport[sp].count+=w[sp].count; }); });
-    var totalKm = Object.values(totalsBySport).reduce(function(a,s){return a+s.km;},0);
-    var totalM = Object.values(totalsBySport).reduce(function(a,s){return a+s.metres;},0);
-    var totalD = Object.values(totalsBySport).reduce(function(a,s){return a+s.deniv;},0);
-    var sportLines = Object.keys(totalsBySport).map(function(sp){
-      var s=totalsBySport[sp];
-      var dist = isSwim(sp) ? (s.metres+" m") : (s.km.toFixed(1)+" km");
-      return sp + " : " + dist + (s.deniv?" · D+ "+Math.round(s.deniv)+" m":"");
-    }).join("  ·  ");
-    statsText = "Total : "+(totalKm?totalKm.toFixed(1)+" km":"")+(totalM?" / "+totalM+" m":"")+(totalD?" · D+ "+Math.round(totalD)+" m":"")+(sportLines?"   |   "+sportLines:"");
   } else {
-    /* Mode sport unique : comportement original */
+    /* Un sport, ou Course à pied + Trail : une seule courbe par semaine. */
     var mainData = aggCycle.map(function(a){ return a[metric.key]; });
-    var activeColor=sportColor(sportFilterVal);
+    var activeColor=sportFilterVal==="run_outings"?"#FF7A00":sportColor(sportFilterVal);
     var dsMain = {type:"line",label:metric.label+(metric.unit?" ("+metric.unit.trim()+")":""),data:mainData,borderColor:activeColor,backgroundColor:activeColor+"20",fill:true,tension:.32,pointRadius:4,pointHoverRadius:7,pointBackgroundColor:"#FFFFFF",pointBorderColor:activeColor,pointBorderWidth:2,yAxisID:"y"};
     dsList=[dsMain];
-    if(metric.elev) dsList.push({type:"line",label:"D+ (m)",data:aggCycle.map(function(a){return a.deniv;}),borderColor:"#FF9F0A",backgroundColor:"transparent",borderDash:[5,5],tension:.32,pointRadius:3,pointHoverRadius:6,pointBackgroundColor:"#FFFFFF",pointBorderColor:"#FF9F0A",yAxisID:"y1"});
     scalesMain={
       x:{grid:{display:false},ticks:{color:"#94A3B8",font:{family:"IBM Plex Mono",size:9}}},
       y:{position:"left",title:{display:true,text:metric.label+(metric.unit?" ("+metric.unit.trim()+")":""),color:"#64748B",font:{family:"Inter",size:10}},grid:{color:"rgba(15,23,42,0.06)"},ticks:{color:"#64748B",font:{family:"IBM Plex Mono",size:10},callback:function(v){return v+metric.unit;}},beginAtZero:true}
     };
-    if(metric.elev) scalesMain.y1={position:"right",title:{display:true,text:"D+ (m)",color:"#64748B",font:{family:"Inter",size:10}},grid:{display:false},ticks:{color:"#64748B",font:{family:"IBM Plex Mono",size:10},callback:function(v){return v+" m";}},beginAtZero:true};
-    chartTitle = sportFilterVal;
-    statsText = metric.label+" — "+statLine(mainData,metric.unit)+(metric.elev? "   ·   D+ — "+statLine(aggCycle.map(function(a){return a.deniv;})," m") : "");
+    chartTitle = sportFilterVal==="run_outings"?"Toutes les sorties course à pied":sportFilterVal;
   }
 
   drawChart("chartCycleKmDeniv",{
@@ -1794,9 +1745,9 @@ function renderStats(){
     options:Object.assign(baseOptions({legend:true}),{
       scales:scalesMain,
       interaction:{mode:"index",intersect:false},
-      plugins:{legend:{display:true,position:"bottom",labels:{usePointStyle:true,pointStyle:"circle",color:"#64748B",font:{family:"Inter",size:11},boxWidth:8,padding:14}},
+      plugins:{legend:{display:false},
         tooltip:{callbacks:{label:function(c){
-          var unit = c.dataset.yAxisID==="y1" ? " m" : (c.dataset.label.includes("(m)") ? " m" : (c.dataset.label.includes("km") ? " km" : ""));
+          var unit = c.dataset.label.includes("(m)") ? " m" : (c.dataset.label.includes("km") ? " km" : "");
           return c.dataset.label+" : "+c.parsed.y+unit;
         }}}}
     })
@@ -1805,11 +1756,12 @@ function renderStats(){
   var rangeEnd=weeksForCycle.length&&weeksForCycle[weeksForCycle.length-1].end;
   var periodSessions=filteredDone.filter(function(s){var d=parseISO(s.date);return rangeStart&&rangeEnd&&d>=rangeStart&&d<=rangeEnd;});
   var totalDuration=periodSessions.reduce(function(a,s){return a+((s.actual&&s.actual.duration)||0);},0);
-  var totalElevation=periodSessions.reduce(function(a,s){return a+((s.actual&&s.actual.elevation)||0);},0);
+  var elevationSessions=sportFilterVal==="all"?periodSessions.filter(function(s){return !isSwim(s.sport)&&!isStrengthSport(s.sport);}):periodSessions;
+  var totalElevation=elevationSessions.reduce(function(a,s){return a+((s.actual&&s.actual.elevation)||0);},0);
   var totalDistance=periodSessions.reduce(function(a,s){return a+((s.actual&&s.actual.distance)||0);},0);
-  var distanceUnit=isSwim(sportFilterVal)?" m":(/muscu|renfo|gainage/i.test(sportFilterVal)?" séances":" km");
-  if(sportFilterVal==="all") totalDistance=periodSessions.filter(function(s){return !isSwim(s.sport)&&!/muscu|renfo|gainage/i.test(s.sport);}).reduce(function(a,s){return a+((s.actual&&s.actual.distance)||0);},0);
-  if(/muscu|renfo|gainage/i.test(sportFilterVal)) totalDistance=periodSessions.length;
+  var distanceUnit=isSwim(sportFilterVal)?" m":(isStrengthSport(sportFilterVal)?" séances":" km");
+  if(sportFilterVal==="all") totalDistance=periodSessions.filter(function(s){return !isSwim(s.sport)&&!isStrengthSport(s.sport);}).reduce(function(a,s){return a+((s.actual&&s.actual.distance)||0);},0);
+  if(isStrengthSport(sportFilterVal)) totalDistance=periodSessions.length;
   document.getElementById("statsKmDenivStats").textContent = weeksForCycle.length+" semaines affichées";
   document.getElementById("statsDistanceTotal").textContent = (distanceUnit===" séances"?totalDistance:totalDistance.toLocaleString("fr-FR",{maximumFractionDigits:1}))+distanceUnit;
   document.getElementById("statsDurationTotal").textContent = fmtMin(totalDuration);
