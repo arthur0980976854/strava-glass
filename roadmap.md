@@ -2,4 +2,5 @@
 
 - [x] Tableau de bord : revenir à l'ordre d'affichage précédent
 - [x] Restaurer les données saisies avant les dernières modifications (reprise auto de l'état non vide le plus récent)
+- [x] Statistiques : courbe hebdomadaire unique, onglet Course à pied + Trail, D+ uniquement dans le résumé
 - [ ] Règle permanente : aucune modification du site ne doit effacer les données enregistrées (jamais de reset/drop, schéma en CREATE TABLE IF NOT EXISTS uniquement)
