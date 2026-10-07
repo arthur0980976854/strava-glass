@@ -1699,7 +1699,7 @@ function showWeekStatsPopup(week, sessions, sportFilterVal){
     +'</div>'
     +(rows?'<ul class="wsp-list">'+rows+'</ul>':'<p class="wsp-empty">Aucune séance réalisée cette semaine.</p>');
   pop.querySelector(".wsp-close").addEventListener("click",function(){ pop.remove(); });
-  host.appendChild(pop);
+  host.insertBefore(pop, host.firstChild);
 }
 function baseOptions(extra){
   return { responsive:true, maintainAspectRatio:false,

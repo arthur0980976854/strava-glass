@@ -349,7 +349,7 @@ nav#mainNav button.active {
 
 /* Panneau de détail hebdomadaire (clic sur un point du graphique) */
 .week-stats-pop {
-  position: absolute; inset: auto 8px 8px 8px; z-index: 5;
+  position: absolute; inset: 8px 8px auto 8px; z-index: 5;
   max-height: 82%; overflow: auto;
   background: rgba(255,255,255,0.92); backdrop-filter: blur(14px);
   border: 1px solid #E2E8F0; border-radius: 14px;
