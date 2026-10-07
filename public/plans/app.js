@@ -1665,6 +1665,42 @@ function drawChart(canvasId,config){
   if(charts[canvasId]) charts[canvasId].destroy();
   charts[canvasId]=new Chart(ctx,config);
 }
+
+/* Panneau de détail d'une semaine, ouvert au clic sur un point du graphique. */
+function showWeekStatsPopup(week, sessions, sportFilterVal){
+  if(!week) return;
+  var host=document.querySelector(".stats-performance-chart");
+  if(!host) return;
+  var old=host.querySelector(".week-stats-pop"); if(old) old.remove();
+  var inW=sessions.filter(function(s){var d=parseISO(s.date);return d>=week.start&&d<=week.end;});
+  var km=inW.filter(function(s){return !isSwim(s.sport)&&!isStrengthSport(s.sport);}).reduce(function(a,s){return a+((s.actual&&s.actual.distance)||0);},0);
+  var metres=inW.filter(function(s){return isSwim(s.sport);}).reduce(function(a,s){return a+((s.actual&&s.actual.distance)||0);},0);
+  var deniv=inW.reduce(function(a,s){return a+((s.actual&&s.actual.elevation)||0);},0);
+  var duree=inW.reduce(function(a,s){return a+((s.actual&&s.actual.duration)||0);},0);
+  var charge=inW.reduce(function(a,s){return a+((s.actual&&s.actual.charge)||0);},0);
+  var rpeVals=inW.map(function(s){return s.actual&&s.actual.rpe;}).filter(function(v){return v;});
+  var rpe=rpeVals.length? (rpeVals.reduce(function(a,b){return a+b;},0)/rpeVals.length).toFixed(1) : "—";
+  var title="Semaine du "+week.start.toLocaleDateString("fr-FR",{day:"numeric",month:"long"})+" au "+week.end.toLocaleDateString("fr-FR",{day:"numeric",month:"long"});
+  var rows=inW.slice().sort(function(a,b){return a.date.localeCompare(b.date);}).map(function(s){
+    var dist=isSwim(s.sport)? ((s.actual&&s.actual.distance)||0)+" m" : ((s.actual&&s.actual.distance)||0)+" km";
+    return '<li><span class="wsp-date">'+fmtShort(s.date)+'</span><span class="wsp-sport" style="color:'+sportColor(s.sport)+'">'+escapeHtml(s.sport||"Autre")+'</span><span class="wsp-val">'+dist+' · '+fmtMin((s.actual&&s.actual.duration)||0)+'</span></li>';
+  }).join("");
+  var pop=document.createElement("div");
+  pop.className="week-stats-pop";
+  pop.innerHTML='<div class="wsp-head"><strong>'+title+'</strong><button type="button" class="wsp-close" aria-label="Fermer">✕</button></div>'
+    +'<div class="wsp-grid">'
+    +'<div><span class="wsp-num">'+inW.length+'</span><span class="wsp-lab">Séances</span></div>'
+    +(km?'<div><span class="wsp-num">'+km.toLocaleString("fr-FR",{maximumFractionDigits:1})+' km</span><span class="wsp-lab">Distance</span></div>':"")
+    +(metres?'<div><span class="wsp-num">'+Math.round(metres).toLocaleString("fr-FR")+' m</span><span class="wsp-lab">Natation</span></div>':"")
+    +'<div><span class="wsp-num">'+Math.round(deniv).toLocaleString("fr-FR")+' m</span><span class="wsp-lab">D+</span></div>'
+    +'<div><span class="wsp-num">'+fmtMin(duree)+'</span><span class="wsp-lab">Durée</span></div>'
+    +'<div><span class="wsp-num">'+Math.round(charge)+'</span><span class="wsp-lab">Charge (UA)</span></div>'
+    +'<div><span class="wsp-num">'+rpe+'</span><span class="wsp-lab">RPE moyen</span></div>'
+    +'</div>'
+    +(rows?'<ul class="wsp-list">'+rows+'</ul>':'<p class="wsp-empty">Aucune séance réalisée cette semaine.</p>');
+  pop.querySelector(".wsp-close").addEventListener("click",function(){ pop.remove(); });
+  host.appendChild(pop);
+}
 function baseOptions(extra){
   return { responsive:true, maintainAspectRatio:false,
     plugins:{legend:{display:!!extra&&!!extra.legend,position:'bottom',labels:{color:"#64748B",font:{family:"Inter",size:11},boxWidth:10,padding:12}},
