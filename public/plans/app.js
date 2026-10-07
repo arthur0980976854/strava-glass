@@ -1745,6 +1745,12 @@ function renderStats(){
     options:Object.assign(baseOptions({legend:true}),{
       scales:scalesMain,
       interaction:{mode:"index",intersect:false},
+      onHover:function(evt,els){ if(evt&&evt.native&&evt.native.target) evt.native.target.style.cursor = els.length ? "pointer" : "default"; },
+      onClick:function(evt,els,chart){
+        var pts=chart.getElementsAtEventForMode(evt,"index",{intersect:false},true);
+        if(!pts.length) return;
+        showWeekStatsPopup(weeksForCycle[pts[0].index],filteredDone,sportFilterVal);
+      },
       plugins:{legend:{display:false},
         tooltip:{callbacks:{label:function(c){
           var unit = c.dataset.label.includes("(m)") ? " m" : (c.dataset.label.includes("km") ? " km" : "");
